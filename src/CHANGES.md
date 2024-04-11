@@ -2,6 +2,8 @@
 
 ## 0.8.110 - 2024-04-11
 * revert CMT2300A changes #1553
+* merged PR: fix closing tag #1584
+* add disable retain flag #1582
 
 ## 0.8.109 - 2024-04-09
 * fix hal patch

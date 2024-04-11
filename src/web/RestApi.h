@@ -710,6 +710,7 @@ class RestApi {
             obj[F("pwd")]        = (strlen(mConfig->mqtt.pwd) > 0) ? F("{PWD}") : String("");
             obj[F("topic")]      = String(mConfig->mqtt.topic);
             obj[F("interval")]   = String(mConfig->mqtt.interval);
+            obj[F("retain")]     = (bool)mConfig->mqtt.enableRetain;
         }
 
         void getNtp(JsonObject obj) {

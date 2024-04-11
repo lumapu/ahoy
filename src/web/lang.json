@@ -414,6 +414,11 @@
                     "de": "Wechselrichterdaten in fixem Intervall schicken, auch wenn es keine &Auml;nderung gab. Ein Wert von '0' deaktiviert das fixe Intervall, die Wechselrichterdaten werden &uuml;bertragen, sobald neue zur Verf&uuml;gung stehen. (Standard: 0)"
                 },
                 {
+                    "token": "RETAIN",
+                    "en": "enable retain flag",
+                    "de": "'Retain Flag' aktivieren"
+                },
+                {
                     "token": "DISPLAY_CONFIG",
                     "en": "Display Config",
                     "de": "Display Konfiguration"

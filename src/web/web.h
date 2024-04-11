@@ -583,6 +583,7 @@ class Web {
             request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
+            mConfig->mqtt.enableRetain = (request->arg("retain") == "on");
 
             // serial console
             mConfig->serial.debug = (request->arg("serDbg") == "on");

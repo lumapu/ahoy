@@ -165,6 +165,7 @@ typedef struct {
     char pwd[MQTT_PWD_LEN];
     char topic[MQTT_TOPIC_LEN];
     uint16_t interval;
+    bool enableRetain;
 } cfgMqtt_t;
 
 typedef struct {
@@ -490,6 +491,7 @@ class settings {
             snprintf(mCfg.mqtt.pwd,    MQTT_PWD_LEN,   "%s", DEF_MQTT_PWD);
             snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
             mCfg.mqtt.interval = 0; // off
+            mCfg.mqtt.enableRetain = true;
 
             mCfg.inst.sendInterval     = SEND_INTERVAL;
             mCfg.inst.rstYieldMidNight = false;
@@ -746,6 +748,7 @@ class settings {
                 obj[F("pwd")]      = mCfg.mqtt.pwd;
                 obj[F("topic")]    = mCfg.mqtt.topic;
                 obj[F("intvl")]    = mCfg.mqtt.interval;
+                obj[F("retain")]   = mCfg.mqtt.enableRetain;
 
             } else {
                 getVal<uint16_t>(obj, F("port"), &mCfg.mqtt.port);
@@ -755,6 +758,7 @@ class settings {
                 getChar(obj, F("clientId"), mCfg.mqtt.clientId, MQTT_CLIENTID_LEN);
                 getChar(obj, F("pwd"), mCfg.mqtt.pwd, MQTT_PWD_LEN);
                 getChar(obj, F("topic"), mCfg.mqtt.topic, MQTT_TOPIC_LEN);
+                getVal<bool>(obj, F("retain"), &mCfg.mqtt.enableRetain);
             }
         }
 
