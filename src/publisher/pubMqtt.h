@@ -257,14 +257,16 @@ class PubMqtt {
             tickerMinute();
             publish(mLwtTopic.data(), mqttStr[MQTT_STR_LWT_CONN], true, false);
 
-            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                snprintf(mVal.data(), mVal.size(), "ctrl/limit/%d", i);
-                subscribe(mVal.data(), QOS_2);
-                snprintf(mVal.data(), mVal.size(), "ctrl/restart/%d", i);
-                subscribe(mVal.data());
-                snprintf(mVal.data(), mVal.size(), "ctrl/power/%d", i);
-                subscribe(mVal.data());
-            }
+//            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+//                snprintf(mVal.data(), mVal.size(), "ctrl/limit/%d", i);
+//                subscribe(mVal.data(), QOS_2);
+//                snprintf(mVal.data(), mVal.size(), "ctrl/restart/%d", i);
+//                subscribe(mVal.data());
+//                snprintf(mVal.data(), mVal.size(), "ctrl/power/%d", i);
+//                subscribe(mVal.data());
+//            }
+            snprintf(mVal.data(), mVal.size(), "ctrl/#");
+            subscribe(mVal.data(), QOS_2);
             subscribe(subscr[MQTT_SUBS_SET_TIME]);
         }
 

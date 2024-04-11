@@ -64,7 +64,7 @@ class ZeroExport {
      * @todo emergency
      */
     void loop(void) {
-        mqttInitTopic();
+        ///        mqttInitTopic();
 
         if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
@@ -471,79 +471,162 @@ class ZeroExport {
      * @returns void
      */
     void onMqttMessage(JsonObject obj) {
-        if (!mIsInitialized) return;
+        ///        if (!mIsInitialized) return;
 
         String topic = String(obj["topic"]);
-        if (!topic.indexOf("/zero/set/")) return;
+        ///        if (!topic.indexOf("/zero/set/")) return;
+        if (topic.indexOf("ctrl/zero") == -1) return;
 
         mLog["t"] = "onMqttMessage";
+        if (mCfg->debug) mLog["d"] = obj;
 
-        if (obj["path"] == "zero" && obj["cmd"] == "set") {
+        if (obj["path"] == "ctrl" && obj["cmd"] == "zero") {
             int8_t topicGroup = getGroupFromTopic(topic.c_str());
-            mLog["topicGroup"] = topicGroup;
-            int8_t topicInverter = getInverterFromTopic(topic.c_str());
-            mLog["topicInverter"] = topicInverter;
-
-            if ((topicGroup == -1) && (topicInverter == -1)) {
-                // "topic":"???/zero/set/enabled"
-                if (topic.indexOf("/zero/set/enabled") != -1) {
-                    mCfg->enabled = (bool)obj["val"];
-                    mLog["mCfg->enabled"] = mCfg->enabled;
-                    // Initialize groups
-                    for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-                        mCfg->groups[group].state = zeroExportState::INIT;
-                        mCfg->groups[group].wait = 0;
-                    }
-                }
-                // "topic":"???/zero/set/sleep"
-                if (topic.indexOf("/zero/set/sleep") != -1) {
-                    mCfg->sleep = (bool)obj["val"];
-                    mLog["mCfg->sleep"] = mCfg->sleep;
-                }
-            } else if ((topicGroup != -1) && (topicInverter == -1)) {
-                // "topic":"???/zero/set/groups/0/???"
+            if (topicGroup != -1)
                 mLog["g"] = topicGroup;
-                // "topic":"???/zero/set/groups/0/enabled"
-                if (topic.indexOf("enabled") != -1) {
+            int8_t topicInverter = getInverterFromTopic(topic.c_str());
+            if (topicInverter == -1)
+                mLog["i"] = topicInverter;
+
+            // "topic":"ctrl/zero/enabled"
+            if (topic.indexOf("ctrl/zero/enabled") != -1) {
+                mCfg->enabled = (bool)obj["val"];
+                mLog["enabled"] = mCfg->enabled;
+                // Initialize groups
+                for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+                    mCfg->groups[group].state = zeroExportState::INIT;
+                    mCfg->groups[group].wait = 0;
+                }
+                return;
+            }
+
+            // "topic":"ctrl/zero/sleep"
+            if (topic.indexOf("/ctrl/zero/sleep") != -1) {
+                mCfg->sleep = (bool)obj["val"];
+                mLog["sleep"] = mCfg->sleep;
+                return;
+            }
+
+            if ((topicGroup >= 0) && (topicGroup < ZEROEXPORT_MAX_GROUPS)) {
+                // "topic":"ctrl/zero/groups/+/enabled"
+                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/enabled") != -1) {
                     mCfg->groups[topicGroup].enabled = (bool)obj["val"];
+                    mLog["g.enabled"] = mCfg->groups[topicGroup].enabled;
                     // Initialize group
                     mCfg->groups[topicGroup].state = zeroExportState::INIT;
                     mCfg->groups[topicGroup].wait = 0;
                 }
-                // "topic":"???/zero/set/groups/0/sleep"
-                if (topic.indexOf("sleep") != -1) {
+
+                // "topic":"ctrl/zero/groups/+/sleep"
+                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/sleep") != -1) {
                     mCfg->groups[topicGroup].sleep = (bool)obj["val"];
+                    mLog["g.sleep"] = mCfg->groups[topicGroup].sleep;
                 }
-                // "topic":"???/zero/set/groups/0/battery/switch"
-                if (topic.indexOf("battery/switch") != -1) {
+
+                // "topic":"ctrl/zero/groups/+/battery/switch"
+                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/battery/switch") != -1) {
                     mCfg->groups[topicGroup].battSwitch = (bool)obj["val"];
+                    mLog["g.battSwitch"] = mCfg->groups[topicGroup].battSwitch;
                 }
-                // "topic":"???/zero/set/groups/0/advanced/setPoint"
-                if (topic.indexOf("advanced/setPoint") != -1) {
+
+                // "topic":"ctrl/zero/groups/+/advanced/setPoint"
+                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/advanced/setPoint") != -1) {
                     mCfg->groups[topicGroup].setPoint = (int16_t)obj["val"];
+                    mLog["g.setPoint"] = mCfg->groups[topicGroup].setPoint;
                 }
-                // "topic":"???/zero/set/groups/0/advanced/powerTolerance"
-                if (topic.indexOf("advanced/powerTolerance") != -1) {
+
+                // "topic":"ctrl/zero/groups/+/advanced/powerTolerance"
+                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerTolerance") != -1) {
                     mCfg->groups[topicGroup].powerTolerance = (uint8_t)obj["val"];
+                    mLog["g.powerTolerance"] = mCfg->groups[topicGroup].powerTolerance;
                 }
-                // "topic":"???/zero/set/groups/0/advanced/powerMax"
-                if (topic.indexOf("advanced/powerMax") != -1) {
+
+                // "topic":"ctrl/zero/groups/+/advanced/powerMax"
+                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerMax") != -1) {
                     mCfg->groups[topicGroup].powerMax = (uint16_t)obj["val"];
+                    mLog["g.powerMax"] = mCfg->groups[topicGroup].powerMax;
                 }
-            } else if ((topicGroup != -1) && (topicInverter != -1)) {
-                // "topic":"???/zero/set/groups/0/inverter/0/enabled"
-                if (topic.indexOf("enabled") != -1) {
-                    mCfg->groups[topicGroup].inverters[topicInverter].enabled = (bool)obj["val"];
-                }
-                // "topic":"???/zero/set/groups/0/inverter/0/powerMin"
-                if (topic.indexOf("powerMin") != -1) {
-                    mCfg->groups[topicGroup].inverters[topicInverter].powerMin = (uint16_t)obj["val"];
-                }
-                // "topic":"???/zero/set/groups/0/inverter/0/powerMax"
-                if (topic.indexOf("powerMax") != -1) {
-                    mCfg->groups[topicGroup].inverters[topicInverter].powerMax = (uint16_t)obj["val"];
+
+                if ((topicInverter >= 0) && (topicInverter < ZEROEXPORT_GROUP_MAX_INVERTERS)) {
+                    // "topic":"ctrl/zero/groups/+/inverter/+/enabled"
+                    if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/inverter/" + String(topicInverter) + "/enabled") != -1) {
+                        mCfg->groups[topicGroup].inverters[topicInverter].enabled = (bool)obj["val"];
+                        mLog["g.i.enabled"] = mCfg->groups[topicGroup].inverters[topicInverter].enabled;
+                    }
+
+                    // "topic":"ctrl/zero/groups/+/inverter/+/powerMin"
+                    if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/inverter/" + String(topicInverter) + "/powerMin") != -1) {
+                        mCfg->groups[topicGroup].inverters[topicInverter].powerMin = (uint16_t)obj["val"];
+                        mLog["g.i.powerMin"] = mCfg->groups[topicGroup].inverters[topicInverter].powerMin;
+                    }
+
+                    // "topic":"ctrl/zero/groups/+/inverter/+/powerMax"
+                    if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/inverter/" + String(topicInverter) + "/powerMax") != -1) {
+                        mCfg->groups[topicGroup].inverters[topicInverter].powerMax = (uint16_t)obj["val"];
+                        mLog["g.i.powerMax"] = mCfg->groups[topicGroup].inverters[topicInverter].powerMax;
+                    }
                 }
             }
+            //            if ((topicGroup == -1) && (topicInverter == -1)) {
+            //                // "topic":"???/zero/set/enabled"
+            //                if (topic.indexOf("/zero/set/enabled") != -1) {
+            //                    mCfg->enabled = (bool)obj["val"];
+            //                    mLog["mCfg->enabled"] = mCfg->enabled;
+            //                    // Initialize groups
+            //                    for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            //                        mCfg->groups[group].state = zeroExportState::INIT;
+            //                        mCfg->groups[group].wait = 0;
+            //                    }
+            //                }
+            //                // "topic":"???/zero/set/sleep"
+            //                if (topic.indexOf("/zero/set/sleep") != -1) {
+            //                    mCfg->sleep = (bool)obj["val"];
+            //                    mLog["mCfg->sleep"] = mCfg->sleep;
+            //                }
+            //            } else if ((topicGroup != -1) && (topicInverter == -1)) {
+            //                // "topic":"???/zero/set/groups/0/???"
+            //                mLog["g"] = topicGroup;
+            //                // "topic":"???/zero/set/groups/0/enabled"
+            //                if (topic.indexOf("enabled") != -1) {
+            //                    mCfg->groups[topicGroup].enabled = (bool)obj["val"];
+            //                    // Initialize group
+            //                    mCfg->groups[topicGroup].state = zeroExportState::INIT;
+            //                    mCfg->groups[topicGroup].wait = 0;
+            //                }
+            //                // "topic":"???/zero/set/groups/0/sleep"
+            //                if (topic.indexOf("sleep") != -1) {
+            //                    mCfg->groups[topicGroup].sleep = (bool)obj["val"];
+            //                }
+            //                // "topic":"???/zero/set/groups/0/battery/switch"
+            //                if (topic.indexOf("battery/switch") != -1) {
+            //                    mCfg->groups[topicGroup].battSwitch = (bool)obj["val"];
+            //                }
+            //                // "topic":"???/zero/set/groups/0/advanced/setPoint"
+            //                if (topic.indexOf("advanced/setPoint") != -1) {
+            //                    mCfg->groups[topicGroup].setPoint = (int16_t)obj["val"];
+            //                }
+            //                // "topic":"???/zero/set/groups/0/advanced/powerTolerance"
+            //                if (topic.indexOf("advanced/powerTolerance") != -1) {
+            //                    mCfg->groups[topicGroup].powerTolerance = (uint8_t)obj["val"];
+            //                }
+            //                // "topic":"???/zero/set/groups/0/advanced/powerMax"
+            //                if (topic.indexOf("advanced/powerMax") != -1) {
+            //                    mCfg->groups[topicGroup].powerMax = (uint16_t)obj["val"];
+            //                }
+            //            } else if ((topicGroup != -1) && (topicInverter != -1)) {
+            //                // "topic":"???/zero/set/groups/0/inverter/0/enabled"
+            //                if (topic.indexOf("enabled") != -1) {
+            //                    mCfg->groups[topicGroup].inverters[topicInverter].enabled = (bool)obj["val"];
+            //                }
+            //                // "topic":"???/zero/set/groups/0/inverter/0/powerMin"
+            //                if (topic.indexOf("powerMin") != -1) {
+            //                    mCfg->groups[topicGroup].inverters[topicInverter].powerMin = (uint16_t)obj["val"];
+            //                }
+            //                // "topic":"???/zero/set/groups/0/inverter/0/powerMax"
+            //                if (topic.indexOf("powerMax") != -1) {
+            //                    mCfg->groups[topicGroup].inverters[topicInverter].powerMax = (uint16_t)obj["val"];
+            //                }
+            //            }
         }
 
 #if defined(ZEROEXPORT_POWERMETER_MQTT)
@@ -557,7 +640,6 @@ class ZeroExport {
         }
 #endif /*defined(ZEROEXPORT_POWERMETER_MQTT)*/
 
-        if (mCfg->debug) mLog["Msg"] = obj;
         sendLog();
         clearLog();
         return;
@@ -1116,12 +1198,12 @@ class ZeroExport {
         int32_t y2 = cfgGroup->y2;
         int32_t y3 = cfgGroup->y3;
 
-        if (cfgGroup->power > cfgGroup->powerMax) {
-            int32_t diff = cfgGroup->power - cfgGroup->powerMax;
-//            y = y - diff;
-//            y1 = y1 - (diff * y1 / y);
-//            y2 = y2 - (diff * y2 / y);
-//            y3 = y3 - (diff * y3 / y);
+        if ((cfgGroup->power + y) > cfgGroup->powerMax) {
+            int32_t diff = cfgGroup->power + y - cfgGroup->powerMax;
+            //            y = y - diff;
+            //            y1 = y1 - (diff * y1 / y);
+            //            y2 = y2 - (diff * y2 / y);
+            //            y3 = y3 - (diff * y3 / y);
             y = -diff;
             y1 = -(diff * y1 / y);
             y2 = -(diff * y2 / y);
@@ -1582,8 +1664,8 @@ class ZeroExport {
             if (mMqtt->isConnected()) {
                 String gr = "zero/state/groups/" + String(group) + "/inverters/" + String(inv);
                 mqttObj["enabled"] = cfgGroupInv->enabled;
-//                mqttObj["id"] = cfgGroupInv->id;
-//                mqttObj["target"] = cfgGroupInv->target;
+                //                mqttObj["id"] = cfgGroupInv->id;
+                //                mqttObj["target"] = cfgGroupInv->target;
                 mqttObj["powerMin"] = cfgGroupInv->powerMin;
                 mqttObj["powerMax"] = cfgGroupInv->powerMax;
                 mqttObj["power"] = cfgGroupInv->power;
