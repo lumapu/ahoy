@@ -92,7 +92,7 @@ class AhoyNetwork {
         #if !defined(ETHERNET)
         bool getAvailNetworks(JsonObject obj, IApp *app) {
             if(!mScanActive) {
-                app->addOnce([this]() {scan();}, 1, F("scan"));
+                app->addOnce([this]() {scan();}, 1, "scan");
                 return false;
             }
 
