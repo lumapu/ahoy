@@ -63,6 +63,7 @@ class AhoyWifiAp {
             #if defined(ETHERNET)
             WiFi.mode(WIFI_OFF);
             #else
+            WiFi.scanDelete();
             WiFi.mode(WIFI_STA);
             #endif
 

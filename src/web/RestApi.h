@@ -489,7 +489,9 @@ class RestApi {
 
         void getHtmlFactory(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
-            obj[F("html")] = F("Factory reset? <a class=\"btn\" href=\"/factorytrue\">yes</a> <a class=\"btn\" href=\"/\">no</a>");
+            char tmp[200];
+            snprintf(tmp, 200, "%s <a class=\"btn\" href=\"/factorytrue\">%s</a> <a class=\"btn\" href=\"/\">%s</a>", FACTORY_RESET, BTN_YES, BTN_NO);
+            obj[F("html")] = tmp;
         }
 
         void getHtmlFactoryTrue(AsyncWebServerRequest *request, JsonObject obj) {
@@ -712,6 +714,7 @@ class RestApi {
             obj[F("topic")]      = String(mConfig->mqtt.topic);
             obj[F("json")]       = (bool) mConfig->mqtt.json;
             obj[F("interval")]   = String(mConfig->mqtt.interval);
+            obj[F("retain")]     = (bool)mConfig->mqtt.enableRetain;
         }
 
         void getNtp(JsonObject obj) {

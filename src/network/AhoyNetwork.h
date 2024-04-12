@@ -90,12 +90,9 @@ class AhoyNetwork {
         }
 
         #if !defined(ETHERNET)
-        bool getAvailNetworks(JsonObject obj) {
+        bool getAvailNetworks(JsonObject obj, IApp *app) {
             if(!mScanActive) {
-                mScanActive = true;
-                if(NetworkState::GOT_IP != mStatus)
-                    WiFi.disconnect();
-                WiFi.scanNetworks(true, true);
+                app->addOnce([this]() {scan();}, 1, "scan");
                 return false;
             }
 
@@ -116,6 +113,13 @@ class AhoyNetwork {
             WiFi.scanDelete();
 
             return true;
+        }
+
+        void scan(void) {
+            mScanActive = true;
+            if(NetworkState::GOT_IP != mStatus)
+                WiFi.disconnect();
+            WiFi.scanNetworks(true, true);
         }
         #endif
 

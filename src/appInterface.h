@@ -8,6 +8,7 @@
 
 #include "defines.h"
 #include "ESPAsyncWebServer.h"
+#include "utils/scheduler.h"
 
 // abstract interface to App. Make members of App accessible from child class
 // like web or API without forward declaration
@@ -24,6 +25,8 @@ class IApp {
         virtual void setRebootFlag() = 0;
         virtual const char *getVersion() = 0;
         virtual const char *getVersionModules() = 0;
+
+        virtual void addOnce(ah::scdCb c, uint32_t timeout, const char *name) = 0;
 
         #if !defined(ETHERNET)
         virtual bool getAvailNetworks(JsonObject obj) = 0;
