@@ -14,6 +14,7 @@
                 </p>
                 <p>
                     <span class="des">System Infos:</span>
+                    <div id="total"></div>
                     <div id="iv"></div>
                     <div class="hr"></div>
                     <div id="warn_info"></div>
@@ -111,6 +112,8 @@
 
             function parseIv(obj, ts) {
                 var p = div(["none"]);
+                var total = 0;
+                var count = 0;
                 for(var i of obj) {
                     var icon = iconSuccess;
                     var cl = "icon-success";
@@ -131,7 +134,9 @@
                             avail += "{#NOT_PRODUCING}";
                         else {
                             icon = iconSuccessFull;
-                            avail += "{#PRODUCING} " + i.cur_pwr + "W";
+                            avail += "{#PRODUCING} " + i.cur_pwr + " W";
+                            total += i.cur_pwr;
+                            count += 1;
                         }
                     }
 
@@ -149,6 +154,12 @@
                     }
                 }
                 document.getElementById("iv").replaceChildren(p);
+
+                if (count > 1) {
+                    p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("Total: " + total + " W"), br());
+                    document.getElementById("total").replaceChildren(p);
+                    document.getElementById("total").appendChild(div(["class=\"hr\""]));
+                }
             }
 
             function parseWarn(warn) {
@@ -165,7 +176,7 @@
                         p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("{#UPDATE_AVAIL}: " + release), br());
                     else if(getVerInt("{#VERSION}") > getVerInt(release))
                         p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("{#USING_DEV_VERSION} {#VERSION}. {#DEV_ISSUE_RELEASE_VERSION}: " + release), br());
-                                       else 
+                                       else
                         p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("{#RELEASE_INSTALLED}: " + release), br());
                 }
 
