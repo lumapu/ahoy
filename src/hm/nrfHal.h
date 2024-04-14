@@ -9,7 +9,6 @@
 #pragma once
 
 #include "../utils/spiPatcher.h"
-
 #include <esp_rom_gpio.h>
 #include <RF24.h>
 
@@ -78,7 +77,6 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
             gpio_set_direction(mPinEn, GPIO_MODE_OUTPUT);
             gpio_set_level(mPinEn, 0);
         }
-
 
         bool begin() override {
             return true;

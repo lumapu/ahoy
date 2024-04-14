@@ -1,16 +1,11 @@
 #include "Display_ePaper.h"
 
-#ifdef ESP8266
-#include <ESP8266WiFi.h>
-#elif defined(ESP32)
+#if defined(ESP32)
 #include <WiFi.h>
-#endif
 #include "../../utils/helper.h"
 #include "imagedata.h"
 #include "defines.h"
 #include "../plugin_lang.h"
-
-#if defined(ESP32)
 
 static const uint32_t spiClk = 4000000;  // 4 MHz
 
@@ -34,13 +29,18 @@ void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, u
 
     if (DISP_TYPE_T10_EPAPER == type) {
         Serial.begin(115200);
-        _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY));
 
-#if defined(ESP32) && defined(USE_HSPI_FOR_EPD)
-        hspi.begin(_SCK, _BUSY, _MOSI, _CS);
-        _display->epd2.selectSPI(hspi, SPISettings(spiClk, MSBFIRST, SPI_MODE0));
-#elif defined(ESP32) && defined(PLUGIN_DISPLAY)
-        _display->epd2.init(_SCK, _MOSI, 115200, true, 20, false);
+#if defined(SPI_HAL)
+        hal.init(_MOSI, _DC, _SCK, _CS, _RST, _BUSY);
+        _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(&hal));
+#else
+    _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY));
+    #if defined(USE_HSPI_FOR_EPD)
+            hspi.begin(_SCK, _BUSY, _MOSI, _CS);
+            _display->epd2.selectSPI(hspi, SPISettings(spiClk, MSBFIRST, SPI_MODE0));
+    #elif defined(PLUGIN_DISPLAY)
+            _display->epd2.init(_SCK, _MOSI, 115200, true, 20, false);
+    #endif
 #endif
         _display->init(115200, true, 20, false);
         _display->setRotation(mDisplayRotation);
