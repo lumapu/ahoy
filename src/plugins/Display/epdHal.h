@@ -106,15 +106,16 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
             data[0] = buf;
             request_spi();
 
+            size_t spiLen = static_cast<size_t>(1u) << 3;
             spi_transaction_t t = {
                 .flags = 0,
                 .cmd = 0,
                 .addr = 0,
-                .length = static_cast<size_t>(1u) << 3,
-                .rxlength = 0,
+                .length = spiLen,
+                .rxlength = spiLen,
                 .user = NULL,
                 .tx_buffer = data,
-                .rx_buffer = NULL
+                .rx_buffer = data
             };
             ESP_ERROR_CHECK(spi_device_polling_transmit(spi, &t));
 
@@ -127,15 +128,16 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
 
             request_spi();
 
+            size_t spiLen = static_cast<size_t>(n) << 3;
             spi_transaction_t t = {
                 .flags = 0,
                 .cmd = 0,
                 .addr = 0,
-                .length = static_cast<size_t>(n) << 3,
-                .rxlength = 0,
+                .length = spiLen,
+                .rxlength = spiLen,
                 .user = NULL,
                 .tx_buffer = data,
-                .rx_buffer = NULL
+                .rx_buffer = data
             };
             ESP_ERROR_CHECK(spi_device_polling_transmit(spi, &t));
 
@@ -151,17 +153,52 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
 
             request_spi();
 
+            size_t spiLen = static_cast<size_t>(n + fill_with_zeroes) << 3;
+            spi_transaction_t t = {
+                .flags = SPI_TRANS_CS_KEEP_ACTIVE,
+                .cmd = 0,
+                .addr = 0,
+                .length = spiLen,
+                .rxlength = spiLen,
+                .user = NULL,
+                .tx_buffer = data,
+                .rx_buffer = data
+            };
+
+            size_t offs = 0;
+            spi_device_acquire_bus(spi, portMAX_DELAY);
+            while(offs < (n + fill_with_zeroes)) {
+                t.length = (64u << 3);
+                t.rxlength = t.length;
+                t.tx_buffer = &data[offs];
+                offs += 64;
+                ESP_ERROR_CHECK(spi_device_polling_transmit(spi, &t));
+            }
+            spi_device_release_bus(spi);
+
+            release_spi();
+        }
+
+        void writeCmd(const uint8_t val) override {
+            uint8_t data[1];
+            data[0] = val;
+
+            request_spi();
+            gpio_set_level(mPinDc, LOW);
+
+            size_t spiLen = static_cast<size_t>(1u) << 3;
             spi_transaction_t t = {
                 .flags = 0,
                 .cmd = 0,
                 .addr = 0,
-                .length = static_cast<size_t>(n + fill_with_zeroes) << 3,
-                .rxlength = 0,
+                .length = spiLen,
+                .rxlength = spiLen,
                 .user = NULL,
                 .tx_buffer = data,
-                .rx_buffer = NULL
+                .rx_buffer = data
             };
             ESP_ERROR_CHECK(spi_device_polling_transmit(spi, &t));
+            gpio_set_level(mPinDc, HIGH);
 
             release_spi();
         }
@@ -173,15 +210,16 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
             request_spi();
             gpio_set_level(mPinDc, LOW);
 
+            size_t spiLen = static_cast<size_t>(1u) << 3;
             spi_transaction_t t = {
                 .flags = 0,
                 .cmd = 0,
                 .addr = 0,
-                .length = static_cast<size_t>(1u) << 3,
-                .rxlength = 0,
+                .length = spiLen,
+                .rxlength = spiLen,
                 .user = NULL,
                 .tx_buffer = data,
-                .rx_buffer = NULL
+                .rx_buffer = data
             };
             ESP_ERROR_CHECK(spi_device_polling_transmit(spi, &t));
             gpio_set_level(mPinDc, HIGH);
@@ -193,15 +231,16 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
             } else
                 std::copy(&buf[1], &buf[n], &data[0]);
 
+            spiLen = static_cast<size_t>(n) << 3;
             spi_transaction_t t1 = {
                 .flags = 0,
                 .cmd = 0,
                 .addr = 0,
-                .length = static_cast<size_t>(n) << 3,
-                .rxlength = 0,
+                .length = spiLen,
+                .rxlength = spiLen,
                 .user = NULL,
                 .tx_buffer = data,
-                .rx_buffer = NULL
+                .rx_buffer = data
             };
             ESP_ERROR_CHECK(spi_device_polling_transmit(spi, &t1));
 
@@ -210,11 +249,9 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
 
         void startTransfer(void) override {
             request_spi();
-            gpio_set_level(mPinDc, LOW);
         }
 
         void endTransfer(void) override {
-            gpio_set_level(mPinDc, HIGH);
             release_spi();
         }
 
@@ -222,15 +259,16 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
             uint8_t data[1];
             data[0] = val;
 
+            size_t spiLen = static_cast<size_t>(1u) << 3;
             spi_transaction_t t = {
                 .flags = 0,
                 .cmd = 0,
                 .addr = 0,
-                .length = static_cast<size_t>(1u) << 3,
-                .rxlength = 0,
+                .length = spiLen,
+                .rxlength = spiLen,
                 .user = NULL,
                 .tx_buffer = data,
-                .rx_buffer = NULL
+                .rx_buffer = data
             };
             ESP_ERROR_CHECK(spi_device_polling_transmit(spi, &t));
         }
