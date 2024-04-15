@@ -16,7 +16,7 @@
 class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
     public:
         epdHal() {
-            mSpiPatcher = SpiPatcher::getInstance(SPI2_HOST);
+            mSpiPatcher = SpiPatcher::getInstance(SPI3_HOST);
         }
 
         void patch() override {
@@ -72,7 +72,7 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
             if(GPIO_NUM_NC != mPinRst) {
                 gpio_reset_pin(mPinRst);
                 gpio_set_direction(mPinRst, GPIO_MODE_OUTPUT);
-                gpio_set_level(mPinRst, LOW);
+                gpio_set_level(mPinRst, HIGH);
             }
 
             gpio_reset_pin(mPinDc);
