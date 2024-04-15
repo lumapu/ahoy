@@ -21,13 +21,13 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
 
         void patch() override {
             esp_rom_gpio_connect_out_signal(mPinMosi, spi_periph_signal[mHostDevice].spid_out, false, false);
-            //esp_rom_gpio_connect_in_signal(mPinDc, spi_periph_signal[mHostDevice].spiq_in, false);
+            esp_rom_gpio_connect_in_signal(mPinBusy, spi_periph_signal[mHostDevice].spiq_in, false);
             esp_rom_gpio_connect_out_signal(mPinClk, spi_periph_signal[mHostDevice].spiclk_out, false, false);
         }
 
         void unpatch() override {
             esp_rom_gpio_connect_out_signal(mPinMosi, SIG_GPIO_OUT_IDX, false, false);
-            //esp_rom_gpio_connect_in_signal(mPinDc, GPIO_MATRIX_CONST_ZERO_INPUT, false);
+            esp_rom_gpio_connect_in_signal(mPinBusy, GPIO_MATRIX_CONST_ZERO_INPUT, false);
             esp_rom_gpio_connect_out_signal(mPinClk, SIG_GPIO_OUT_IDX, false, false);
         }
 
@@ -79,8 +79,8 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
             gpio_set_direction(mPinDc, GPIO_MODE_OUTPUT);
             gpio_set_level(mPinDc, HIGH);
 
-            gpio_reset_pin(mPinBusy);
-            gpio_set_direction(mPinBusy, GPIO_MODE_INPUT);
+            //gpio_reset_pin(mPinBusy);
+            //gpio_set_direction(mPinBusy, GPIO_MODE_INPUT);
         }
 
         void rstMode(uint8_t mode) override {
