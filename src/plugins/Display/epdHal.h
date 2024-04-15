@@ -209,10 +209,11 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
 
             request_spi();
             gpio_set_level(mPinDc, LOW);
+            spi_device_acquire_bus(spi, portMAX_DELAY);
 
             size_t spiLen = static_cast<size_t>(1u) << 3;
             spi_transaction_t t = {
-                .flags = 0,
+                .flags = SPI_TRANS_CS_KEEP_ACTIVE,
                 .cmd = 0,
                 .addr = 0,
                 .length = spiLen,
@@ -231,9 +232,9 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
             } else
                 std::copy(&buf[1], &buf[n], &data[0]);
 
-            spiLen = static_cast<size_t>(n) << 3;
+            spiLen = static_cast<size_t>(n-1) << 3;
             spi_transaction_t t1 = {
-                .flags = 0,
+                .flags = SPI_TRANS_CS_KEEP_ACTIVE,
                 .cmd = 0,
                 .addr = 0,
                 .length = spiLen,
@@ -243,6 +244,7 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
                 .rx_buffer = data
             };
             ESP_ERROR_CHECK(spi_device_polling_transmit(spi, &t1));
+            spi_device_release_bus(spi);
 
             release_spi();
         }
