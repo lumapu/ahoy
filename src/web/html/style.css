@@ -563,7 +563,13 @@ input.btn {
     cursor: pointer;
 }
 
-input.btn:hover {
+input.btn:disabled {
+    background-color: var(--primary-disabled);
+    color: #888;
+    cursor: not-allowed;
+}
+
+input.btn:not(:disabled):hover {
     background-color: #044e86;
 }
 
