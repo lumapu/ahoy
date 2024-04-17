@@ -12,8 +12,8 @@
                     <legend class="des">{#SELECT_FILE} (*.bin)</legend>
                     <p>{#INSTALLED_VERSION}:<br/><span id="version" style="background-color: var(--input-bg); padding: 7px; display: block; margin: 3px;"></span></p>
                     <form id="form" method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
-                        <input type="file" name="update">
-                        <input type="button" class="btn my-4" value="{#BTN_UPDATE}" onclick="hide()">
+                        <input type="file" id="uploadFileInput" name="update">
+                        <input type="button" id="uploadButton" class="btn my-4" value="{#BTN_UPDATE}" onclick="hide()">
                     </form>
                 </fieldset>
                 <div class="row mt-4">
@@ -23,6 +23,27 @@
         </div>
         {#HTML_FOOTER}
         <script type="text/javascript">
+            // Wait for the DOM to be fully loaded
+            document.addEventListener('DOMContentLoaded', () => {
+                // Get references to the file input and button elements
+                const fileInput = document.querySelector('#uploadFileInput');
+                const button = document.querySelector('#uploadButton');
+                // Initially disable the button
+                button.disabled = true;
+                button.title = "Please select a file first"; // Show the tooltip when no file is selected
+                // Listen for changes on the file input
+                fileInput.addEventListener('change', () => {
+                    // Enable or disable the button based on whether a file is selected
+                    if (fileInput.value) {
+                        button.disabled = false;
+                        button.title = ""; // Clear the tooltip when a file is selected
+                    } else {
+                        button.disabled = true;
+                        button.title = "Please select a file first"; // Show the tooltip when no file is selected
+                    }
+                });
+            });
+
             var env;
             function parseGeneric(obj) {
                 parseNav(obj)

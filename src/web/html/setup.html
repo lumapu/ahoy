@@ -321,8 +321,8 @@
                             <div class="col-12 col-sm-9">
                                 <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
                                     <div class="row">
-                                        <div class="col-12 col-sm-8 my-2"><input type="file" name="upload"></div>
-                                        <div class="col-12 col-sm-4 my-2"><input type="button" class="btn" value="Import" onclick="hide()"></div>
+                                        <div class="col-12 col-sm-8 my-2"><input type="file" id="importFileInput" name="upload"></div>
+                                        <div class="col-12 col-sm-4 my-2"><input type="button" id="importButton" class="btn" value="Import" onclick="hide()"></div>
                                     </div>
                                 </form>
                             </div>
@@ -612,6 +612,26 @@
                 var obj = {cmd: "discovery_cfg", token: "*"}
                 getAjax("/api/setup", apiCbMqtt, "POST", JSON.stringify(obj));
             }
+            // Wait for the DOM to be fully loaded
+            document.addEventListener('DOMContentLoaded', () => {
+                // Get references to the file input and button elements
+                const fileInput = document.querySelector('#importFileInput');
+                const button = document.querySelector('#importButton');
+                // Initially disable the button
+                button.disabled = true;
+                button.title = "Please select a file first";
+                // Listen for changes on the file input
+                fileInput.addEventListener('change', () => {
+                    // Enable or disable the button based on whether a file is selected
+                    if (fileInput.value) {
+                        button.disabled = false;
+                        button.title = ""; // Clear the tooltip when a file is selected
+                    } else {
+                        button.disabled = true;
+                        button.title = "Please select a file first"; // Show the tooltip when no file is selected
+                    }
+                });
+            });
 
             function hide() {
                 document.getElementById("form").submit();
