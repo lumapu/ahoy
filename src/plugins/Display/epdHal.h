@@ -51,6 +51,7 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
             gpio_set_level(mPinClk, 0);
 
             gpio_reset_pin(mPinCs);
+            request_spi();
             spi_device_interface_config_t devcfg = {
                 .command_bits = 0,
                 .address_bits = 0,
@@ -68,6 +69,7 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
                 .post_cb = nullptr
             };
             ESP_ERROR_CHECK(spi_bus_add_device(mHostDevice, &devcfg, &spi));
+            release_spi();
 
             if(GPIO_NUM_NC != mPinRst) {
                 gpio_reset_pin(mPinRst);
@@ -152,14 +154,12 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
             }
 
             request_spi();
-
-            size_t spiLen = static_cast<size_t>(n + fill_with_zeroes) << 3;
             spi_transaction_t t = {
                 .flags = SPI_TRANS_CS_KEEP_ACTIVE,
                 .cmd = 0,
                 .addr = 0,
-                .length = spiLen,
-                .rxlength = spiLen,
+                .length = 1u,
+                .rxlength = 1u,
                 .user = NULL,
                 .tx_buffer = data,
                 .rx_buffer = data

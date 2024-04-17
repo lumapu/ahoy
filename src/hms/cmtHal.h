@@ -50,6 +50,7 @@ class cmtHal : public SpiPatcherHandle {
             gpio_set_level(mPinClk, 0);
 
             gpio_reset_pin(mPinCs);
+            request_spi();
             spi_device_interface_config_t devcfg_reg = {
                 .command_bits = 1,
                 .address_bits = 7,
@@ -67,6 +68,7 @@ class cmtHal : public SpiPatcherHandle {
                 .post_cb = nullptr
             };
             ESP_ERROR_CHECK(spi_bus_add_device(mHostDevice, &devcfg_reg, &spi_reg));
+            release_spi();
 
             gpio_reset_pin(mPinFcs);
             spi_device_interface_config_t devcfg_fifo = {

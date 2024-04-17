@@ -55,6 +55,7 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
             gpio_set_level(mPinClk, 0);
 
             gpio_reset_pin(mPinCs);
+            request_spi();
             spi_device_interface_config_t devcfg = {
                 .command_bits = 0,
                 .address_bits = 0,
@@ -72,6 +73,7 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
                 .post_cb = nullptr
             };
             ESP_ERROR_CHECK(spi_bus_add_device(mHostDevice, &devcfg, &spi));
+            release_spi();
 
             gpio_reset_pin(mPinEn);
             gpio_set_direction(mPinEn, GPIO_MODE_OUTPUT);
