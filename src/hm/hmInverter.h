@@ -33,28 +33,28 @@
 
 // prototypes
 template<class T=float>
-static T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0);
+T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0);
+T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcUdcCh(Inverter<> *iv, uint8_t arg0);
+T calcUdcCh(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0);
+T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0);
+T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcIrradiation(Inverter<> *iv, uint8_t arg0);
+T calcIrradiation(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0);
+T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0);
+T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
 using func_t = T (Inverter<> *, uint8_t);
@@ -270,7 +270,8 @@ class Inverter {
             if(InverterStatus::OFF != status) {
                 mDevControlRequest = true;
                 devControlCmd = cmd;
-                //app->triggerTickSend(); // done in RestApi.h, because of "chicken-and-egg problem ;-)"
+                //assert(App);
+                //App->triggerTickSend(0);
             }
             return (InverterStatus::OFF != status);
         }
@@ -818,6 +819,7 @@ class Inverter {
     public:
         static uint32_t  *timestamp;     // system timestamp
         static cfgInst_t *generalConfig; // general inverter configuration from setup
+        static IApp *App;
 
         uint16_t mDtuRxCnt = 0;
         uint16_t mDtuTxCnt = 0;
@@ -838,6 +840,8 @@ template <class REC_TYP>
 uint32_t *Inverter<REC_TYP>::timestamp {0};
 template <class REC_TYP>
 cfgInst_t *Inverter<REC_TYP>::generalConfig {0};
+template <class REC_TYP>
+IApp *Inverter<REC_TYP>::App {nullptr};
 
 
 /**
@@ -847,7 +851,7 @@ cfgInst_t *Inverter<REC_TYP>::generalConfig {0};
  */
 
 template<class T=float>
-static T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0) {
+T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcYieldTotalCh0"));
     if(NULL != iv) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
@@ -861,7 +865,7 @@ static T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0) {
+T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcYieldDayCh0"));
     if(NULL != iv) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
@@ -875,7 +879,7 @@ static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcUdcCh(Inverter<> *iv, uint8_t arg0) {
+T calcUdcCh(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcUdcCh"));
     // arg0 = channel of source
     record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
@@ -889,7 +893,7 @@ static T calcUdcCh(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0) {
+T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcPowerDcCh0"));
     if(NULL != iv) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
@@ -903,7 +907,7 @@ static T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0) {
+T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcEfficiencyCh0"));
     if(NULL != iv) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
@@ -919,7 +923,7 @@ static T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcIrradiation(Inverter<> *iv, uint8_t arg0) {
+T calcIrradiation(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcIrradiation"));
     // arg0 = channel
     if(NULL != iv) {
@@ -931,7 +935,7 @@ static T calcIrradiation(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0) {
+T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcMaxPowerAcCh0"));
     T acMaxPower = 0.0;
     if(NULL != iv) {
@@ -952,7 +956,7 @@ static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0) {
+T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcMaxPowerDc"));
     // arg0 = channel
     T dcMaxPower = 0.0;
