@@ -15,9 +15,7 @@
 
 class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
     public:
-        epdHal() {
-            mSpiPatcher = SpiPatcher::getInstance(SPI3_HOST);
-        }
+        epdHal() {}
 
         void patch() override {
             esp_rom_gpio_connect_out_signal(mPinMosi, spi_periph_signal[mHostDevice].spid_out, false, false);
@@ -40,7 +38,8 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
             mPinBusy = static_cast<gpio_num_t>(busy);
             mSpiSpeed = speed;
 
-            mHostDevice = mSpiPatcher->getDevice();
+            mHostDevice = (14 == sclk) ? SPI2_HOST : SPI3_HOST;
+            mSpiPatcher = SpiPatcher::getInstance(mHostDevice);
 
             gpio_reset_pin(mPinMosi);
             gpio_set_direction(mPinMosi, GPIO_MODE_OUTPUT);
@@ -68,7 +67,7 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
                 .pre_cb = nullptr,
                 .post_cb = nullptr
             };
-            ESP_ERROR_CHECK(spi_bus_add_device(mHostDevice, &devcfg, &spi));
+            mSpiPatcher->addDevice(mHostDevice, &devcfg, &spi);
             release_spi();
 
             if(GPIO_NUM_NC != mPinRst) {

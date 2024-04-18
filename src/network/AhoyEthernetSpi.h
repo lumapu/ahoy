@@ -12,7 +12,7 @@
 #include <Arduino.h>
 #include <esp_netif.h>
 #include <WiFiGeneric.h>
-#include <driver/spi_master.h>
+#include "../utils/spiPatcher.h"
 
 // Functions from WiFiGeneric
 void tcpipInit();
@@ -44,23 +44,8 @@ class AhoyEthernetSpi {
             gpio_reset_pin(static_cast<gpio_num_t>(pin_int));
             gpio_set_pull_mode(static_cast<gpio_num_t>(pin_int), GPIO_PULLUP_ONLY);
 
-
-            spi_bus_config_t buscfg = {
-                .mosi_io_num = pin_mosi,
-                .miso_io_num = pin_miso,
-                .sclk_io_num = pin_sclk,
-                .quadwp_io_num = -1,
-                .quadhd_io_num = -1,
-                .data4_io_num = -1,
-                .data5_io_num = -1,
-                .data6_io_num = -1,
-                .data7_io_num = -1,
-                .max_transfer_sz = 0, // uses default value internally
-                .flags = 0,
-                .intr_flags = 0
-            };
-
-            ESP_ERROR_CHECK(spi_bus_initialize(SPI3_HOST, &buscfg, SPI_DMA_CH_AUTO));
+            mHostDevice = (14 == pin_sclk) ? SPI2_HOST : SPI3_HOST;
+            mSpiPatcher = SpiPatcher::getInstance(mHostDevice);
 
             spi_device_interface_config_t devcfg = {
                 .command_bits = 16, // actually address phase
@@ -79,8 +64,7 @@ class AhoyEthernetSpi {
                 .post_cb = nullptr
             };
 
-            spi_device_handle_t spi;
-            ESP_ERROR_CHECK(spi_bus_add_device(SPI3_HOST, &devcfg, &spi));
+            mSpiPatcher->addDevice(mHostDevice, &devcfg, &spi);
 
             // Reset sequence
             if(-1 != pin_rst) {
@@ -137,6 +121,9 @@ class AhoyEthernetSpi {
     private:
         esp_eth_handle_t eth_handle;
         esp_netif_t *eth_netif;
+        spi_host_device_t mHostDevice;
+        spi_device_handle_t spi;
+        SpiPatcher *mSpiPatcher;
 };
 
 #endif /*__ETH_SPI_H__*/

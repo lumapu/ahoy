@@ -9,6 +9,7 @@
 
 #if defined(ESP32)
 
+#include "dbg.h"
 #include "spiPatcherHandle.h"
 
 #include <driver/spi_master.h>
@@ -17,7 +18,7 @@
 class SpiPatcher {
     protected:
         explicit SpiPatcher(spi_host_device_t dev) :
-            mHostDevice(dev), mCurHandle(nullptr) {
+            mCurHandle(nullptr) {
             // Use binary semaphore instead of mutex for performance reasons
             mutex = xSemaphoreCreateBinaryStatic(&mutex_buffer);
             xSemaphoreGive(mutex);
@@ -36,23 +37,37 @@ class SpiPatcher {
                 .flags = 0,
                 .intr_flags = 0
             };
-            ESP_ERROR_CHECK(spi_bus_initialize(mHostDevice, &buscfg, SPI_DMA_DISABLED));
+            ESP_ERROR_CHECK(spi_bus_initialize(dev, &buscfg, SPI_DMA_DISABLED));
         }
 
     public:
-        SpiPatcher(SpiPatcher &other) = delete;
+        SpiPatcher(const SpiPatcher &other) = delete;
         void operator=(const SpiPatcher &) = delete;
 
         static SpiPatcher* getInstance(spi_host_device_t dev) {
-            if(nullptr == mInstance)
-                mInstance = new SpiPatcher(dev);
-            return mInstance;
+            if(SPI2_HOST == dev) {
+                if(nullptr == InstanceHost2)
+                    InstanceHost2 = new SpiPatcher(dev);
+                return InstanceHost2;
+            } else { // SPI3_HOST
+                if(nullptr == InstanceHost3)
+                    InstanceHost3 = new SpiPatcher(dev);
+                return InstanceHost3;
+            }
         }
 
         ~SpiPatcher() { vSemaphoreDelete(mutex); }
 
-        spi_host_device_t getDevice() {
-            return mHostDevice;
+        inline void addDevice(spi_host_device_t host_id, const spi_device_interface_config_t *dev_config, spi_device_handle_t *handle) {
+            if(SPI2_HOST == host_id)
+                mHost2Cnt++;
+            if(SPI3_HOST == host_id)
+                mHost3Cnt++;
+
+            if((mHost2Cnt > 3) || (mHost3Cnt > 3))
+                DPRINTLN(DBG_ERROR, F("maximum number of SPI devices reached (3)"));
+
+            ESP_ERROR_CHECK(spi_bus_add_device(host_id, dev_config, handle));
         }
 
         inline void request(SpiPatcherHandle* handle) {
@@ -74,13 +89,14 @@ class SpiPatcher {
         }
 
     protected:
-        static SpiPatcher *mInstance;
+        static SpiPatcher *InstanceHost2;
+        static SpiPatcher *InstanceHost3;
 
     private:
-        const spi_host_device_t mHostDevice;
         SpiPatcherHandle* mCurHandle;
         SemaphoreHandle_t mutex;
         StaticSemaphore_t mutex_buffer;
+        uint8_t mHost2Cnt = 0, mHost3Cnt = 0;
 };
 
 #endif /*ESP32*/

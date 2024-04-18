@@ -5,5 +5,6 @@
 
 #if defined(ESP32)
 #include "spiPatcher.h"
-SpiPatcher *SpiPatcher::mInstance = nullptr;
+SpiPatcher *SpiPatcher::InstanceHost2 = nullptr;
+SpiPatcher *SpiPatcher::InstanceHost3 = nullptr;
 #endif

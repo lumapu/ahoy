@@ -17,9 +17,7 @@
 
 class nrfHal: public RF24_hal, public SpiPatcherHandle {
     public:
-        nrfHal() {
-            mSpiPatcher = SpiPatcher::getInstance(SPI2_HOST);
-        }
+        nrfHal() {}
 
         void patch() override {
             esp_rom_gpio_connect_out_signal(mPinMosi, spi_periph_signal[mHostDevice].spid_out, false, false);
@@ -41,7 +39,8 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
             mPinEn = static_cast<gpio_num_t>(en);
             mSpiSpeed = speed;
 
-            mHostDevice = mSpiPatcher->getDevice();
+            mHostDevice = (14 == sclk) ? SPI2_HOST : SPI3_HOST;
+            mSpiPatcher = SpiPatcher::getInstance(mHostDevice);
 
             gpio_reset_pin(mPinMosi);
             gpio_set_direction(mPinMosi, GPIO_MODE_OUTPUT);
@@ -72,7 +71,7 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
                 .pre_cb = nullptr,
                 .post_cb = nullptr
             };
-            ESP_ERROR_CHECK(spi_bus_add_device(mHostDevice, &devcfg, &spi));
+            mSpiPatcher->addDevice(mHostDevice, &devcfg, &spi);
             release_spi();
 
             gpio_reset_pin(mPinEn);
