@@ -12,8 +12,8 @@
                     <legend class="des">{#SELECT_FILE} (*.bin)</legend>
                     <p>{#INSTALLED_VERSION}:<br/><span id="version" style="background-color: var(--input-bg); padding: 7px; display: block; margin: 3px;"></span></p>
                     <form id="form" method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
-                        <input type="file" name="update">
-                        <input type="button" class="btn my-4" value="{#BTN_UPDATE}" onclick="hide()">
+                        <input type="file" id="uploadFileInput" name="update">
+                        <input type="button" id="uploadButton" class="btn my-4" value="{#BTN_UPDATE}" onclick="hide()">
                     </form>
                 </fieldset>
                 <div class="row mt-4">
@@ -23,6 +23,22 @@
         </div>
         {#HTML_FOOTER}
         <script type="text/javascript">
+            document.addEventListener('DOMContentLoaded', () => {
+                const fileInput = document.querySelector('#uploadFileInput');
+                const button = document.querySelector('#uploadButton');
+                button.disabled = true;
+                button.title = "Please select a file first";
+                fileInput.addEventListener('change', () => {
+                    if (fileInput.value) {
+                        button.disabled = false;
+                        button.title = "";
+                    } else {
+                        button.disabled = true;
+                        button.title = "Please select a file first";
+                    }
+                });
+            });
+
             var env;
             function parseGeneric(obj) {
                 parseNav(obj)
