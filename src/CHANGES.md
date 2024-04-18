@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.8.111 - 2024-04-17
+* fix MqTT discovery field `ALARM_MES_ID` #1591
+* fix Wifi reconnect for ESP32 #1589 #1575
+* open link from `index.html` in new tab #1588 #1587
+* merge PR: Disable upload and import buttons when no file is selected #1586 #1519
+
 ## 0.8.110 - 2024-04-11
 * revert CMT2300A changes #1553
 * merged PR: fix closing tag #1584

@@ -443,7 +443,8 @@ class PubMqtt {
                     snprintf(topic.data(), topic.size(), "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(), fields[fldTotal[mDiscovery.sub]]);
                 size_t size = measureJson(doc2) + 1;
                 serializeJson(doc2, buf.data(), size);
-                publish(topic.data(), buf.data(), true, false);
+                if(FLD_EVT != rec->assign[mDiscovery.sub].fieldId)
+                    publish(topic.data(), buf.data(), true, false);
 
                 if(++mDiscovery.sub == ((!total) ? (rec->length) : 4)) {
                     mDiscovery.sub = 0;

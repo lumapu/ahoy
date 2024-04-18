@@ -325,8 +325,8 @@
                             <div class="col-12 col-sm-9">
                                 <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
                                     <div class="row">
-                                        <div class="col-12 col-sm-8 my-2"><input type="file" name="upload"></div>
-                                        <div class="col-12 col-sm-4 my-2"><input type="button" class="btn" value="Import" onclick="hide()"></div>
+                                        <div class="col-12 col-sm-8 my-2"><input type="file" id="importFileInput" name="upload"></div>
+                                        <div class="col-12 col-sm-4 my-2"><input type="button" id="importButton" class="btn" value="Import" onclick="hide()"></div>
                                     </div>
                                 </form>
                             </div>
@@ -616,6 +616,22 @@
                 var obj = {cmd: "discovery_cfg", token: "*"}
                 getAjax("/api/setup", apiCbMqtt, "POST", JSON.stringify(obj));
             }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const fileInput = document.querySelector('#importFileInput');
+                const button = document.querySelector('#importButton');
+                button.disabled = true;
+                button.title = "Please select a file first";
+                fileInput.addEventListener('change', () => {
+                    if (fileInput.value) {
+                        button.disabled = false;
+                        button.title = "";
+                    } else {
+                        button.disabled = true;
+                        button.title = "Please select a file first";
+                    }
+                });
+            });
 
             function hide() {
                 document.getElementById("form").submit();
