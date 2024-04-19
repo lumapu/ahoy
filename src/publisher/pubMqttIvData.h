@@ -212,24 +212,28 @@ class PubMqttIvData {
                 mPos++;
             } else {
                 if (MqttSentStatus::LAST_SUCCESS_SENT == rec->mqttSentStatus) {
-                    if (mJson) {
+                    if (mJson && RealTimeRunData_Debug == mCmd) {
                         DynamicJsonDocument doc(300);
                         std::array<char, 300> buf;
-                        int ch = rec->assign[0].ch;
 
-                        for (mPos = 0; mPos <= rec->length; mPos++) {
-                            if (rec->assign[mPos].ch != ch) {
-                                // if next channel.. publish
+                        for (mPos = 0; mPos < rec->length; mPos++) {
+                            doc[fields[rec->assign[mPos].fieldId]] = ah::round3(mIv->getValue(mPos, rec));
+
+                            bool publish = false;
+                            if (mPos != rec->length - 1) { // not last one
+                                if (rec->assign[mPos].ch != rec->assign[mPos+1].ch)
+                                    publish = true;
+                            } else
+                                publish = true;
+
+                            if (publish) {
+                                publish = false;
+                                // if next channel or end->publish
                                 serializeJson(doc, buf.data(), buf.size());
                                 doc.clear();
-                                snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d", mIv->config->name, ch);
+                                snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d", mIv->config->name, rec->assign[mPos].ch);
                                 mPublish(mSubTopic.data(), buf.data(), false, QOS_0);
-                                ch = rec->assign[mPos].ch;
                             }
-                            if (mPos == rec->length)
-                                break;
-
-                            doc[fields[rec->assign[mPos].fieldId]] = ah::round3(mIv->getValue(mPos, rec));
                         }
                     }
 
