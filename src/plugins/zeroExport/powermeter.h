@@ -8,12 +8,15 @@
 
 #include <AsyncJson.h>
 #include <HTTPClient.h>
+
 #include "config/settings.h"
 
 #if defined(ZEROEXPORT_POWERMETER_TIBBER)
 #include <base64.h>
 #include <string.h>
+
 #include <list>
+
 #include "plugins/zeroExport/lib/sml.h"
 
 typedef struct {
@@ -32,28 +35,46 @@ typedef struct {
 
 class powermeter {
    public:
-    powermeter() {
-    }
+    /** powermeter
+     * constructor
+     */
+    powermeter() {}
 
-    ~powermeter() {
-    }
+    /** ~powermeter
+     * destructor
+     */
+    ~powermeter() {}
 
-    bool setup(zeroExport_t *cfg, JsonObject *log /*Hier muss noch geklärt werden was gebraucht wird*/) {
+    /** setup
+     * Initialisierung
+     * @param *cfg
+     * @param *mqtt
+     * @param *log
+     * @returns void
+     */
+    bool setup(zeroExport_t *cfg, PubMqttType *mqtt, JsonObject *log) {
         mCfg = cfg;
+        mMqtt = mqtt;
         mLog = log;
+
         return true;
     }
 
     /** loop
-     * abfrage der gruppen um die aktuellen Werte (Zähler) zu ermitteln.
+     * Arbeitsschleife
+     * @param void
+     * @returns void
+     * @todo emergency
      */
-    void loop(unsigned long *tsp, bool *doLog) {
-        if (*tsp - mPreviousTsp <= 1000) return;  // skip when it is to fast
-        mPreviousTsp = *tsp;
+    void loop(void) {
+        if (millis() - mPreviousTsp <= 1000) return;  // skip when it is to fast
+        mPreviousTsp = millis();
 
         PowermeterBuffer_t power;
 
         for (u_short group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            if ((!mCfg->groups[group].enabled) || (mCfg->groups[group].sleep)) continue;
+
             switch (mCfg->groups[group].pm_type) {
 #if defined(ZEROEXPORT_POWERMETER_SHELLY)
                 case zeroExportPowermeterType_t::Shelly:
@@ -89,7 +110,19 @@ class powermeter {
             }
 
             bufferWrite(power, group);
-            if (mCfg->debug) *doLog = true;
+
+            // MQTT - Powermeter
+            if (mMqtt->isConnected()) {
+                // P
+                mqttObj["Sum"] = ah::round1(power.P);
+                mqttObj["L1"] = ah::round1(power.P1);
+                mqttObj["L2"] = ah::round1(power.P2);
+                mqttObj["L3"] = ah::round1(power.P3);
+                mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), mqttDoc.as<std::string>().c_str(), false);
+                mqttDoc.clear();
+
+                // W (TODO)
+            }
         }
     }
 
@@ -116,10 +149,35 @@ class powermeter {
         return avg;
     }
 
+    /**
+     *
+     */
+    void onMqttConnect(void) {
+    }
+
+    /**
+     *
+     */
+    void onMqttMessage(JsonObject obj) {
+        String topic = String(obj["topic"]);
+
+#if defined(ZEROEXPORT_POWERMETER_MQTT)
+        // topic for powermeter?
+        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            if (mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) {
+                //                mLog["mqttDevice"] = "topicInverter";
+                if (!topic.equals(mCfg->groups[group].pm_jsonPath)) return;
+                mCfg->groups[group].pm_P = (int32_t)obj["val"];
+            }
+        }
+#endif /*defined(ZEROEXPORT_POWERMETER_MQTT)*/
+    }
+
    private:
     HTTPClient http;
 
     zeroExport_t *mCfg;
+    PubMqttType *mMqtt = nullptr;
     JsonObject *mLog;
 
     unsigned long mPreviousTsp = 0;
@@ -127,9 +185,13 @@ class powermeter {
     PowermeterBuffer_t mPowermeterBuffer[ZEROEXPORT_MAX_GROUPS][5] = {0};
     short mPowermeterBufferPos[ZEROEXPORT_MAX_GROUPS] = {0};
 
+    StaticJsonDocument<512> mqttDoc;  // DynamicJsonDocument mqttDoc(512);
+    JsonObject mqttObj = mqttDoc.to<JsonObject>();
 
-    // set HTTPClient header
-    void setHeader(HTTPClient* h) {
+    /**
+     *
+     */
+    void setHeader(HTTPClient *h) {
         h->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
         h->setUserAgent("Ahoy-Agent");
         // TODO: Ahoy-0.8.850024-zero
@@ -405,12 +467,10 @@ class powermeter {
      07 01 00 02 08 02 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung Tarif2
     */
     const std::list<OBISHandler> smlHandlerList{
-        {{0x01, 0x00, 0x10, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeterTotal},  // total - OBIS-Kennzahl für momentane Gesamtwirkleistung
-
+        {{0x01, 0x00, 0x10, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeterTotal},   // total - OBIS-Kennzahl für momentane Gesamtwirkleistung
         {{0x01, 0x00, 0x24, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeter1Power},  // OBIS-Kennzahl für momentane Wirkleistung in Phase L1
         {{0x01, 0x00, 0x38, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeter2Power},  // OBIS-Kennzahl für momentane Wirkleistung in Phase L2
         {{0x01, 0x00, 0x4c, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeter3Power},  // OBIS-Kennzahl für momentane Wirkleistung in Phase L3
-
         {{0x01, 0x00, 0x01, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterImport},
         {{0x01, 0x00, 0x02, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterExport}};
 
@@ -423,14 +483,12 @@ class powermeter {
         logObj["mod"] = "getPowermeterWattsTibber";
 
         String auth;
-        if(strlen(mCfg->groups[group].pm_user) > 0 && strlen(mCfg->groups[group].pm_pass) > 0) {
+        if (strlen(mCfg->groups[group].pm_user) > 0 && strlen(mCfg->groups[group].pm_pass) > 0) {
             auth = base64::encode(String(mCfg->groups[group].pm_user) + String(":") + String(mCfg->groups[group].pm_pass));
-            snprintf(mCfg->groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER,  "%s", DEF_ZEXPORT);
-            snprintf(mCfg->groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS,  "%s", auth.c_str());
+            snprintf(mCfg->groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER, "%s", DEF_ZEXPORT);
+            snprintf(mCfg->groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS, "%s", auth.c_str());
             //@TODO:mApp->saveSettings(false);
-        }
-        else
-        {
+        } else {
             auth = mCfg->groups[group].pm_pass;
         }
 
@@ -497,9 +555,7 @@ class powermeter {
 
         String url =
             String("http://") + String(mCfg->groups[group].pm_url) +
-            String("/") + String(mCfg->groups[group].pm_jsonPath +
-            String("?user=") + String(mCfg->groups[group].pm_user) +
-            String("&password=") + String(mCfg->groups[group].pm_pass));
+            String("/") + String(mCfg->groups[group].pm_jsonPath + String("?user=") + String(mCfg->groups[group].pm_user) + String("&password=") + String(mCfg->groups[group].pm_pass));
 
         http.begin(url);
 
@@ -518,7 +574,6 @@ class powermeter {
                 if (!(result.P1 && result.P2 && result.P3)) {
                     result.P1 = result.P2 = result.P3 = result.P / 3;
                 }
-
             }
         }
         http.end();
@@ -527,6 +582,9 @@ class powermeter {
     }
 #endif
 
+    /**
+     *
+     */
     void bufferWrite(PowermeterBuffer_t raw, short group) {
         mPowermeterBuffer[group][mPowermeterBufferPos[group]] = raw;
         mPowermeterBufferPos[group]++;
