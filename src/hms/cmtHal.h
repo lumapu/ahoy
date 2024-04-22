@@ -37,7 +37,12 @@ class cmtHal : public SpiPatcherHandle {
             mPinFcs   = static_cast<gpio_num_t>(fcs);
             mSpiSpeed = speed;
 
+            #if defined(CONFIG_IDF_TARGET_ESP32S3)
+            mHostDevice = SPI2_HOST;
+            #else
             mHostDevice = (14 == clk) ? SPI2_HOST : SPI3_HOST;
+            #endif
+
             mSpiPatcher = SpiPatcher::getInstance(mHostDevice);
 
             gpio_reset_pin(mPinSdio);

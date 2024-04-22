@@ -39,7 +39,12 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
             mPinEn = static_cast<gpio_num_t>(en);
             mSpiSpeed = speed;
 
+            #if defined(CONFIG_IDF_TARGET_ESP32S3)
+            mHostDevice = SPI2_HOST;
+            #else
             mHostDevice = (14 == sclk) ? SPI2_HOST : SPI3_HOST;
+            #endif
+
             mSpiPatcher = SpiPatcher::getInstance(mHostDevice);
 
             gpio_reset_pin(mPinMosi);

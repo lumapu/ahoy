@@ -38,7 +38,12 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
             mPinBusy = static_cast<gpio_num_t>(busy);
             mSpiSpeed = speed;
 
+            #if defined(CONFIG_IDF_TARGET_ESP32S3)
+            mHostDevice = SPI3_HOST;
+            #else
             mHostDevice = (14 == sclk) ? SPI2_HOST : SPI3_HOST;
+            #endif
+
             mSpiPatcher = SpiPatcher::getInstance(mHostDevice);
 
             gpio_reset_pin(mPinMosi);

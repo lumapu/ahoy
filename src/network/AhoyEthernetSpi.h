@@ -44,7 +44,12 @@ class AhoyEthernetSpi {
             gpio_reset_pin(static_cast<gpio_num_t>(pin_int));
             gpio_set_pull_mode(static_cast<gpio_num_t>(pin_int), GPIO_PULLUP_ONLY);
 
+            #if defined(CONFIG_IDF_TARGET_ESP32S3)
+            mHostDevice = SPI3_HOST;
+            #else
             mHostDevice = (14 == pin_sclk) ? SPI2_HOST : SPI3_HOST;
+            #endif
+
             mSpiPatcher = SpiPatcher::getInstance(mHostDevice);
 
             spi_device_interface_config_t devcfg = {
