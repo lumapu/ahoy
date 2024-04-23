@@ -212,6 +212,7 @@ class ZeroExport {
         float Ki = CfgGroup->Ki;
         float Kd = CfgGroup->Kd;
         unsigned long Ta = Tsp - CfgGroup->lastRefresh;
+        CfgGroup->lastRefresh = Tsp;
         int16_t yP = Kp * e;
         CfgGroup->eSum += e;
         int16_t yI = Ki * Ta * CfgGroup->eSum;
@@ -250,7 +251,9 @@ class ZeroExport {
         // Check
 
         if (CfgGroupInv->action == zeroExportAction_t::doNone) {
-            if ((CfgGroup->battSwitch == true) && (CfgGroupInv->limitNew > CfgGroupInv->powerMin) && (CfgGroupInv->power == 0) && (!mCfg->sleep) && (!CfgGroup->sleep)) {
+//            if ((CfgGroup->battSwitch == true) && (CfgGroupInv->limitNew > CfgGroupInv->powerMin) && (CfgGroupInv->power == 0) && (mCfg->sleep != true) && (CfgGroup->sleep != true)) {
+// TODO: Schlägt fehl, weil wenn MaxPower = 0 wird y auf 0 gesetzt und damit ist limitNew = powerMin
+            if ((CfgGroup->battSwitch == true) && (CfgGroupInv->power == 0) && (mCfg->sleep != true) && (CfgGroup->sleep != true)) {
                 CfgGroupInv->action = zeroExportAction_t::doTurnOn;
                 mLog["do"] = "doTurnOn";
             }
@@ -260,7 +263,7 @@ class ZeroExport {
                 mLog["do"] = "doTurnOff";
             }
 
-            if ((mCfg->sleep || CfgGroup->sleep) && CfgGroupInv->power > 0) {
+            if (((mCfg->sleep == true) || (CfgGroup->sleep == true)) && (CfgGroupInv->power > 0)) {
                 CfgGroupInv->action = zeroExportAction_t::doTurnOff;
                 mLog["do"] = "sleep";
             }
@@ -346,8 +349,6 @@ class ZeroExport {
             default:
                 break;
         }
-
-        CfgGroup->lastRefresh = Tsp;
 
         sendLog();
 
@@ -589,34 +590,32 @@ class ZeroExport {
                 mCfg->enabled = (bool)obj["val"];
                 mLog["k"] = "ctrl/zero/enabled";
                 mLog["v"] = mCfg->enabled;
-                return;
             }
 
             // "topic":"ctrl/zero/sleep"
-            if (topic.indexOf("/ctrl/zero/sleep") != -1) {
+            if (topic.indexOf("ctrl/zero/sleep") != -1) {
                 mCfg->sleep = (bool)obj["val"];
                 mLog["k"] = "ctrl/zero/sleep";
                 mLog["v"] = mCfg->sleep;
-                return;
             }
 
             if ((topicGroup >= 0) && (topicGroup < ZEROEXPORT_MAX_GROUPS)) {
                 // "topic":"ctrl/zero/groups/+/enabled"
-                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/enabled") != -1) {
+                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/enabled") != -1) {
                     mCfg->groups[topicGroup].enabled = (bool)obj["val"];
-                    mLog["k"] = "/ctrl/zero/groups/" + String(topicGroup) + "/enabled";
+                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/enabled";
                     mLog["v"] = mCfg->groups[topicGroup].enabled;
                 }
 
                 // "topic":"ctrl/zero/groups/+/sleep"
-                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/sleep") != -1) {
+                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/sleep") != -1) {
                     mCfg->groups[topicGroup].sleep = (bool)obj["val"];
-                    mLog["k"] = "/ctrl/zero/groups/" + String(topicGroup) + "/sleep";
+                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/sleep";
                     mLog["v"] = mCfg->groups[topicGroup].sleep;
                 }
 
                 // "topic":"ctrl/zero/groups/+/pm_ip"
-                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/pm_ip") != -1) {
+                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/pm_ip") != -1) {
                     //                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", obj[F("val")].as<const char *>());
                     //                    mLog["g_powermeter_pm_ip"] = mCfg->groups[topicGroup].pm_url;
                     //                    snprintf(mCfg->groups[5].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", obj[F("val")].as<const char *>());
@@ -624,36 +623,36 @@ class ZeroExport {
                 }
 
                 // "topic":"ctrl/zero/groups/+/pm_jsonPath"
-                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/pm_jsonPath") != -1) {
+                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/pm_jsonPath") != -1) {
                     //                    snprintf(mCfg->groups[topicGroup].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH, "%s", obj[F("val")].as<const char *>());
                     //                    mLog["g_powermeter_pm_jsonPath"] = mCfg->groups[topicGroup].pm_jsonPath;
                 }
 
                 // "topic":"ctrl/zero/groups/+/battery/switch"
-                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/battery/switch") != -1) {
+                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/battery/switch") != -1) {
                     mCfg->groups[topicGroup].battSwitch = (bool)obj["val"];
-                    mLog["k"] = "/ctrl/zero/groups/" + String(topicGroup) + "/battery/switch";
+                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/battery/switch";
                     mLog["v"] = mCfg->groups[topicGroup].battSwitch;
                 }
 
                 // "topic":"ctrl/zero/groups/+/advanced/setPoint"
-                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/advanced/setPoint") != -1) {
+                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/advanced/setPoint") != -1) {
                     mCfg->groups[topicGroup].setPoint = (int16_t)obj["val"];
-                    mLog["k"] = "/ctrl/zero/groups/" + String(topicGroup) + "/advanced/setPoint";
+                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/advanced/setPoint";
                     mLog["v"] = mCfg->groups[topicGroup].setPoint;
                 }
 
                 // "topic":"ctrl/zero/groups/+/advanced/powerTolerance"
-                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerTolerance") != -1) {
+                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerTolerance") != -1) {
                     mCfg->groups[topicGroup].powerTolerance = (uint8_t)obj["val"];
-                    mLog["k"] = "/ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerTolerance";
+                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerTolerance";
                     mLog["v"] = mCfg->groups[topicGroup].powerTolerance;
                 }
 
                 // "topic":"ctrl/zero/groups/+/advanced/powerMax"
-                if (topic.indexOf("/ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerMax") != -1) {
+                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerMax") != -1) {
                     mCfg->groups[topicGroup].powerMax = (uint16_t)obj["val"];
-                    mLog["k"] = "/ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerMax";
+                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerMax";
                     mLog["v"] = mCfg->groups[topicGroup].powerMax;
                 }
 
