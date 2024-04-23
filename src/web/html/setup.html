@@ -1710,6 +1710,10 @@
                 var e = document.getElementById("ze_groups");
                 e.innerHTML = ""; // remove all childs
                 e.append(ml("table", {class: "table"}, ml("tbody", {}, lines)));
+// TODO: Hinweis Developmentversion - Entfernen wenn erledigt
+                e.append(
+                    divRow("ACHTUNG:", "Dies ist eine sehr junge Developmentversion, bitte nicht unbeaufsichtig laufen lassen."),
+                );
 // TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
                 e.append(
                     divRow("Hinweis: ",
