@@ -944,19 +944,24 @@
                     "de": "Batterie"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_BATTERY_BATTENABLED",
+                    "token": "ZE_GROUP_TAB_BATTERY_ENABLED",
                     "en": "Enabled:",
                     "de": "Aktiviert:"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_BATTERY_BATTVOLTAGEON",
+                    "token": "ZE_GROUP_TAB_BATTERY_VOLTAGEON",
                     "en": "Voltage on (Volt):",
                     "de": "Spannung Ein (Volt):"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_BATTERY_BATTVOLTAGEOFF",
+                    "token": "ZE_GROUP_TAB_BATTERY_VOLTAGEOFF",
                     "en": "Voltage off (Volt):",
                     "de": "Spannung Aus (Volt):"
+                },
+                {
+                    "token": "ZE_GROUP_TAB_BATTERY_SOC",
+                    "en": "SoC % (MQTT Topic):",
+                    "de": "SoC (MQTT Topic):"
                 },
                 {
                     "token": "ZE_GROUP_TAB_BATTERY_ONOFF",
@@ -979,9 +984,9 @@
                     "de": "Zielpunkt (Watt):"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_ADVANCED_REFRESH",
-                    "en": "Refresh rate (sec):",
-                    "de": "Aktualisierung (sec):"
+                    "token": "ZE_GROUP_TAB_ADVANCED_MINIMUM",
+                    "en": "Minimum:",
+                    "de": "Minimum (Grundlast):"
                 },
                 {
                     "token": "ZE_GROUP_TAB_ADVANCED_POWERTOLERANCE",

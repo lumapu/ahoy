@@ -1362,6 +1362,8 @@
                 cb_battEnabled.checked = (obj.battEnabled);
 
                 // Tab_Advanced
+                var cb_minimum = ml("input", {name: "minimum", type: "checkbox"}, null);
+                cb_minimum.checked = (obj.minimum);
 
                 // Tab
                 var html = ml("div", {}, [
@@ -1421,9 +1423,10 @@
                     ]),
                     // Battery
                     ml("div", {id: "div{#ZE_GROUP_TAB_BATTERY}", class: "tab-content hide"}, [
-                        divRow("{#ZE_GROUP_TAB_BATTERY_BATTENABLED}", cb_battEnabled),
-                        divRow("{#ZE_GROUP_TAB_BATTERY_BATTVOLTAGEON}", ml("input", {name: "battVoltageOn", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battVoltageOn}, null)),
-                        divRow("{#ZE_GROUP_TAB_BATTERY_BATTVOLTAGEOFF}", ml("input", {name: "battVoltageOff", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battVoltageOff}, null)),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_ENABLED}", cb_battEnabled),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_VOLTAGEON}", ml("input", {name: "battVoltageOn", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battVoltageOn}, null)),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_VOLTAGEOFF}", ml("input", {name: "battVoltageOff", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battVoltageOff}, null)),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_SOC}",  ml("input", {name: "battSoC", class: "text", type: "text", value: obj.battSoC}, null)),
                         divRow("{#ZE_GROUP_TAB_BATTERY_ONOFF}", ml("input", {name: "battSwitch", id: "battSwitch", class: "btn", type: "button", value: "{#BTN_ONOFF}", onclick: battOnOff()}, null)),
 // TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
                         divRow("Hinweis: ",
@@ -1437,7 +1440,7 @@
                     // Advanced
                     ml("div", {id: "div{#ZE_GROUP_TAB_ADVANCED}", class: "tab-content hide"}, [
                         divRow("{#ZE_GROUP_TAB_ADVANCED_SETPOINT}", ml("input", {name: "setPoint", class: "text", type: "number", min: "-32768", max: "32767", step: "1", value: obj.setPoint}, null)),
-                        divRow("{#ZE_GROUP_TAB_ADVANCED_REFRESH}", ml("input", {name: "refresh", class: "text", type: "number", min: "0", max: "255", value: obj.refresh}, null)),
+                        divRow("{#ZE_GROUP_TAB_ADVANCED_MINIMUM}", cb_minimum),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_POWERTOLERANCE}", ml("input", {name: "powerTolerance", class: "text", type: "number", min: "0", max: "255", value: obj.powerTolerance}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_POWERMAX}", ml("input", {name: "powerMax", class: "text", type: "number", min: "0", max: "65535", value: obj.powerMax}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_KP}", ml("input", {name: "Kp", class: "text", type: "number", min: "-1", max: "0", step: "0.001", value: obj.Kp}, null)),
@@ -1563,9 +1566,10 @@
                     o.battEnabled = document.getElementsByName("battEnabled")[0].checked;
                     o.battVoltageOn = document.getElementsByName("battVoltageOn")[0].value;
                     o.battVoltageOff = document.getElementsByName("battVoltageOff")[0].value;
+                    o.battSoC = document.getElementsByName("battSoC")[0].value;
                     // Advanced
                     o.setPoint = document.getElementsByName("setPoint")[0].value;
-                    o.refresh = document.getElementsByName("refresh")[0].value;
+                    o.minimum = document.getElementsByName("minimum")[0].checked;
                     o.powerTolerance = document.getElementsByName("powerTolerance")[0].value;
                     o.powerMax = document.getElementsByName("powerMax")[0].value;
                     o.Kp = document.getElementsByName("Kp")[0].value;
@@ -1626,9 +1630,10 @@
                     o.battEnabled = false;
                     o.battVoltageOn = 0;
                     o.battVoltageOff = 0;
+                    o.battSoC = "";
                     // Advanced
                     o.setPoint = 0;
-                    o.refresh = 10;
+                    o.minimum = true;
                     o.power = 0;
                     o.powerTolerance = 10;
                     o.powerMax = 600;

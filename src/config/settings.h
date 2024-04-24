@@ -210,6 +210,7 @@ typedef struct {
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH      100
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_USER           25
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_PASS           25
+#define ZEROEXPORT_GROUP_MAX_LEN_BATTERY_SOC      100
 #define ZEROEXPORT_GROUP_MAX_INVERTERS              3
 #define ZEROEXPORT_POWERMETER_MAX_ERRORS            5
 #define ZEROEXPORT_DEF_INV_WAITINGTIME_MS       10000
@@ -290,9 +291,10 @@ typedef struct {
     bool battEnabled;
     float battVoltageOn;
     float battVoltageOff;
+    char battSoC[ZEROEXPORT_GROUP_MAX_LEN_BATTERY_SOC];
     // Advanced
     int16_t setPoint;
-    uint8_t refresh;
+    bool minimum;
     float power;
     uint8_t powerTolerance;
     uint16_t powerMax;
@@ -688,9 +690,10 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].battEnabled = false;
                 mCfg.plugin.zeroExport.groups[group].battVoltageOn = 0;
                 mCfg.plugin.zeroExport.groups[group].battVoltageOff = 0;
+                snprintf(mCfg.plugin.zeroExport.groups[group].battSoC, ZEROEXPORT_GROUP_MAX_LEN_BATTERY_SOC,  "%s", DEF_ZEXPORT);
                 // Advanced
                 mCfg.plugin.zeroExport.groups[group].setPoint = 0;
-                mCfg.plugin.zeroExport.groups[group].refresh = 10;
+                mCfg.plugin.zeroExport.groups[group].minimum = true;
                 mCfg.plugin.zeroExport.groups[group].powerTolerance = 10;
                 mCfg.plugin.zeroExport.groups[group].powerMax = 600;
                 mCfg.plugin.zeroExport.groups[group].Kp = -1;
@@ -1034,9 +1037,10 @@ class settings {
                 obj[F("battEnabled")] = mCfg.plugin.zeroExport.groups[group].battEnabled;
                 obj[F("battVoltageOn")] = mCfg.plugin.zeroExport.groups[group].battVoltageOn;
                 obj[F("battVoltageOff")] = mCfg.plugin.zeroExport.groups[group].battVoltageOff;
+                obj[F("battSoC")] = mCfg.plugin.zeroExport.groups[group].battSoC;
                 // Advanced
                 obj[F("setPoint")] = mCfg.plugin.zeroExport.groups[group].setPoint;
-                obj[F("refresh")] = mCfg.plugin.zeroExport.groups[group].refresh;
+                obj[F("minimum")] = mCfg.plugin.zeroExport.groups[group].minimum;
                 obj[F("powerTolerance")] = mCfg.plugin.zeroExport.groups[group].powerTolerance;
                 obj[F("powerMax")] = mCfg.plugin.zeroExport.groups[group].powerMax;
                 obj[F("Kp")] = mCfg.plugin.zeroExport.groups[group].Kp;
@@ -1072,11 +1076,13 @@ class settings {
                     getVal<float>(obj, F("battVoltageOn"), &mCfg.plugin.zeroExport.groups[group].battVoltageOn);
                 if (obj.containsKey(F("battVoltageOff")))
                     getVal<float>(obj, F("battVoltageOff"), &mCfg.plugin.zeroExport.groups[group].battVoltageOff);
+                if (obj.containsKey(F("battSoC")))
+                    getChar(obj, F("battSoC"), mCfg.plugin.zeroExport.groups[group].battSoC, ZEROEXPORT_GROUP_MAX_LEN_BATTERY_SOC);
                 // Advanced
                 if (obj.containsKey(F("setPoint")))
                     getVal<int16_t>(obj, F("setPoint"), &mCfg.plugin.zeroExport.groups[group].setPoint);
-                if (obj.containsKey(F("refresh")))
-                    getVal<uint8_t>(obj, F("refresh"), &mCfg.plugin.zeroExport.groups[group].refresh);
+                if (obj.containsKey(F("minimum")))
+                    getVal<bool>(obj, F("minimum"), &mCfg.plugin.zeroExport.groups[group].minimum);
                 if (obj.containsKey(F("powerTolerance")))
                     getVal<uint8_t>(obj, F("powerTolerance"), &mCfg.plugin.zeroExport.groups[group].powerTolerance);
                 if (obj.containsKey(F("powerMax")))

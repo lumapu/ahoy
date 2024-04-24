@@ -857,9 +857,10 @@ class RestApi {
                 objGroup[F("battEnabled")]  = (bool)mConfig->plugin.zeroExport.groups[group].battEnabled;
                 objGroup[F("battVoltageOn")]  = ah::round1((float)mConfig->plugin.zeroExport.groups[group].battVoltageOn);
                 objGroup[F("battVoltageOff")]  = ah::round1((float)mConfig->plugin.zeroExport.groups[group].battVoltageOff);
+                objGroup[F("battSoC")]  = String(mConfig->plugin.zeroExport.groups[group].battSoC);
                 // Advanced
                 objGroup[F("setPoint")]  = (int16_t)mConfig->plugin.zeroExport.groups[group].setPoint;
-                objGroup[F("refresh")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].refresh;
+                objGroup[F("minimum")]  = (bool)mConfig->plugin.zeroExport.groups[group].minimum;
                 objGroup[F("power")]  = (int32_t)mConfig->plugin.zeroExport.groups[group].power;
                 objGroup[F("powerTolerance")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].powerTolerance;
                 objGroup[F("powerMax")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].powerMax;
@@ -1171,9 +1172,10 @@ class RestApi {
                 mConfig->plugin.zeroExport.groups[group].battEnabled = jsonIn[F("battEnabled")];
                 mConfig->plugin.zeroExport.groups[group].battVoltageOn = jsonIn[F("battVoltageOn")];
                 mConfig->plugin.zeroExport.groups[group].battVoltageOff = jsonIn[F("battVoltageOff")];
+                snprintf(mConfig->plugin.zeroExport.groups[group].battSoC, ZEROEXPORT_GROUP_MAX_LEN_BATTERY_SOC, "%s", jsonIn[F("battSoC")].as<const char*>());
                 // Advanced
                 mConfig->plugin.zeroExport.groups[group].setPoint = jsonIn[F("setPoint")];
-                mConfig->plugin.zeroExport.groups[group].refresh = jsonIn[F("refresh")];
+                mConfig->plugin.zeroExport.groups[group].minimum = jsonIn[F("minimum")];
                 mConfig->plugin.zeroExport.groups[group].powerTolerance = jsonIn[F("powerTolerance")];
                 mConfig->plugin.zeroExport.groups[group].powerMax = jsonIn[F("powerMax")];
                 mConfig->plugin.zeroExport.groups[group].Kp = jsonIn[F("Kp")];
