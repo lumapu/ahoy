@@ -232,7 +232,7 @@
                     ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn hide", id: "btn", value: "{#BTN_FINISH}", onclick: () => {redirect()}}, null))),
                     ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {onclick: () => {redirect()}}, "{#STOP_WIZARD}")))
                 )
-                v = setInterval(() => {getAjax('/api/setup/getip', printIp)}, 500);
+                v = setInterval(() => {getAjax('/api/setup/getip', printIp)}, 1000);
             }
 
             function redirect() {
@@ -240,7 +240,7 @@
             }
 
             function printIp(obj) {
-                if("0.0.0.0" != obj["ip"]) {
+                if("0.0.0.0" != obj.ip) {
                     clearInterval(v)
                     setHide("btn", false)
                     document.getElementById("state").innerHTML = "{#NETWORK_SUCCESS}" + obj.ip
@@ -272,11 +272,11 @@
                 getAjax("/api/setup", ((o) => c.append(step1(o.eth))));
                 /*ELSE*/
                 function nets(obj) {
+                    clearInterval(v)
+                    v = setInterval(() => {getAjax('/api/setup/networks', nets)}, 4000)
+
                     if(!obj.success)
                         return;
-
-                    clearInterval(v)
-                    v = setInterval(() => {getAjax('/api/setup/networks', nets)}, 5000)
 
                     var e = document.getElementById("net");
                     if(obj.networks.length > 0) {
@@ -289,7 +289,8 @@
                         e.replaceChildren(...a)
                     }
 
-                    redirIp = obj.ip + "/index"
+                    if("0.0.0.0" != obj.ip)
+                        redirIp = "http://" + obj.ip + "/index"
                 }
 
                 c.append(step1())

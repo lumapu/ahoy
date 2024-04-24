@@ -18,11 +18,6 @@ class AhoyWifi : public AhoyNetwork {
         void begin() override {
             mAp.enable();
 
-            // static IP
-            setupIp([this](IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2) -> bool {
-                return WiFi.config(ip, gateway, mask, dns1, dns2);
-            });
-
             WiFi.setHostname(mConfig->sys.deviceName);
             mBSSIDList.clear();
         }
@@ -37,6 +32,7 @@ class AhoyWifi : public AhoyNetwork {
                 case NetworkState::DISCONNECTED:
                     if(mConnected) {
                         mConnected = false;
+                        mWifiConnecting = false;
                         mOnNetworkCB(false);
                         mAp.enable();
                         MDNS.end();
@@ -76,16 +72,19 @@ class AhoyWifi : public AhoyNetwork {
                     }
                     DBGPRINTLN("");
                     WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd, 0, &bssid[0]);
+                    mWifiConnecting = true;
                     break;
 
                 case NetworkState::CONNECTING:
                     if (isTimeout(TIMEOUT)) {
                         WiFi.disconnect();
+                        mWifiConnecting = false;
                         mStatus = mBSSIDList.empty() ? NetworkState::DISCONNECTED : NetworkState::SCAN_READY;
                     }
                     break;
 
                 case NetworkState::CONNECTED:
+                    setStaticIp();
                     break;
 
                 case NetworkState::GOT_IP:
@@ -117,6 +116,12 @@ class AhoyWifi : public AhoyNetwork {
         }
 
     private:
+        void setStaticIp() override {
+            setupIp([this](IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2) -> bool {
+                return WiFi.config(ip, gateway, mask, dns1, dns2);
+            });
+        }
+
         bool getBSSIDs() {
             bool result = false;
             int n = WiFi.scanComplete();

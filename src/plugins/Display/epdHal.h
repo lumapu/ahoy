@@ -55,7 +55,6 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
             gpio_set_level(mPinClk, 0);
 
             gpio_reset_pin(mPinCs);
-            request_spi();
             spi_device_interface_config_t devcfg = {
                 .command_bits = 0,
                 .address_bits = 0,
@@ -73,7 +72,6 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
                 .post_cb = nullptr
             };
             mSpiPatcher->addDevice(mHostDevice, &devcfg, &spi);
-            release_spi();
 
             if(GPIO_NUM_NC != mPinRst) {
                 gpio_reset_pin(mPinRst);

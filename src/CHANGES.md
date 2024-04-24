@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.112 - 2024-04-24
+* improved wizard
+* converted ePaper and Ethernet to hal-SPI
+* improved network connection
+
 ## 0.8.111 - 2024-04-17
 * fix MqTT discovery field `ALARM_MES_ID` #1591
 * fix Wifi reconnect for ESP32 #1589 #1575

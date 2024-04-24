@@ -50,7 +50,8 @@ class AhoyEthernetSpi {
             mHostDevice = (14 == pin_sclk) ? SPI2_HOST : SPI3_HOST;
             #endif
 
-            mSpiPatcher = SpiPatcher::getInstance(mHostDevice);
+            mSpiPatcher = SpiPatcher::getInstance(mHostDevice, false);
+            mSpiPatcher->initBus(pin_mosi, pin_miso, pin_sclk, SPI_DMA_CH_AUTO);
 
             spi_device_interface_config_t devcfg = {
                 .command_bits = 16, // actually address phase
