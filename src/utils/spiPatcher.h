@@ -15,6 +15,12 @@
 #include <driver/spi_master.h>
 #include <freertos/semphr.h>
 
+#if (SOC_SPI_PERIPH_NUM > 2)
+    #define SPI_HOST_OTHER SPI3_HOST
+#else
+    #define SPI_HOST_OTHER SPI2_HOST
+#endif
+
 class SpiPatcher {
     protected:
         explicit SpiPatcher(spi_host_device_t dev) :
@@ -74,8 +80,10 @@ class SpiPatcher {
             assert(mBusState == ESP_OK);
             if(SPI2_HOST == host_id)
                 mHost2Cnt++;
+            #if (SOC_SPI_PERIPH_NUM > 2)
             if(SPI3_HOST == host_id)
                 mHost3Cnt++;
+            #endif
 
             if((mHost2Cnt > 3) || (mHost3Cnt > 3))
                 DPRINTLN(DBG_ERROR, F("maximum number of SPI devices reached (3)"));
@@ -112,7 +120,7 @@ class SpiPatcher {
         SemaphoreHandle_t mutex;
         StaticSemaphore_t mutex_buffer;
         uint8_t mHost2Cnt = 0, mHost3Cnt = 0;
-        spi_host_device_t mDev = SPI3_HOST;
+        spi_host_device_t mDev = SPI2_HOST;
         esp_err_t mBusState = ESP_FAIL;
         spi_bus_config_t mBusConfig;
 };

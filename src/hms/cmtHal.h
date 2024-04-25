@@ -40,7 +40,7 @@ class cmtHal : public SpiPatcherHandle {
             #if defined(CONFIG_IDF_TARGET_ESP32S3)
             mHostDevice = SPI2_HOST;
             #else
-            mHostDevice = (14 == clk) ? SPI2_HOST : SPI3_HOST;
+            mHostDevice = (14 == clk) ? SPI2_HOST : SPI_HOST_OTHER;
             #endif
 
             mSpiPatcher = SpiPatcher::getInstance(mHostDevice);

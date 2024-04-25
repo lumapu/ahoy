@@ -11,6 +11,7 @@
 #include <esp_rom_gpio.h>
 #include <GxEPD2_BW.h>
 
+
 #define EPD_DEFAULT_SPI_SPEED   4000000 // 4 MHz
 
 class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
@@ -41,7 +42,7 @@ class epdHal: public GxEPD2_HalInterface, public SpiPatcherHandle {
             #if defined(CONFIG_IDF_TARGET_ESP32S3)
             mHostDevice = SPI3_HOST;
             #else
-            mHostDevice = (14 == sclk) ? SPI2_HOST : SPI3_HOST;
+            mHostDevice = (14 == sclk) ? SPI2_HOST : SPI_HOST_OTHER;
             #endif
 
             mSpiPatcher = SpiPatcher::getInstance(mHostDevice);

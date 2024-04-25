@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.113 - 2024-04-25
+* code cleanup
+* fix ESP32-C3 compile
+
 ## 0.8.112 - 2024-04-24
 * improved wizard
 * converted ePaper and Ethernet to hal-SPI
