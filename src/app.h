@@ -217,7 +217,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         bool getSettingsValid() override {
-            return mSettings.getValid();
+            return mConfig->valid;
         }
 
         bool getRebootRequestState() override {
@@ -354,15 +354,13 @@ class app : public IApp, public ah::Scheduler {
         void zeroIvValues(bool checkAvail = false, bool skipYieldDay = true);
 
         void payloadEventListener(uint8_t cmd, Inverter<> *iv) {
-            #if !defined(AP_ONLY)
             #if defined(ENABLE_MQTT)
                 if (mMqttEnabled)
                     mMqtt.payloadEventListener(cmd, iv);
-            #endif /*ENABLE_MQTT*/
             #endif
             #if defined(PLUGIN_DISPLAY)
-            if(DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
-               mDisplay.payloadEventListener(cmd);
+                if(DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
+                   mDisplay.payloadEventListener(cmd);
             #endif
            updateLed();
         }
@@ -425,8 +423,7 @@ class app : public IApp, public ah::Scheduler {
         #ifdef ENABLE_SYSLOG
         DbgSyslog mDbgSyslog;
         #endif
-        //PayloadType mPayload;
-        //MiPayloadType mMiPayload;
+
         PubSerialType mPubSerial;
         #if !defined(ETHERNET)
         //Improv mImprov;
@@ -447,10 +444,9 @@ class app : public IApp, public ah::Scheduler {
 
         bool mNetworkConnected = false;
 
-        // mqtt
         #if defined(ENABLE_MQTT)
         PubMqttType mMqtt;
-        #endif /*ENABLE_MQTT*/
+        #endif
         bool mTickerInstallOnce = false;
         bool mMqttEnabled = false;
 

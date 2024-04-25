@@ -239,8 +239,9 @@ class settings {
             std::fill(reinterpret_cast<char*>(&mCfg), reinterpret_cast<char*>(&mCfg) + sizeof(mCfg), 0);
         }
 
-        void setup() {
+        void setup(settings_t *&cfg) {
             DPRINTLN(DBG_INFO, F("Initializing FS .."));
+            cfg = &mCfg;
 
             mCfg.valid = false;
             #if !defined(ESP32)
@@ -274,14 +275,6 @@ class settings {
         void stop() {
             LittleFS.end();
             DPRINTLN(DBG_INFO, F("FS stopped"));
-        }
-
-        void getPtr(settings_t *&cfg) {
-            cfg = &mCfg;
-        }
-
-        bool getValid(void) {
-            return mCfg.valid;
         }
 
         inline bool getLastSaveSucceed() {
@@ -915,6 +908,7 @@ class settings {
         }
     #endif
 
+    private:
         settings_t mCfg;
         bool mLastSaveSucceed = 0;
 };
