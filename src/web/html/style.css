@@ -758,6 +758,7 @@ div.hr {
     font-family: inherit;
     cursor: pointer;
     padding: 0;
+    color: var(--fg);
 }
 
 button.close {

@@ -239,9 +239,9 @@ class settings {
             std::fill(reinterpret_cast<char*>(&mCfg), reinterpret_cast<char*>(&mCfg) + sizeof(mCfg), 0);
         }
 
-        void setup(settings_t *&cfg) {
+        void setup(settings_t *&c) {
             DPRINTLN(DBG_INFO, F("Initializing FS .."));
-            cfg = &mCfg;
+            c = &mCfg;
 
             mCfg.valid = false;
             #if !defined(ESP32)

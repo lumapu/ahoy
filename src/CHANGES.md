@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.8.114 - 2024-04-29
+* fix ESP8266 compile
+* fix history graph
+* fix close button color of modal windows in dark mode #1598
+* fix only one total field in `/live` #1579
+
 ## 0.8.113 - 2024-04-25
 * code cleanup
 * fix ESP32-C3 compile

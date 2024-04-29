@@ -45,12 +45,11 @@
                 s.x_mul = 60
                 s.ts_start = obj.lastValueTs - (obj.refresh * obj.value.length)
                 s.ts_dur = obj.lastValueTs - s.ts_start
-                s.ts_pad = (s.ts_dur < 1800) ? s.ts_start % 300 : s.ts_start % 1800
-                s.ts_dur -= s.ts_pad
+                s.ts_pad = (s.ts_dur < 1800) ? 0 : s.ts_start % 1800
+                s.ts_dur += s.ts_pad
                 while(s.x_mul * 10 <= s.ts_dur)
                     s.x_mul += (s.x_mul == 60) ? 240 : ((s.x_mul < 1800) ? 300 : 1800)
                 s.x_step = Math.ceil(s.ts_dur / s.x_mul)
-                s.x_max = s.x_mul * s.x_step
 
                 s.y_mul = 10
                 while(s.y_mul * 10 <= obj.max)
@@ -79,7 +78,7 @@
                     ...gridText(n*2, scale),
                     mlNs("g", {transform: "translate(30, 5)"}, [
                         ...grid(n*2, scale),
-                        ...poly(obj, scale)
+                        ...poly(n*2, obj, scale)
                     ])
                 ])
             }
@@ -90,10 +89,10 @@
                 for(let i = 0; i <= scale.y_max; i += scale.y_mul) {
                     g.push(mlNs("text", {x: 0, y: height-(i*div)+9}, String(i)))
                 }
-                div = x2 / scale.x_max
-                for(let i = 0; i < scale.x_max; i++) {
-                    if((i + scale.ts_pad) % scale.x_mul == 0) {
-                        let d = new Date((scale.ts_start + i) * 1000)
+                div = x2 / scale.ts_dur
+                for(let i = 0; i < scale.ts_dur; i++) {
+                    if(i % scale.x_mul == 0) {
+                        let d = new Date((scale.ts_start - scale.ts_pad + i) * 1000)
                         g.push(mlNs("text", {x: (i*div)+17, y: height+20}, ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2)))
                     }
                 }
@@ -106,28 +105,29 @@
                 for(let i = 0; i <= scale.y_max; i += scale.y_mul) {
                     g.push(mlNs("line", {x1: 0, x2: x2, y1: height-i*div, y2: height-i*div, "stroke-width": 1, "stroke-dasharray": "1,3", stroke: "#aaa"}))
                 }
-                div = x2 / scale.x_max
-                for(let i = 0; i <= scale.x_max; i++) {
-                    if((i + scale.ts_pad) % scale.x_mul == 0) {
+                div = x2 / scale.ts_dur
+                for(let i = 0; i <= scale.ts_dur; i++) {
+                    if(i % scale.x_mul == 0) {
                         g.push(mlNs("line", {x1: (i*div), x2: (i*div), y1: 0, y2: height, "stroke-width": 1, "stroke-dasharray": "1,3", stroke: "#aaa"}))
                     }
                 }
                 return g
             }
 
-            function poly(obj, scale) {
+            function poly(x2, obj, scale) {
                 let pts = ""
                 let i = 0, first = -1, last = -1, lastVal = 0
                 let div = scale.y_max / height
+                let xOff = x2 / scale.ts_dur * scale.ts_pad
                 if(div == 0)
                     div = 1
                 for (val of obj.value) {
                     if(val > 0) {
                         lastVal = val
-                        pts += " " + String(i) + "," + String(height - val / div)
+                        pts += " " + String(i + xOff) + "," + String(height - val / div)
                         if(first < 0)
-                            first = i
-                        last = i
+                            first = i + xOff
+                        last = i + xOff
                     }
                     i += 2
                 }
