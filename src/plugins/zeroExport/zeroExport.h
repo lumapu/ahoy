@@ -239,35 +239,35 @@ class ZeroExport {
         // Regelbegrenzung
         // TODO: Hier könnte man den maximalen Sprung begrenzen
 
-        // Keine Regelung wenn Maximalleistung des Inverters unbekannt ist
-        if (CfgGroupInv->MaxPower == 0) {
-            y = 0;
-            mLog["yK"] = y;
-        }
-
         // Stellgröße y in W
         CfgGroupInv->limitNew += y;
 
         // Check
 
         if (CfgGroupInv->action == zeroExportAction_t::doNone) {
-//            if ((CfgGroup->battSwitch == true) && (CfgGroupInv->limitNew > CfgGroupInv->powerMin) && (CfgGroupInv->power == 0) && (mCfg->sleep != true) && (CfgGroup->sleep != true)) {
-// TODO: Schlägt fehl, weil wenn MaxPower = 0 wird y auf 0 gesetzt und damit ist limitNew = powerMin
-            if ((CfgGroup->battSwitch == true) && (CfgGroupInv->power == 0) && (mCfg->sleep != true) && (CfgGroup->sleep != true)) {
-                CfgGroupInv->action = zeroExportAction_t::doTurnOn;
-                mLog["do"] = "doTurnOn";
+            if ((CfgGroup->battSwitch == true) && (CfgGroupInv->limitNew > CfgGroupInv->powerMin) && (CfgGroupInv->power == 0) && (mCfg->sleep != true) && (CfgGroup->sleep != true)) {
+                if (CfgGroupInv->actionTimer < 0) CfgGroupInv->actionTimer = 0;
+                if (CfgGroupInv->actionTimer == 0) CfgGroupInv->actionTimer = 1;
+                if (CfgGroupInv->actionTimer > 10) {
+                    CfgGroupInv->action = zeroExportAction_t::doTurnOn;
+                    mLog["do"] = "doTurnOn";
+                }
             }
-
-            if (((CfgGroup->battSwitch == false) || (CfgGroupInv->limitNew < 0)) && (CfgGroupInv->power > 0)) {
-                CfgGroupInv->action = zeroExportAction_t::doTurnOff;
-                mLog["do"] = "doTurnOff";
+// TODO: hier kommt eine CheckBox je Gruppe rein, die es verhindert, dass Inv ausgeschaltet werden.
+            if ((CfgGroupInv->limitNew <= 0) && (CfgGroupInv->power > 0)) {
+                if (CfgGroupInv->actionTimer > 0) CfgGroupInv->actionTimer = 0;
+                if (CfgGroupInv->actionTimer == 0) CfgGroupInv->actionTimer = -1;
+                if (CfgGroupInv->actionTimer < 30) {
+                    CfgGroupInv->action = zeroExportAction_t::doTurnOff;
+                    mLog["do"] = "doTurnOff";
+                }
             }
-
-            if (((mCfg->sleep == true) || (CfgGroup->sleep == true)) && (CfgGroupInv->power > 0)) {
+            if (((CfgGroup->battSwitch == false) || (mCfg->sleep == true) || (CfgGroup->sleep == true)) && (CfgGroupInv->power > 0)) {
                 CfgGroupInv->action = zeroExportAction_t::doTurnOff;
                 mLog["do"] = "sleep";
             }
         }
+        mLog["doT"] = CfgGroupInv->action;
 
         if (CfgGroupInv->action == zeroExportAction_t::doNone) {
             mLog["l"] = CfgGroupInv->limit;
@@ -302,6 +302,16 @@ class ZeroExport {
 
             if (CfgGroupInv->limit != CfgGroupInv->limitNew) CfgGroupInv->action = zeroExportAction_t::doActivePowerContr;
 
+            if ((CfgGroupInv->limit == powerMin) && (CfgGroupInv->power == 0)) {
+                CfgGroupInv->action = zeroExportAction_t::doNone;
+                if (!mCfg->debug) {
+                    clearLog();
+                    return;
+                }
+            }
+
+//            CfgGroupInv->actionTimer = 0;
+// TODO: Timer stoppen wenn Limit gesetzt wird.
             mLog["lN"] = CfgGroupInv->limitNew;
 
             CfgGroupInv->limit = CfgGroupInv->limitNew;
@@ -316,6 +326,8 @@ class ZeroExport {
                     mApp->triggerTickSend(iv->id);
                     CfgGroupInv->waitAck = 120;
                     CfgGroupInv->action = zeroExportAction_t::doNone;
+                    CfgGroupInv->actionTimer = 0;
+                    CfgGroupInv->actionTimestamp = Tsp;
                 }
                 break;
             case zeroExportAction_t::doTurnOn:
@@ -323,6 +335,8 @@ class ZeroExport {
                     mApp->triggerTickSend(iv->id);
                     CfgGroupInv->waitAck = 120;
                     CfgGroupInv->action = zeroExportAction_t::doNone;
+                    CfgGroupInv->actionTimer = 0;
+                    CfgGroupInv->actionTimestamp = Tsp;
                 }
                 break;
             case zeroExportAction_t::doTurnOff:
@@ -330,20 +344,19 @@ class ZeroExport {
                     mApp->triggerTickSend(iv->id);
                     CfgGroupInv->waitAck = 120;
                     CfgGroupInv->action = zeroExportAction_t::doNone;
+                    CfgGroupInv->actionTimer = 0;
+                    CfgGroupInv->actionTimestamp = Tsp;
                 }
                 break;
             case zeroExportAction_t::doActivePowerContr:
-                if ((CfgGroupInv->limit <= CfgGroupInv->powerMin) && (CfgGroupInv->power == 0)) {
-                    clearLog();
-                    return;
-                }
-
                 iv->powerLimit[0] = static_cast<uint16_t>(CfgGroupInv->limit * 10.0);
                 iv->powerLimit[1] = AbsolutNonPersistent;
                 if (iv->setDevControlRequest(ActivePowerContr)) {
                     mApp->triggerTickSend(iv->id);
                     CfgGroupInv->waitAck = 60;
                     CfgGroupInv->action = zeroExportAction_t::doNone;
+                    CfgGroupInv->actionTimer = 0;
+                    CfgGroupInv->actionTimestamp = Tsp;
                 }
                 break;
             default:
@@ -382,6 +395,9 @@ class ZeroExport {
                 if (mCfg->groups[group].inverters[inv].waitAck > 0) {
                     mCfg->groups[group].inverters[inv].waitAck--;
                 }
+
+                if (mCfg->groups[group].inverters[inv].actionTimer > 0) mCfg->groups[group].inverters[inv].actionTimer++;
+                if (mCfg->groups[group].inverters[inv].actionTimer < 0) mCfg->groups[group].inverters[inv].actionTimer--;
             }
         }
     }
@@ -537,6 +553,28 @@ class ZeroExport {
 
                     CfgGroupInv->dcVoltage = iv->getChannelFieldValue(CH1, FLD_UDC, rec);
                     mLog["bU"] = ah::round1(CfgGroupInv->dcVoltage);
+
+// Fallschirm 2: Für nicht übernommene Limits bzw. nicht regelnde Inverter
+// Bisher ist nicht geklärt ob der Inverter das Limit bestätigt hat
+// Erstmalig aufgetreten bei @knickohr am 28.04.2024 ... l=300 pM=300, p=9
+if (CfgGroupInv->MaxPower > 0) {
+uint16_t limitPercent = 100 / CfgGroupInv->MaxPower * CfgGroupInv->limit;
+uint16_t powerPercent = 100 / CfgGroupInv->MaxPower * CfgGroupInv->power;
+uint16_t delta = abs(limitPercent - powerPercent);
+if ((delta > 10) && (CfgGroupInv->power > 0)) {
+    mLog["delta"] = delta;
+    unsigned long delay = iv->getLastTs(rec) - CfgGroupInv->actionTimestamp;
+    mLog["delay"] = delay;
+    if (delay > 30000) {
+        CfgGroupInv->action = zeroExportAction_t::doActivePowerContr;
+        mLog["do"] = "doActivePowerContr";
+    }
+    if (delay > 60000) {
+        CfgGroupInv->action = zeroExportAction_t::doRestart;
+        mLog["do"] = "doRestart";
+    }
+}
+}
                 }
 
                 zeroExportQueue_t Entry;
@@ -560,6 +598,12 @@ class ZeroExport {
      */
     void onMqttConnect(void) {
         mPowermeter.onMqttConnect();
+
+        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            //            if (String(mCfg->groups[group].battSoC) == "") return;
+
+            mMqtt->subscribe(String(mCfg->groups[group].battSoC).c_str(), QOS_2);
+        }
     }
 
     /** onMqttMessage
@@ -570,6 +614,9 @@ class ZeroExport {
     void onMqttMessage(JsonObject obj) {
         if (!mIsInitialized) return;
 
+        if (mCfg->debug) mLog["d"] = obj;
+        sendLog();
+        clearLog();
         mPowermeter.onMqttMessage(obj);
 
         String topic = String(obj["topic"]);

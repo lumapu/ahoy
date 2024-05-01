@@ -265,6 +265,8 @@ typedef struct {
     //
 
     zeroExportAction_t action;
+    int8_t actionTimer;
+    unsigned long actionTimestamp;
     uint16_t power;
     uint16_t MaxPower;
     int32_t limit;
@@ -682,6 +684,7 @@ class settings {
                     //
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].waitAck = 0;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].action = zeroExportAction_t::doNone;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].actionTimer = 0;;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].dcVoltage = 0;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].limit = 0;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].limitNew = 0;

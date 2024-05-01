@@ -109,6 +109,8 @@ class powermeter {
 #endif
             }
 
+            if ((power.P == 0) and (power.P1 == 0) && (power.P2 == 0) && (power.P3 == 0)) return;
+
             bufferWrite(power, group);
 
             // MQTT - Powermeter
@@ -153,6 +155,19 @@ class powermeter {
      *
      */
     void onMqttConnect(void) {
+
+#if defined(ZEROEXPORT_POWERMETER_MQTT)
+
+        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            if (mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) {
+//                if (String(mCfg->groups[group].pm_jsonPath) == "") return;
+
+                mMqtt->subscribe(String(mCfg->groups[group].pm_jsonPath).c_str(), QOS_2);
+            }
+        }
+
+#endif /*defined(ZEROEXPORT_POWERMETER_MQTT)*/
+
     }
 
     /**
@@ -163,17 +178,39 @@ class powermeter {
 
 #if defined(ZEROEXPORT_POWERMETER_MQTT)
         // topic for powermeter?
-        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-            if (mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) {
-                //                mLog["mqttDevice"] = "topicInverter";
-                if (!topic.equals(mCfg->groups[group].pm_jsonPath)) return;
-                mCfg->groups[group].pm_P = (int32_t)obj["val"];
-            }
-        }
+//        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+//            if (mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) {
+//                //                mLog["mqttDevice"] = "topicInverter";
+//                if (!topic.equals(mCfg->groups[group].pm_jsonPath)) return;
+//                mCfg->groups[group].pm_P = (int32_t)obj["val"];
+//            }
+//        }
 #endif /*defined(ZEROEXPORT_POWERMETER_MQTT)*/
     }
 
    private:
+    /** mqttSubscribe
+     * when a MQTT Msg is needed to subscribe, then a publish is leading
+     * @param gr
+     * @param payload
+     * @returns void
+     */
+    void mqttSubscribe(String gr, String payload) {
+//        mqttPublish(gr, payload);
+        mMqtt->subscribe(gr.c_str(), QOS_2);
+    }
+
+    /** mqttPublish
+     * when a MQTT Msg is needed to Publish, but not to subscribe.
+     * @param gr
+     * @param payload
+     * @param retain
+     * @returns void
+     */
+    void mqttPublish(String gr, String payload, bool retain = false) {
+        mMqtt->publish(gr.c_str(), payload.c_str(), retain);
+    }
+
     HTTPClient http;
 
     zeroExport_t *mCfg;
