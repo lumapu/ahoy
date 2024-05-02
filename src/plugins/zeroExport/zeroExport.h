@@ -597,12 +597,16 @@ if ((delta > 10) && (CfgGroupInv->power > 0)) {
      * @returns void
      */
     void onMqttConnect(void) {
+        if (!mCfg->enabled) return;
+
         mPowermeter.onMqttConnect();
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-            //            if (String(mCfg->groups[group].battSoC) == "") return;
+            if (!mCfg->groups [group].enabled) continue;
 
-            mMqtt->subscribe(String(mCfg->groups[group].battSoC).c_str(), QOS_2);
+            if(!strcmp(mCfg->groups[group].battSoC, "")) continue;
+
+            mMqtt->subscribeExtern(String(mCfg->groups[group].battSoC).c_str(), QOS_2);
         }
     }
 
@@ -614,12 +618,17 @@ if ((delta > 10) && (CfgGroupInv->power > 0)) {
     void onMqttMessage(JsonObject obj) {
         if (!mIsInitialized) return;
 
-        if (mCfg->debug) mLog["d"] = obj;
-        sendLog();
-        clearLog();
         mPowermeter.onMqttMessage(obj);
 
         String topic = String(obj["topic"]);
+
+/// TODO: Receive Message für SoC
+//        if ((topicGroup >= 0) && (topicGroup < ZEROEXPORT_MAX_GROUPS)) {
+//            if (topic.indexOf("xxx") != -1) {
+
+//            }
+//        }
+
         if (topic.indexOf("ctrl/zero") == -1) return;
 
         if (mCfg->debug) mLog["d"] = obj;
@@ -661,19 +670,27 @@ if ((delta > 10) && (CfgGroupInv->power > 0)) {
                     mLog["v"] = mCfg->groups[topicGroup].sleep;
                 }
 
-                // "topic":"ctrl/zero/groups/+/pm_ip"
-                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/pm_ip") != -1) {
-                    //                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", obj[F("val")].as<const char *>());
-                    //                    mLog["g_powermeter_pm_ip"] = mCfg->groups[topicGroup].pm_url;
-                    //                    snprintf(mCfg->groups[5].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", obj[F("val")].as<const char *>());
-                    //                    mLog["g_powermeter_pm_ip"] = mCfg->groups[5].pm_url;
-                }
-
-                // "topic":"ctrl/zero/groups/+/pm_jsonPath"
-                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/pm_jsonPath") != -1) {
-                    //                    snprintf(mCfg->groups[topicGroup].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH, "%s", obj[F("val")].as<const char *>());
-                    //                    mLog["g_powermeter_pm_jsonPath"] = mCfg->groups[topicGroup].pm_jsonPath;
-                }
+// Auf Eis gelegt, dafür 2 Gruppen mehr
+// 0.8.103008.2
+//                // "topic":"ctrl/zero/groups/+/pm_ip"
+//                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/pm_ip") != -1) {
+//                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", obj[F("val")].as<const char *>());
+/// TODO:
+//                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", obj[F("val")].as<const char *>());
+//                    strncpy(mCfg->groups[topicGroup].pm_url, obj[F("val")], ZEROEXPORT_GROUP_MAX_LEN_PM_URL);
+//                    strncpy(mCfg->groups[topicGroup].pm_url, String(obj[F("val")]).c_str(), ZEROEXPORT_GROUP_MAX_LEN_PM_URL);
+//                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", String(obj[F("val")]).c_str());
+//                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/pm_ip";
+//                    mLog["v"] = mCfg->groups[topicGroup].pm_url;
+//                }
+//
+//                // "topic":"ctrl/zero/groups/+/pm_jsonPath"
+//                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/pm_jsonPath") != -1) {
+/// TODO:
+//                    snprintf(mCfg->groups[topicGroup].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH, "%s", obj[F("val")].as<const char *>());
+//                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/pm_jsonPath";
+//                    mLog["v"] =  mCfg->groups[topicGroup].pm_jsonPath;
+//                }
 
                 // "topic":"ctrl/zero/groups/+/battery/switch"
                 if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/battery/switch") != -1) {

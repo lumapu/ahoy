@@ -217,6 +217,12 @@ class PubMqtt {
             mClient.subscribe(topic, qos);
         }
 
+        void subscribeExtern(const char *subTopic, uint8_t qos = QOS_0) {
+            char topic[MQTT_TOPIC_LEN + 20];
+            snprintf(topic, (MQTT_TOPIC_LEN + 20), "%s", subTopic);
+            mClient.subscribe(topic, qos);
+        }
+
         void setConnectionCb(connectionCb cb) {
             mConnectionCb = cb;
         }

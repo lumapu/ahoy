@@ -204,7 +204,7 @@ typedef struct {
 #if defined(PLUGIN_ZEROEXPORT)
 
 #define ZEROEXPORT_MAX_QUEUE_ENTRIES               64
-#define ZEROEXPORT_MAX_GROUPS                       6
+#define ZEROEXPORT_MAX_GROUPS                       8
 #define ZEROEXPORT_GROUP_MAX_LEN_NAME              25
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_URL           100
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH      100
