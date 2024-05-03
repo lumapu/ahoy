@@ -19,13 +19,19 @@ template <uint8_t N=100>
 class CommQueue {
     public:
         void addImportant(Inverter<> *iv, uint8_t cmd) {
-            dec(&mRdPtr);
-            mQueue[mRdPtr] = queue_s(iv, cmd, true);
+            queue_s q(iv, cmd, true);
+            if(!isIncluded(&q)) {
+                dec(&mRdPtr);
+                mQueue[mRdPtr] = q;
+            }
         }
 
         void add(Inverter<> *iv, uint8_t cmd) {
-            mQueue[mWrPtr] = queue_s(iv, cmd, false);
-            inc(&mWrPtr);
+            queue_s q(iv, cmd, false);
+            if(!isIncluded(&q)) {
+                mQueue[mWrPtr] = q;
+                inc(&mWrPtr);
+            }
         }
 
         void chgCmd(Inverter<> *iv, uint8_t cmd) {
@@ -115,6 +121,19 @@ class CommQueue {
                 *ptr = N-1;
             else
                 --(*ptr);
+        }
+
+    private:
+        bool isIncluded(const queue_s *q) {
+            uint8_t ptr = mRdPtr;
+            while (ptr != mWrPtr) {
+                if(mQueue[ptr].cmd == q->cmd) {
+                    if(mQueue[ptr].iv->id == q->iv->id)
+                        return true;
+                }
+                ptr++;
+            }
+            return false;
         }
 
     protected:

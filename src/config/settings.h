@@ -188,6 +188,7 @@ typedef struct {
     bool rstYieldMidNight;
     bool rstValsNotAvail;
     bool rstValsCommStop;
+    bool rstValsCommStart;
     bool rstMaxValsMidNight;
     bool startWithoutTime;
     bool readGrid;
@@ -486,13 +487,14 @@ class settings {
             mCfg.mqtt.interval = 0; // off
             mCfg.mqtt.enableRetain = true;
 
-            mCfg.inst.sendInterval     = SEND_INTERVAL;
-            mCfg.inst.rstYieldMidNight = false;
-            mCfg.inst.rstValsNotAvail  = false;
-            mCfg.inst.rstValsCommStop  = false;
-            mCfg.inst.startWithoutTime = false;
+            mCfg.inst.sendInterval       = SEND_INTERVAL;
+            mCfg.inst.rstYieldMidNight   = false;
+            mCfg.inst.rstValsNotAvail    = false;
+            mCfg.inst.rstValsCommStop    = false;
+            mCfg.inst.rstValsCommStart   = false;
+            mCfg.inst.startWithoutTime   = false;
             mCfg.inst.rstMaxValsMidNight = false;
-            mCfg.inst.readGrid         = true;
+            mCfg.inst.readGrid           = true;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 mCfg.inst.iv[i].powerLevel  = 0xff; // impossible high value
@@ -822,6 +824,7 @@ class settings {
                 obj[F("rstMidNight")]    = (bool)mCfg.inst.rstYieldMidNight;
                 obj[F("rstNotAvail")]    = (bool)mCfg.inst.rstValsNotAvail;
                 obj[F("rstComStop")]     = (bool)mCfg.inst.rstValsCommStop;
+                obj[F("rstComStart")]    = (bool)mCfg.inst.rstValsCommStart;
                 obj[F("strtWthtTime")]   = (bool)mCfg.inst.startWithoutTime;
                 obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstMaxValsMidNight;
                 obj[F("rdGrid")]         = (bool)mCfg.inst.readGrid;
@@ -832,6 +835,7 @@ class settings {
                 getVal<bool>(obj, F("rstMidNight"), &mCfg.inst.rstYieldMidNight);
                 getVal<bool>(obj, F("rstNotAvail"), &mCfg.inst.rstValsNotAvail);
                 getVal<bool>(obj, F("rstComStop"), &mCfg.inst.rstValsCommStop);
+                getVal<bool>(obj, F("rstComStart"), &mCfg.inst.rstValsCommStart);
                 getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
                 getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstMaxValsMidNight);
                 getVal<bool>(obj, F("rdGrid"), &mCfg.inst.readGrid);

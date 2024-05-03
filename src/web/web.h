@@ -500,6 +500,7 @@ class Web {
                 mConfig->inst.sendInterval = request->arg("invInterval").toInt();
             mConfig->inst.rstYieldMidNight = (request->arg("invRstMid") == "on");
             mConfig->inst.rstValsCommStop = (request->arg("invRstComStop") == "on");
+            mConfig->inst.rstValsCommStart = (request->arg("invRstComStart") == "on");
             mConfig->inst.rstValsNotAvail = (request->arg("invRstNotAvail") == "on");
             mConfig->inst.startWithoutTime = (request->arg("strtWthtTm") == "on");
             mConfig->inst.readGrid = (request->arg("rdGrid") == "on");

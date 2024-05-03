@@ -130,7 +130,11 @@
                                 <div class="col-4"><input type="checkbox" name="invRstMid"/></div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-8 mb-2">{#INV_PAUSE_SUNSET}</div>
+                                <div class="col-8 mb-2">{#INV_RESET_SUNRISE}</div>
+                                <div class="col-4"><input type="checkbox" name="invRstComStart"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 mb-2">{#INV_RESET_SUNSET}</div>
                                 <div class="col-4"><input type="checkbox" name="invRstComStop"/></div>
                             </div>
                             <div class="row mb-3">
@@ -670,7 +674,7 @@
             function ivGlob(obj) {
                 for(var i of [["invInterval", "interval"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
-                for(var i of ["Mid", "ComStop", "NotAvail", "MaxMid"])
+                for(var i of ["Mid", "ComStop", "ComStart", "NotAvail", "MaxMid"])
                     document.getElementsByName("invRst"+i)[0].checked = obj["rst" + i];
                 document.getElementsByName("strtWthtTm")[0].checked = obj["strtWthtTm"];
                 document.getElementsByName("rdGrid")[0].checked = obj["rdGrid"];

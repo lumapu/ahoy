@@ -577,6 +577,7 @@ class RestApi {
             obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
             obj[F("rstNotAvail")]       = (bool)mConfig->inst.rstValsNotAvail;
             obj[F("rstComStop")]        = (bool)mConfig->inst.rstValsCommStop;
+            obj[F("rstComStart")]       = (bool)mConfig->inst.rstValsCommStart;
             obj[F("strtWthtTm")]        = (bool)mConfig->inst.startWithoutTime;
             obj[F("rdGrid")]            = (bool)mConfig->inst.readGrid;
             obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstMaxValsMidNight;

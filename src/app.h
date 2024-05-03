@@ -303,8 +303,10 @@ class app : public IApp, public ah::Scheduler {
             DBGPRINTLN(String(newTime));
             if(0 == newTime)
                 mNetwork->updateNtpTime();
-            else
+            else {
                 Scheduler::setTimestamp(newTime);
+                onNtpUpdate(false);
+            }
         }
 
         uint16_t getHistoryValue(uint8_t type, uint16_t i) override {

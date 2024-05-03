@@ -162,6 +162,9 @@ void app::regularTickers(void) {
     everySec([this]() { mProtection->tickSecond(); }, "prot");
     everySec([this]() {mNetwork->tickNetworkLoop(); }, "net");
 
+    if(mConfig->inst.startWithoutTime && !mNetworkConnected)
+        every(std::bind(&app::tickSend, this), mConfig->inst.sendInterval, "tSend");
+
     // Plugins
     #if defined(PLUGIN_DISPLAY)
     if (DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
@@ -275,6 +278,8 @@ void app::tickIVCommunication(void) {
                 if (mTimestamp >= (mSunset + mConfig->sun.offsetSecEvening)) { // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
                     nxtTrig = 0;
                 } else { // current time lies within communication start/stop time, set next trigger to communication stop
+                    if((!iv->commEnabled) && mConfig->inst.rstValsCommStart)
+                        zeroValues = true;
                     iv->commEnabled = true;
                     nxtTrig = mSunset + mConfig->sun.offsetSecEvening;
                 }

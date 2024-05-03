@@ -57,7 +57,6 @@ class HistoryData {
 
         void tickerSecond() {
             float curPwr = 0;
-            //float maxPwr = 0;
             float yldDay = -0.1;
             uint32_t ts = 0;
 
@@ -67,7 +66,6 @@ class HistoryData {
                 if (iv == NULL)
                     continue;
                 curPwr += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
-                //maxPwr += iv->getChannelFieldValue(CH0, FLD_MP, rec);
                 yldDay += iv->getChannelFieldValue(CH0, FLD_YD, rec);
                 if (rec->ts > ts)
                     ts = rec->ts;
@@ -81,8 +79,6 @@ class HistoryData {
                     if (curPwr > mMaximumDay)
                         mMaximumDay = roundf(curPwr);
                 }
-                //if (maxPwr > 0)
-                //    mMaximumDay = roundf(maxPwr);
             }
 
             if ((++mCurPwrDay.loopCnt % mCurPwrDay.refreshCycle) == 0) {

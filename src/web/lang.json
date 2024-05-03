@@ -324,9 +324,14 @@
                     "de": "Werte und Gesamtertrag um Mitternacht zur&uuml;cksetzen"
                 },
                 {
-                    "token": "INV_PAUSE_SUNSET",
+                    "token": "INV_RESET_SUNSET",
                     "en": "Reset values at sunset",
                     "de": "Werte bei Sonnenuntergang zur&uuml;cksetzen"
+                },
+                {
+                    "token": "INV_RESET_SUNRISE",
+                    "en": "Reset values at sunrise",
+                    "de": "Werte bei Sonnenaufgang zur&uuml;cksetzen"
                 },
                 {
                     "token": "INV_RESET_NOT_AVAIL",

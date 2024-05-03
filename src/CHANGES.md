@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.115 - 2024-05-03
+* fix inverter communication with manual time sync #1603
+* improved queue, only add new object once they not exist
+* added option to reset values on communication start (sunrise)
+
 ## 0.8.114 - 2024-04-29
 * fix ESP8266 compile
 * fix history graph
