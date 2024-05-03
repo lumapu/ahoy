@@ -1390,10 +1390,9 @@
                     ]),
                     // Powermeter
                     ml("div", {id: "div{#ZE_GROUP_TAB_POWERMETER}", class: "tab-content hide"}, [
-// TODO: add
-//divRow("{#ZE_GROUP_TAB_POWERMETER_REFRESH}",
-//ml("select", {name: "pm_refresh", class: "text", type: "text", value: obj.pm_refresh}, null),
-//),
+                        divRow("{#ZE_GROUP_TAB_POWERMETER_REFRESH}",
+                            ml("input", {name: "pm_refresh", class: "text", type: "number", min: "1", max: "30", step: "1", value: obj.pm_refresh}, null),
+                        ),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_TYPE}",
                             ml("select", {name: "pm_type", class: "text", id: "pm_type"}, null),
                         ),
@@ -1556,7 +1555,7 @@
                     o.enabled  = document.getElementsByName("enabled")[0].checked;
                     o.name = document.getElementsByName("name")[0].value;
                     // Powermeter
-                    //o.pm_type = document.getElementsByName("pm_type")[0].selectedIndex;
+                    o.pm_refresh = document.getElementsByName("pm_refresh")[0].value;
                     var e = document.getElementsByName("pm_type")[0];
 		            o.pm_type = e.options[e.selectedIndex].value;
                     o.pm_url = document.getElementsByName("pm_url")[0].value;
@@ -1623,6 +1622,7 @@
                     o.enabled   = false;
                     o.name = "";
                     // Powermeter
+                    o.pm_refresh = 5;
                     o.pm_type = 0;
                     o.pm_url = "";
                     o.pm_jsonPath = "";
@@ -1640,6 +1640,7 @@
 		                q.target = -1;
                         q.powerMin = 0;
                         q.powerMax = 0;
+                        q.turnOff = false;
                         o.inverters.push(q);
                     }
                     // Battery

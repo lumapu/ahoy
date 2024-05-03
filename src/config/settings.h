@@ -283,6 +283,8 @@ typedef struct {
     bool sleep;
     char name[ZEROEXPORT_GROUP_MAX_LEN_NAME];
     // Powermeter
+    uint8_t pm_refresh;
+    unsigned long pm_peviousTsp;
     uint8_t pm_type;
     char pm_url[ZEROEXPORT_GROUP_MAX_LEN_PM_URL];
     char pm_jsonPath[ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH];
@@ -670,6 +672,8 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].sleep = false;
                 snprintf(mCfg.plugin.zeroExport.groups[group].name, ZEROEXPORT_GROUP_MAX_LEN_NAME,  "%s", DEF_ZEXPORT);
                 // Powermeter
+                mCfg.plugin.zeroExport.groups[group].pm_refresh = 5;
+                mCfg.plugin.zeroExport.groups[group].pm_peviousTsp = 0;
                 mCfg.plugin.zeroExport.groups[group].pm_type = zeroExportPowermeterType_t::None;
                 snprintf(mCfg.plugin.zeroExport.groups[group].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL,  "%s", DEF_ZEXPORT);
                 snprintf(mCfg.plugin.zeroExport.groups[group].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH,  "%s", DEF_ZEXPORT);
@@ -1031,6 +1035,7 @@ class settings {
                 obj[F("enabled")] = mCfg.plugin.zeroExport.groups[group].enabled;
                 obj[F("name")] = mCfg.plugin.zeroExport.groups[group].name;
                 // Powermeter
+                obj[F("pm_refresh")] = mCfg.plugin.zeroExport.groups[group].pm_refresh;
                 obj[F("pm_type")] = mCfg.plugin.zeroExport.groups[group].pm_type;
                 obj[F("pm_url")] = mCfg.plugin.zeroExport.groups[group].pm_url;
                 obj[F("pm_jsonPath")] = mCfg.plugin.zeroExport.groups[group].pm_jsonPath;
@@ -1061,6 +1066,8 @@ class settings {
                 if (obj.containsKey(F("name")))
                     getChar(obj, F("name"), mCfg.plugin.zeroExport.groups[group].name, ZEXPORT_ADDR_LEN);
                 // Powermeter
+                if (obj.containsKey(F("pm_refresh")))
+                    getVal<uint8_t>(obj, F("pm_refresh"), &mCfg.plugin.zeroExport.groups[group].pm_refresh);
                 if (obj.containsKey(F("pm_type")))
                     getVal<uint8_t>(obj, F("pm_type"), &mCfg.plugin.zeroExport.groups[group].pm_type);
                 if (obj.containsKey(F("pm_url")))

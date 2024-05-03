@@ -242,7 +242,7 @@ class RestApi {
             if((len + index) != total)
                 return; // not last frame - nothing to do
 
-            DynamicJsonDocument json(1000);
+            DynamicJsonDocument json(2000);
 
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 200);
             JsonObject root = response->getRoot();
@@ -837,6 +837,7 @@ class RestApi {
                 objGroup[F("enabled")]  = (bool)mConfig->plugin.zeroExport.groups[group].enabled;
                 objGroup[F("name")]  = String(mConfig->plugin.zeroExport.groups[group].name);
                 // Powermeter
+                objGroup[F("pm_refresh")] = (uint8_t)mConfig->plugin.zeroExport.groups[group].pm_refresh;
                 objGroup[F("pm_type")] = (uint8_t)mConfig->plugin.zeroExport.groups[group].pm_type;
                 objGroup[F("pm_url")]  = String(mConfig->plugin.zeroExport.groups[group].pm_url);
                 objGroup[F("pm_jsonPath")]  = String(mConfig->plugin.zeroExport.groups[group].pm_jsonPath);
@@ -1156,6 +1157,7 @@ class RestApi {
                 mConfig->plugin.zeroExport.groups[group].enabled = jsonIn[F("enabled")];
                 snprintf(mConfig->plugin.zeroExport.groups[group].name, ZEROEXPORT_GROUP_MAX_LEN_NAME, "%s", jsonIn[F("name")].as<const char*>());
                 // Powermeter
+                mConfig->plugin.zeroExport.groups[group].pm_refresh = jsonIn[F("pm_refresh")];
                 mConfig->plugin.zeroExport.groups[group].pm_type = jsonIn[F("pm_type")];
                 snprintf(mConfig->plugin.zeroExport.groups[group].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", jsonIn[F("pm_url")].as<const char*>());
                 snprintf(mConfig->plugin.zeroExport.groups[group].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH, "%s", jsonIn[F("pm_jsonPath")].as<const char*>());

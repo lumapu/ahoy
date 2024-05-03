@@ -75,6 +75,9 @@ class powermeter {
         for (u_short group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             if ((!mCfg->groups[group].enabled) || (mCfg->groups[group].sleep)) continue;
 
+            if ((millis() - mCfg->groups[group].pm_peviousTsp) <= ((uint16_t)mCfg->groups[group].pm_refresh * 1000)) continue;
+            mCfg->groups[group].pm_peviousTsp = millis();
+
             switch (mCfg->groups[group].pm_type) {
 #if defined(ZEROEXPORT_POWERMETER_SHELLY)
                 case zeroExportPowermeterType_t::Shelly:
@@ -88,8 +91,8 @@ class powermeter {
 #endif
 #if defined(ZEROEXPORT_POWERMETER_MQTT)
                 case zeroExportPowermeterType_t::Mqtt:
-///                    power = getPowermeterWattsMqtt(*mLog, group);
-continue;
+                    ///                    power = getPowermeterWattsMqtt(*mLog, group);
+                    continue;
                     break;
 #endif
 #if defined(ZEROEXPORT_POWERMETER_HICHI)
@@ -158,7 +161,6 @@ continue;
      *
      */
     void onMqttConnect(void) {
-
 #if defined(ZEROEXPORT_POWERMETER_MQTT)
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
@@ -167,13 +169,11 @@ continue;
             if (!mCfg->groups[group].enabled) continue;
 
             if (mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) {
-
                 mMqtt->subscribeExtern(String(mCfg->groups[group].pm_jsonPath).c_str(), QOS_2);
             }
         }
 
 #endif /*defined(ZEROEXPORT_POWERMETER_MQTT)*/
-
     }
 
     /**
@@ -183,14 +183,42 @@ continue;
         String topic = String(obj["topic"]);
 
 #if defined(ZEROEXPORT_POWERMETER_MQTT)
-        // topic for powermeter?
-//        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-//            if (mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) {
-//                //                mLog["mqttDevice"] = "topicInverter";
-//                if (!topic.equals(mCfg->groups[group].pm_jsonPath)) return;
-//                mCfg->groups[group].pm_P = (int32_t)obj["val"];
-//            }
-//        }
+
+        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            if (!mCfg->groups[group].enabled) continue;
+
+            if (!mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) continue;
+
+            if (!strcmp(mCfg->groups[group].pm_jsonPath, "")) continue;
+
+            if (strcmp(mCfg->groups[group].pm_jsonPath, String(topic).c_str())) continue;
+
+            PowermeterBuffer_t power;
+            power.P = (uint16_t)obj["val"];
+            power.P1 = power.P2 = power.P3 = (uint16_t)obj["val"] / 3;
+
+            if ((power.P == 0) and (power.P1 == 0) && (power.P2 == 0) && (power.P3 == 0)) return;
+
+            bufferWrite(power, group);
+
+            // MQTT - Powermeter
+            if (mCfg->debug) {
+                if (mMqtt->isConnected()) {
+                    // P
+                    mqttObj["Sum"] = ah::round1(power.P);
+                    mqttObj["L1"] = ah::round1(power.P1);
+                    mqttObj["L2"] = ah::round1(power.P2);
+                    mqttObj["L3"] = ah::round1(power.P3);
+                    mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), mqttDoc.as<std::string>().c_str(), false);
+                    mqttDoc.clear();
+
+                    // W (TODO)
+                }
+            }
+
+            return;
+        }
+
 #endif /*defined(ZEROEXPORT_POWERMETER_MQTT)*/
     }
 
@@ -202,7 +230,7 @@ continue;
      * @returns void
      */
     void mqttSubscribe(String gr, String payload) {
-//        mqttPublish(gr, payload);
+        //        mqttPublish(gr, payload);
         mMqtt->subscribe(gr.c_str(), QOS_2);
     }
 
@@ -435,26 +463,26 @@ continue;
     }
 #endif
 
-///#if defined(ZEROEXPORT_POWERMETER_MQTT)
-///    /** getPowermeterWattsMqtt
-///     * ...
-///     * @param logObj
-///     * @param group
-///     * @returns true/false
-///     */
-///    PowermeterBuffer_t getPowermeterWattsMqtt(JsonObject logObj, uint8_t group) {
-///        PowermeterBuffer_t result;
-///        result.P = result.P1 = result.P2 = result.P3 = 0;
-///
-///        logObj["mod"] = "getPowermeterWattsMqtt";
-///
-///        // topic for powermeter?
-///        result.P = mCfg->groups[group].pm_P;
-///        result.P1 = result.P2 = result.P3 = mCfg->groups[group].pm_P / 3;
-///
-///        return result;
-///    }
-///#endif
+    /// #if defined(ZEROEXPORT_POWERMETER_MQTT)
+    ///     /** getPowermeterWattsMqtt
+    ///      * ...
+    ///      * @param logObj
+    ///      * @param group
+    ///      * @returns true/false
+    ///      */
+    ///     PowermeterBuffer_t getPowermeterWattsMqtt(JsonObject logObj, uint8_t group) {
+    ///         PowermeterBuffer_t result;
+    ///         result.P = result.P1 = result.P2 = result.P3 = 0;
+    ///
+    ///         logObj["mod"] = "getPowermeterWattsMqtt";
+    ///
+    ///         // topic for powermeter?
+    ///         result.P = mCfg->groups[group].pm_P;
+    ///         result.P1 = result.P2 = result.P3 = mCfg->groups[group].pm_P / 3;
+    ///
+    ///         return result;
+    ///     }
+    /// #endif
 
 #if defined(ZEROEXPORT_POWERMETER_HICHI)
     /** getPowermeterWattsHichi

@@ -884,6 +884,11 @@
                     "de": "Leistungsmessung"
                 },
                 {
+                    "token": "ZE_GROUP_TAB_POWERMETER_REFRESH",
+                    "en": "Refresh (s):",
+                    "de": "Zykluszeit (s):"
+                },
+                {
                     "token": "ZE_GROUP_TAB_POWERMETER_TYPE",
                     "en": "Type:",
                     "de": "Typ:"
