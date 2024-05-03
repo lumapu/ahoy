@@ -62,7 +62,7 @@ class PubMqtt {
             mUptime          = uptime;
             mIntervalTimeout = 1;
 
-            SendIvData.setup(sys, utcTs, &mSendList);
+            SendIvData.setup(app, sys, utcTs, &mSendList);
             SendIvData.setPublishFunc([this](const char *subTopic, const char *payload, bool retained, uint8_t qos) {
                 publish(subTopic, payload, retained, true, qos);
             });

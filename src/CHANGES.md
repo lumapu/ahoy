@@ -4,6 +4,7 @@
 * fix inverter communication with manual time sync #1603
 * improved queue, only add new object once they not exist
 * added option to reset values on communication start (sunrise)
+* fixed calculation of max AC power (API, MqTT)
 
 ## 0.8.114 - 2024-04-29
 * fix ESP8266 compile

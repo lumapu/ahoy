@@ -105,7 +105,6 @@ class RestApi {
             else if(path == "live")           getLive(request,root);
             else if (path == "powerHistory")  getPowerHistory(request, root);
             else if (path == "powerHistoryDay")  getPowerHistoryDay(request, root);
-            else if (path == "yieldDayHistory") getYieldDayHistory(request, root);
             else {
                 if(path.substring(0, 12) == "inverter/id/")
                     getInverter(root, request->url().substring(17).toInt());
@@ -298,7 +297,6 @@ class RestApi {
             #if defined(ENABLE_HISTORY)
             ep[F("powerHistory")]     = url + F("powerHistory");
             ep[F("powerHistoryDay")]  = url + F("powerHistoryDay");
-            ep[F("yieldDayHistory")]  = url + F("yieldDayHistory");
             #endif
         }
 
@@ -916,6 +914,7 @@ class RestApi {
                 obj[F("fld_units")][fld] = String(units[fieldUnits[dcList[fld]]]);
                 obj[F("fld_names")][fld] = String(fields[dcList[fld]]);
             }
+            obj[F("max_total_pwr")] = mApp->getTotalMaxPower();
 
             Inverter<> *iv;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {

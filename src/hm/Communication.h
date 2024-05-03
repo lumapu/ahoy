@@ -159,8 +159,6 @@ class Communication : public CommQueue<> {
                                         mFirstTry = false;
                                     mHeu.evalTxChQuality(q->iv, false, 0, 0);
                                     mHeu.getTxCh(q->iv);
-                                    //q->iv->radioStatistics.rxFailNoAnser++;  // should only be one of fail or retransmit.
-                                    //q->iv->radioStatistics.txCnt--;
                                     q->iv->radioStatistics.retransmits++;
                                     q->iv->radio->mRadioWaitTime.stopTimeMonitor();
                                     mState = States::START;

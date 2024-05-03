@@ -24,7 +24,8 @@ class PubMqttIvData {
     public:
         PubMqttIvData() : mTotal{}, mSubTopic{}, mVal{} {}
 
-        void setup(HMSYSTEM *sys, uint32_t *utcTs, std::queue<sendListCmdIv> *sendList) {
+        void setup(IApp *app, HMSYSTEM *sys, uint32_t *utcTs, std::queue<sendListCmdIv> *sendList) {
+            mApp           = app;
             mSys           = sys;
             mUtcTimestamp  = utcTs;
             mSendList      = sendList;
@@ -168,9 +169,6 @@ class PubMqttIvData {
                                 case FLD_PDC:
                                     mTotal[3] += mIv->getValue(mPos, rec);
                                     break;
-                                case FLD_MP:
-                                    mTotal[4] += mIv->getValue(mPos, rec);
-                                    break;
                             }
                         } else
                             mAllTotalFound = false;
@@ -261,6 +259,7 @@ class PubMqttIvData {
                     case 4:
                         fieldId = FLD_MP;
                         retained = false;
+                        mTotal[4] = mApp->getTotalMaxPower();
                         break;
                 }
                 snprintf(mSubTopic.data(), mSubTopic.size(), "total/%s", fields[fieldId]);
@@ -273,6 +272,9 @@ class PubMqttIvData {
                 mState = IDLE;
             }
         }
+
+    private:
+        IApp *mApp = nullptr;
 
         HMSYSTEM *mSys = nullptr;
         uint32_t *mUtcTimestamp = nullptr;

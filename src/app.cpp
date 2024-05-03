@@ -94,6 +94,7 @@ void app::setup() {
     mDbgSyslog.setup(mConfig); // be sure to init after mWeb.setup (webSerial uses also debug callback)
     #endif
     // Plugins
+    mMaxPower.setup(&mTimestamp, mConfig->inst.sendInterval);
     #if defined(PLUGIN_DISPLAY)
     if (DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
         #if defined(ESP32)

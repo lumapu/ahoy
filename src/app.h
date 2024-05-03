@@ -31,6 +31,7 @@
 #include "utils/syslog.h"
 #include "web/RestApi.h"
 #include "web/Protection.h"
+#include "plugins/MaxPower.h"
 #if defined(ENABLE_HISTORY)
 #include "plugins/history.h"
 #endif /*ENABLE_HISTORY*/
@@ -309,6 +310,10 @@ class app : public IApp, public ah::Scheduler {
             }
         }
 
+        float getTotalMaxPower(void) override {
+            return mMaxPower.getTotalMaxPower();
+        }
+
         uint16_t getHistoryValue(uint8_t type, uint16_t i) override {
             #if defined(ENABLE_HISTORY)
                 return mHistory.valueAt((HistoryStorageType)type, i);
@@ -356,6 +361,7 @@ class app : public IApp, public ah::Scheduler {
         void zeroIvValues(bool checkAvail = false, bool skipYieldDay = true);
 
         void payloadEventListener(uint8_t cmd, Inverter<> *iv) {
+            mMaxPower.payloadEvent(cmd, iv);
             #if defined(ENABLE_MQTT)
                 if (mMqttEnabled)
                     mMqtt.payloadEventListener(cmd, iv);
@@ -457,6 +463,7 @@ class app : public IApp, public ah::Scheduler {
         uint32_t mSunrise = 0, mSunset = 0;
 
         // plugins
+        MaxPower<float> mMaxPower;
         #if defined(PLUGIN_DISPLAY)
         DisplayType mDisplay;
         DisplayData mDispData;
