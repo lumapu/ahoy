@@ -253,8 +253,7 @@ class ZeroExport {
                     mLog["do"] = "doTurnOn";
                 }
             }
-// TODO: hier kommt eine CheckBox je Gruppe rein, die es verhindert, dass Inv ausgeschaltet werden.
-            if ((CfgGroupInv->limitNew <= 0) && (CfgGroupInv->power > 0)) {
+            if ((CfgGroupInv->turnOff) && (CfgGroupInv->limitNew <= 0) && (CfgGroupInv->power > 0)) {
                 if (CfgGroupInv->actionTimer > 0) CfgGroupInv->actionTimer = 0;
                 if (CfgGroupInv->actionTimer == 0) CfgGroupInv->actionTimer = -1;
                 if (CfgGroupInv->actionTimer < 30) {

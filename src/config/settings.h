@@ -262,6 +262,7 @@ typedef struct {
     int8_t target;
     uint16_t powerMin;
     uint16_t powerMax;
+    bool turnOff;
     //
 
     zeroExportAction_t action;
@@ -681,6 +682,7 @@ class settings {
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].target = -1;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMin = 10;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMax = 600;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].turnOff = false;
                     //
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].waitAck = 0;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].action = zeroExportAction_t::doNone;
@@ -1006,6 +1008,7 @@ class settings {
                 obj[F("target")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].target;
                 obj[F("powerMin")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMin;
                 obj[F("powerMax")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMax;
+                obj[F("turnOff")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].turnOff;
             } else {
                 if (obj.containsKey(F("enabled")))
                     getVal<bool>(obj, F("enabled"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].enabled);
@@ -1017,6 +1020,8 @@ class settings {
                     getVal<uint16_t>(obj, F("powerMin"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMin);
                 if (obj.containsKey(F("powerMax")))
                     getVal<uint16_t>(obj, F("powerMax"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMax);
+                if (obj.containsKey(F("turnOff")))
+                    getVal<bool>(obj, F("turnOff"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].turnOff);
             }
         }
 

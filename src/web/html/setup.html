@@ -1324,6 +1324,7 @@
                     ml("th", {}, "{#ZE_GROUP_TAB_INVERTER_SUM}"),
                     ml("th", {style: "width: 15%;"}, "{#ZE_GROUP_TAB_INVERTER_POWERMIN}"),
                     ml("th", {style: "width: 15%;"}, "{#ZE_GROUP_TAB_INVERTER_POWERMAX}"),
+                    ml("th", {style: "width: 5%;"}, "{#ZE_GROUP_TAB_INVERTER_TURNOFF}"),
                 ]));
 
                 for(var inv = 0; inv < maxInv; inv++) {
@@ -1331,7 +1332,7 @@
                         ml("td", {}, String(inv)),
                         ml("td", {},
                             ml("div", {}, [
-                            ml("input", {name: "invEnabled"+inv, class: "text", id: "invEnabled"+inv, type: "checkbox"}, null)
+                                ml("input", {name: "invEnabled"+inv, class: "text", id: "invEnabled"+inv, type: "checkbox"}, null)
                             ]),
                         ),
                         ml("td", {},
@@ -1352,6 +1353,11 @@
                         ml("td", {},
                             ml("div", {}, [
                                 ml("input", {name: "invPowerMax"+inv, class: "text", id: "invPowerMax"+inv, type: "number", min: "0", max: "65535"}, null)
+                            ]),
+                        ),
+                        ml("td", {},
+                            ml("div", {}, [
+                                ml("input", {name: "invTurnOff"+inv, class: "text", id: "invTurnOff"+inv, type: "checkbox"}, null)
                             ]),
                         ),
                     ]));
@@ -1384,6 +1390,10 @@
                     ]),
                     // Powermeter
                     ml("div", {id: "div{#ZE_GROUP_TAB_POWERMETER}", class: "tab-content hide"}, [
+// TODO: add
+//divRow("{#ZE_GROUP_TAB_POWERMETER_REFRESH}",
+//ml("select", {name: "pm_refresh", class: "text", type: "text", value: obj.pm_refresh}, null),
+//),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_TYPE}",
                             ml("select", {name: "pm_type", class: "text", id: "pm_type"}, null),
                         ),
@@ -1531,6 +1541,11 @@
                     var e = document.getElementById("invPowerMax"+inv);
                     e.value = (obj.inverters[inv].powerMax);
                 }
+                // - TurnOff
+                for (var inv = 0; inv < maxInv; inv++) {
+                    var e = document.getElementById("invTurnOff"+inv);
+                    e.checked = (obj.inverters[inv].turnOff);
+                }
 
                 function save() {
                     var o = new Object();
@@ -1560,6 +1575,7 @@
 		                q.target = e.options[e.selectedIndex].value;
                         q.powerMin = document.getElementById("invPowerMin"+inv).value;
                         q.powerMax = document.getElementById("invPowerMax"+inv).value;
+                        q.turnOff = document.getElementById("invTurnOff"+inv).checked;
                         o.inverters.push(q);
                     }
                     // Battery

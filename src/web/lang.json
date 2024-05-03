@@ -939,6 +939,11 @@
                     "de": "Leistung (Max)"
                 },
                 {
+                    "token": "ZE_GROUP_TAB_INVERTER_TURNOFF",
+                    "en": "Turn On/Off",
+                    "de": "Schalte Ein/Aus"
+                },
+                {
                     "token": "ZE_GROUP_TAB_BATTERY",
                     "en": "Battery",
                     "de": "Batterie"

@@ -852,6 +852,7 @@ class RestApi {
                     objGroupInv[F("target")]  = (int8_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].target;
                     objGroupInv[F("powerMin")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].powerMin;
                     objGroupInv[F("powerMax")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].powerMax;
+                    objGroupInv[F("turnOff")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].turnOff;
                 }
                 // Battery
                 objGroup[F("battEnabled")]  = (bool)mConfig->plugin.zeroExport.groups[group].battEnabled;
@@ -1167,6 +1168,7 @@ class RestApi {
                     mConfig->plugin.zeroExport.groups[group].inverters[inv].target = jsonIn[F("inverters")][inv][F("target")];
                     mConfig->plugin.zeroExport.groups[group].inverters[inv].powerMin = jsonIn[F("inverters")][inv][F("powerMin")];
                     mConfig->plugin.zeroExport.groups[group].inverters[inv].powerMax = jsonIn[F("inverters")][inv][F("powerMax")];
+                    mConfig->plugin.zeroExport.groups[group].inverters[inv].turnOff = jsonIn[F("inverters")][inv][F("turnOff")];
                 }
                 // Battery
                 mConfig->plugin.zeroExport.groups[group].battEnabled = jsonIn[F("battEnabled")];
