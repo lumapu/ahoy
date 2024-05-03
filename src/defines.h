@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       8
-#define VERSION_PATCH       1030009
+#define VERSION_PATCH       1030010
 //-------------------------------------
 typedef struct {
     uint8_t ch;
