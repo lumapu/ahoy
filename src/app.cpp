@@ -361,6 +361,8 @@ void app::tickMidnight(void) {
                 uint8_t pos = iv->getPosByChFld(i, FLD_MP, rec);
                 iv->setValue(pos, rec, 0.0f);
             }
+            if(InverterStatus::OFF == iv->getStatus())
+                iv->resetAlarms(true);
         }
     }
 
@@ -435,6 +437,9 @@ bool app::sendIv(Inverter<> *iv) {
 void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
     Inverter<> *iv;
     bool changed = false;
+
+    mMaxPower.reset();
+
     // set values to zero, except yields
     for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
         iv = mSys.getInverterByPos(id);
@@ -470,7 +475,7 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
                 pos = iv->getPosByChFld(ch, FLD_MP, rec);
                 iv->setValue(pos, rec, 0.0f);
             }
-            iv->resetAlarms();
+            iv->resetAlarms(true);
             iv->doCalculations();
         }
     }

@@ -131,7 +131,7 @@ class CommQueue {
                     if(mQueue[ptr].iv->id == q->iv->id)
                         return true;
                 }
-                ptr++;
+                inc(&ptr);
             }
             return false;
         }

@@ -33,7 +33,8 @@ const byteAssign_t hms1chAssignment[] = {
     { FLD_YT,  UNIT_KWH,  CH0, CALC_YT_CH0,   0, CMD_CALC },
     { FLD_PDC, UNIT_W,    CH0, CALC_PDC_CH0,  0, CMD_CALC },
     { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0,  0, CMD_CALC },
-    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC }
+    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,  UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
 };
 #define HMS1CH_LIST_LEN      (sizeof(hms1chAssignment) / sizeof(byteAssign_t))
 #define HMS1CH_PAYLOAD_LEN   30
@@ -70,7 +71,8 @@ const byteAssign_t hms2chAssignment[] = {
     { FLD_YT,  UNIT_KWH,  CH0, CALC_YT_CH0,  0, CMD_CALC },
     { FLD_PDC, UNIT_W,    CH0, CALC_PDC_CH0, 0, CMD_CALC },
     { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0, 0, CMD_CALC },
-    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC }
+    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,  UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
 };
 #define HMS2CH_LIST_LEN      (sizeof(hms2chAssignment) / sizeof(byteAssign_t))
 #define HMS2CH_PAYLOAD_LEN   42
@@ -123,7 +125,8 @@ const byteAssign_t hms4chAssignment[] = {
     { FLD_YT,  UNIT_KWH,  CH0, CALC_YT_CH0,   0, CMD_CALC },
     { FLD_PDC, UNIT_W,    CH0, CALC_PDC_CH0,  0, CMD_CALC },
     { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0,  0, CMD_CALC },
-    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC }
+    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,  UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
 };
 #define HMS4CH_LIST_LEN      (sizeof(hms4chAssignment) / sizeof(byteAssign_t))
 #define HMS4CH_PAYLOAD_LEN   66
@@ -199,7 +202,8 @@ const byteAssign_t hmt6chAssignment[] = {
     { FLD_YT,       UNIT_KWH,  CH0, CALC_YT_CH0,   0, CMD_CALC },
     { FLD_PDC,      UNIT_W,    CH0, CALC_PDC_CH0,  0, CMD_CALC },
     { FLD_EFF,      UNIT_PCT,  CH0, CALC_EFF_CH0,  0, CMD_CALC },
-    { FLD_MP,       UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC }
+    { FLD_MP,       UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,       UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
 };
 #define HMT6CH_LIST_LEN      (sizeof(hmt6chAssignment) / sizeof(byteAssign_t))
 #define HMT6CH_PAYLOAD_LEN   98

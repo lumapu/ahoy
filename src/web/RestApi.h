@@ -603,6 +603,7 @@ class RestApi {
             obj[F("alarm_cnt")]        = iv->alarmCnt;
             obj[F("rssi")]             = iv->rssi;
             obj[F("ts_max_ac_pwr")]    = iv->tsMaxAcPower;
+            obj[F("ts_max_temp")]      = iv->tsMaxTemperature;
 
             JsonArray ch = obj.createNestedArray("ch");
 
@@ -905,6 +906,7 @@ class RestApi {
         void getLive(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = mConfig->inst.sendInterval;
+            obj[F("max_total_pwr")] = ah::round3(mApp->getTotalMaxPower());
 
             for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
                 obj[F("ch0_fld_units")][fld] = String(units[fieldUnits[acList[fld]]]);
@@ -914,7 +916,6 @@ class RestApi {
                 obj[F("fld_units")][fld] = String(units[fieldUnits[dcList[fld]]]);
                 obj[F("fld_names")][fld] = String(fields[dcList[fld]]);
             }
-            obj[F("max_total_pwr")] = mApp->getTotalMaxPower();
 
             Inverter<> *iv;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
@@ -1106,9 +1107,9 @@ class RestApi {
 
     private:
         constexpr static uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT,
-            FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
+            FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP, FLD_MT};
         constexpr static uint8_t acListHmt[] = {FLD_UAC_1N, FLD_IAC_1, FLD_PAC, FLD_F, FLD_PF, FLD_T,
-            FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
+            FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP, FLD_MT};
         constexpr static uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR, FLD_MP};
 
     private:

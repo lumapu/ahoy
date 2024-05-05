@@ -1,8 +1,13 @@
 # Development Changes
 
+## 0.8.116 - 2024-05-05
+* calculation of max AC power
+* fix counter overflow communication queue
+* added max inverter temperature
+
 ## 0.8.115 - 2024-05-03
 * fix inverter communication with manual time sync #1603
-* improved queue, only add new object once they not exist
+* improved queue, only add new object once they not exist in queue
 * added option to reset values on communication start (sunrise)
 * fixed calculation of max AC power (API, MqTT)
 

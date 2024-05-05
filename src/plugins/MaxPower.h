@@ -17,12 +17,17 @@ class MaxPower {
         MaxPower() {
             mTs = nullptr;
             mMaxDiff = 60;
-            mValues.fill(std::make_pair(0, 0.0));
+            reset();
         }
 
         void setup(uint32_t *ts, uint16_t interval) {
             mTs = ts;
             mMaxDiff = interval * 4;
+        }
+
+        void reset(void) {
+            mValues.fill(std::make_pair(0, 0.0));
+            mLast = 0.0;
         }
 
         void payloadEvent(uint8_t cmd, Inverter<> *iv) {
@@ -42,14 +47,17 @@ class MaxPower {
                 if((mValues[i].first + mMaxDiff) >= *mTs)
                     val += mValues[i].second;
                 else if(mValues[i].first > 0)
-                    return 0; // old data
+                    return mLast; // old data
             }
-            return val;
+            if(val > mLast)
+                mLast = val;
+            return mLast;
         }
 
     private:
         uint32_t *mTs;
         uint32_t mMaxDiff;
+        float mLast;
         std::array<std::pair<uint32_t, T>, MAX_NUM_INVERTERS> mValues;
 };
 

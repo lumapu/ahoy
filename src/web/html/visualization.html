@@ -106,7 +106,6 @@
                     total[4] += obj.ch[0][8]; // P_DC
                     total[5] += obj.ch[0][10]; // Q_AC
                 }
-                total[3] += obj.ch[0][11]; // MAX P_AC
                 total[1] += obj.ch[0][7]; // YieldDay
                 total[2] += obj.ch[0][6]; // YieldTotal
 
@@ -121,7 +120,8 @@
                         pwrLimit += ", " + (obj.max_pwr * obj.power_limit_read / 100).toFixed(1) + "&nbsp;W";
                 }
 
-                var maxAcPwr = toIsoDateStr(new Date(obj.ts_max_ac_pwr * 1000));
+                var maxAcPwrDate = toIsoDateStr(new Date(obj.ts_max_ac_pwr * 1000))
+                var maxTempDate = toIsoDateStr(new Date(obj.ts_max_temp * 1000))
                 return ml("div", {class: "row mt-2"},
                     ml("div", {class: "col"}, [
                         ml("div", {class: "p-2 " + clh},
@@ -136,7 +136,7 @@
                                 ml("div", {class: "col a-c"}, ml("span", { class: "pointer", onclick: function() {
                                     getAjax("/api/inverter/alarm/" + obj.id, parseIvAlarm);
                                 }}, ("{#ALARMS}: " + obj.alarm_cnt))),
-                                ml("div", {class: "col a-r mx-2 mx-md-1"}, String(obj.ch[0][5].toFixed(1)) + t.innerText)
+                                ml("div", {class: "col a-r mx-2 mx-md-1 tooltip", data: (obj.ch[0][12] + t.innerText + "\n" + maxTempDate)}, String(obj.ch[0][5].toFixed(1)) + t.innerText)
                             ])
                         ),
                         ml("div", {class: "p-2 " + clbg}, [
@@ -147,7 +147,7 @@
                             ]),
                             ml("div", {class: "hr"}),
                             ml("div", {class: "row mt-2"},[
-                                numMid(obj.ch[0][11], "W", "{#MAX_AC_POWER}", {class: "fs-6 tooltip", data: maxAcPwr}),
+                                numMid(obj.ch[0][11], "W", "{#MAX_AC_POWER}", {class: "fs-6 tooltip", data: maxAcPwrDate}),
                                 numMid(obj.ch[0][8], "W", "{#DC_POWER}"),
                                 numMid(obj.ch[0][0], "V", "{#AC_VOLTAGE}"),
                                 numMid(obj.ch[0][1], "A", "{#AC_CURRENT}"),
@@ -516,6 +516,7 @@
                     mNum = 0;
                     totalsRendered = false
                     total.fill(0);
+                    total[3] = obj.max_total_pwr
                     for(var i = 0; i < obj.iv.length; i++) {
                         if(obj.iv[i]) {
                             getAjax("/api/inverter/id/" + i, parseIv);
