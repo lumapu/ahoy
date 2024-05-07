@@ -1364,8 +1364,6 @@
                 }
 
                 // Tab_Battery
-                var cb_battEnabled = ml("input", {name: "battEnabled", type: "checkbox"}, null);
-                cb_battEnabled.checked = (obj.battEnabled);
 
                 // Tab_Advanced
                 var cb_minimum = ml("input", {name: "minimum", type: "checkbox"}, null);
@@ -1432,10 +1430,18 @@
                     ]),
                     // Battery
                     ml("div", {id: "div{#ZE_GROUP_TAB_BATTERY}", class: "tab-content hide"}, [
-                        divRow("{#ZE_GROUP_TAB_BATTERY_ENABLED}", cb_battEnabled),
-                        divRow("{#ZE_GROUP_TAB_BATTERY_VOLTAGEON}", ml("input", {name: "battVoltageOn", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battVoltageOn}, null)),
-                        divRow("{#ZE_GROUP_TAB_BATTERY_VOLTAGEOFF}", ml("input", {name: "battVoltageOff", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battVoltageOff}, null)),
-                        divRow("{#ZE_GROUP_TAB_BATTERY_SOC}",  ml("input", {name: "battSoC", class: "text", type: "text", value: obj.battSoC}, null)),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_CFG}",
+                            ml("select", {name: "battCfg", class: "text", id: "battCfg"}, null),
+                        ),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_TOPIC}",
+                            ml("input", {name: "battTopic", class: "text", type: "text", value: obj.battTopic}, null),
+                        ),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_LIMITON}",
+                            ml("input", {name: "battLimitOn", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battLimitOn}, null),
+                        ),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_LIMITOFF}",
+                            ml("input", {name: "battLimitOff", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battLimitOff}, null),
+                        ),
                         divRow("{#ZE_GROUP_TAB_BATTERY_ONOFF}", ml("input", {name: "battSwitch", id: "battSwitch", class: "btn", type: "button", value: "{#BTN_ONOFF}", onclick: battOnOff()}, null)),
 // TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
                         divRow("Hinweis: ",
@@ -1546,6 +1552,21 @@
                     e.checked = (obj.inverters[inv].turnOff);
                 }
 
+                // Tab_Battery
+                // battCfg
+                var e = document.getElementById("battCfg");
+                selDelAllOpt(e);
+// TODO: uebersetzen?
+                e.appendChild(opt("0", "---"));
+                e.appendChild(opt("1", "Inverter U dc"));
+                e.appendChild(opt("2", "MQTT U"));
+                e.appendChild(opt("3", "MQTT Soc"));
+                for (var i = 0; i < e.options.length; i++) {
+                    if (e.options[i].value == obj.battCfg) {
+                        e.selectedIndex = i;
+                    }
+                }
+
                 function save() {
                     var o = new Object();
                     o.cmd  = "ze_save_group"
@@ -1578,10 +1599,11 @@
                         o.inverters.push(q);
                     }
                     // Battery
-                    o.battEnabled = document.getElementsByName("battEnabled")[0].checked;
-                    o.battVoltageOn = document.getElementsByName("battVoltageOn")[0].value;
-                    o.battVoltageOff = document.getElementsByName("battVoltageOff")[0].value;
-                    o.battSoC = document.getElementsByName("battSoC")[0].value;
+                    var e = document.getElementsByName("battCfg")[0];
+		            o.battCfg = e.options[e.selectedIndex].value;
+                    o.battTopic = document.getElementsByName("battTopic")[0].value;
+                    o.battLimitOn = document.getElementsByName("battLimitOn")[0].value;
+                    o.battLimitOff = document.getElementsByName("battLimitOff")[0].value;
                     // Advanced
                     o.setPoint = document.getElementsByName("setPoint")[0].value;
                     o.minimum = document.getElementsByName("minimum")[0].checked;
@@ -1644,10 +1666,10 @@
                         o.inverters.push(q);
                     }
                     // Battery
-                    o.battEnabled = false;
-                    o.battVoltageOn = 0;
-                    o.battVoltageOff = 0;
-                    o.battSoC = "";
+                    o.battCfg = 0;
+                    o.battTopic = "";
+                    o.battLimitOn = 0;
+                    o.battLimitOff = 0;
                     // Advanced
                     o.setPoint = 0;
                     o.minimum = true;

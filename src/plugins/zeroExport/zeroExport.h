@@ -121,29 +121,40 @@ class ZeroExport {
         mLog["gL"] = groupLimit;
 
         // Batteryprotection
-        mLog["bEn"] = CfgGroup->battEnabled;
-        if (CfgGroup->battEnabled) {
-            if (CfgGroup->battSwitch != true) {
-                if (CfgGroupInv->dcVoltage > CfgGroup->battVoltageOn) {
+        mLog["bEn"] = (uint8_t)CfgGroup->battCfg;
+        switch (CfgGroup->battCfg) {
+            case zeroExportBatteryCfg::none:
+                if (CfgGroup->battSwitch != true) {
                     CfgGroup->battSwitch = true;
                     mLog["bA"] = "turn on";
                 }
-                if ((CfgGroupInv->dcVoltage > CfgGroup->battVoltageOff) && (CfgGroupInv->power > 0)) {
-                    CfgGroup->battSwitch = true;
-                    mLog["bA"] = "turn on";
+                break;
+            case zeroExportBatteryCfg::invUdc:
+            case zeroExportBatteryCfg::mqttU:
+            case zeroExportBatteryCfg::mqttSoC:
+                if (CfgGroup->battSwitch != true) {
+                    if (CfgGroup->battValue > CfgGroup->battLimitOn) {
+                        CfgGroup->battSwitch = true;
+                        mLog["bA"] = "turn on";
+                    }
+                    if ((CfgGroup->battValue > CfgGroup->battLimitOff) && (CfgGroupInv->power > 0)) {
+                        CfgGroup->battSwitch = true;
+                        mLog["bA"] = "turn on";
+                    }
+                } else {
+                    if (CfgGroup->battValue < CfgGroup->battLimitOff) {
+                        CfgGroup->battSwitch = false;
+                        mLog["bA"] = "turn off";
+                    }
                 }
-            } else {
-                if (CfgGroupInv->dcVoltage < CfgGroup->battVoltageOff) {
+                mLog["bU"] = ah::round1(CfgGroup->battValue);
+                break;
+            default:
+                if (CfgGroup->battSwitch == true) {
                     CfgGroup->battSwitch = false;
                     mLog["bA"] = "turn off";
                 }
-            }
-            mLog["bU"] = ah::round1(CfgGroupInv->dcVoltage);
-        } else {
-            if (CfgGroup->battSwitch != true) {
-                CfgGroup->battSwitch = true;
-                mLog["bA"] = "turn on";
-            }
+                break;
         }
         mLog["bSw"] = CfgGroup->battSwitch;
 
@@ -309,8 +320,8 @@ class ZeroExport {
                 }
             }
 
-//            CfgGroupInv->actionTimer = 0;
-// TODO: Timer stoppen wenn Limit gesetzt wird.
+            //            CfgGroupInv->actionTimer = 0;
+            // TODO: Timer stoppen wenn Limit gesetzt wird.
             mLog["lN"] = CfgGroupInv->limitNew;
 
             CfgGroupInv->limit = CfgGroupInv->limitNew;
@@ -553,27 +564,37 @@ class ZeroExport {
                     CfgGroupInv->dcVoltage = iv->getChannelFieldValue(CH1, FLD_UDC, rec);
                     mLog["bU"] = ah::round1(CfgGroupInv->dcVoltage);
 
-// Fallschirm 2: Für nicht übernommene Limits bzw. nicht regelnde Inverter
-// Bisher ist nicht geklärt ob der Inverter das Limit bestätigt hat
-// Erstmalig aufgetreten bei @knickohr am 28.04.2024 ... l=300 pM=300, p=9
-if (CfgGroupInv->MaxPower > 0) {
-uint16_t limitPercent = 100 / CfgGroupInv->MaxPower * CfgGroupInv->limit;
-uint16_t powerPercent = 100 / CfgGroupInv->MaxPower * CfgGroupInv->power;
-uint16_t delta = abs(limitPercent - powerPercent);
-if ((delta > 10) && (CfgGroupInv->power > 0)) {
-    mLog["delta"] = delta;
-    unsigned long delay = iv->getLastTs(rec) - CfgGroupInv->actionTimestamp;
-    mLog["delay"] = delay;
-    if (delay > 30000) {
-        CfgGroupInv->action = zeroExportAction_t::doActivePowerContr;
-        mLog["do"] = "doActivePowerContr";
-    }
-    if (delay > 60000) {
-        CfgGroupInv->action = zeroExportAction_t::doRestart;
-        mLog["do"] = "doRestart";
-    }
-}
-}
+                    // Batterieüberwachung - Überwachung über die DC-Spannung am PV-Eingang 1 des Inverters
+                    if (CfgGroup->battCfg == zeroExportBatteryCfg::invUdc) {
+                        if ((CfgGroup->battSwitch == false) && (CfgGroup->battValue < CfgGroupInv->dcVoltage)) {
+                            CfgGroup->battValue = CfgGroupInv->dcVoltage;
+                        }
+                        if ((CfgGroup->battSwitch == true) && (CfgGroup->battValue > CfgGroupInv->dcVoltage)) {
+                            CfgGroup->battValue = CfgGroupInv->dcVoltage;
+                        }
+                    }
+
+                    // Fallschirm 2: Für nicht übernommene Limits bzw. nicht regelnde Inverter
+                    // Bisher ist nicht geklärt ob der Inverter das Limit bestätigt hat
+                    // Erstmalig aufgetreten bei @knickohr am 28.04.2024 ... l=300 pM=300, p=9
+                    if (CfgGroupInv->MaxPower > 0) {
+                        uint16_t limitPercent = 100 / CfgGroupInv->MaxPower * CfgGroupInv->limit;
+                        uint16_t powerPercent = 100 / CfgGroupInv->MaxPower * CfgGroupInv->power;
+                        uint16_t delta = abs(limitPercent - powerPercent);
+                        if ((delta > 10) && (CfgGroupInv->power > 0)) {
+                            mLog["delta"] = delta;
+                            unsigned long delay = iv->getLastTs(rec) - CfgGroupInv->actionTimestamp;
+                            mLog["delay"] = delay;
+                            if (delay > 30000) {
+                                CfgGroupInv->action = zeroExportAction_t::doActivePowerContr;
+                                mLog["do"] = "doActivePowerContr";
+                            }
+                            if (delay > 60000) {
+                                CfgGroupInv->action = zeroExportAction_t::doRestart;
+                                mLog["do"] = "doRestart";
+                            }
+                        }
+                    }
                 }
 
                 zeroExportQueue_t Entry;
@@ -600,12 +621,15 @@ if ((delta > 10) && (CfgGroupInv->power > 0)) {
 
         mPowermeter.onMqttConnect();
 
+        // "topic":"userdefined battSoCTopic"
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-            if (!mCfg->groups [group].enabled) continue;
+            if (!mCfg->groups[group].enabled) continue;
 
-            if(!strcmp(mCfg->groups[group].battSoC, "")) continue;
+            if ((!mCfg->groups[group].battCfg == zeroExportBatteryCfg::mqttU) && (!mCfg->groups[group].battCfg == zeroExportBatteryCfg::mqttSoC)) continue;
 
-            mMqtt->subscribeExtern(String(mCfg->groups[group].battSoC).c_str(), QOS_2);
+            if (!strcmp(mCfg->groups[group].battTopic, "")) continue;
+
+            mMqtt->subscribeExtern(String(mCfg->groups[group].battTopic).c_str(), QOS_2);
         }
     }
 
@@ -621,13 +645,22 @@ if ((delta > 10) && (CfgGroupInv->power > 0)) {
 
         String topic = String(obj["topic"]);
 
-/// TODO: Receive Message für SoC
-//        if ((topicGroup >= 0) && (topicGroup < ZEROEXPORT_MAX_GROUPS)) {
-//            if (topic.indexOf("xxx") != -1) {
+        // "topic":"userdefined battSoCTopic"
+        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            if (!mCfg->groups[group].enabled) continue;
 
-//            }
-//        }
+            if ((!mCfg->groups[group].battCfg == zeroExportBatteryCfg::mqttU) && (!mCfg->groups[group].battCfg == zeroExportBatteryCfg::mqttSoC)) continue;
 
+            if (!strcmp(mCfg->groups[group].battTopic, "")) continue;
+
+            if (strcmp(mCfg->groups[group].battTopic, String(topic).c_str())) {
+                mCfg->groups[group].battValue = (bool)obj["val"];
+                mLog["k"] = mCfg->groups[group].battTopic;
+                mLog["v"] = mCfg->groups[group].battValue;
+            }
+        }
+
+        // "topic":"ctrl/zero"
         if (topic.indexOf("ctrl/zero") == -1) return;
 
         if (mCfg->debug) mLog["d"] = obj;
@@ -669,27 +702,27 @@ if ((delta > 10) && (CfgGroupInv->power > 0)) {
                     mLog["v"] = mCfg->groups[topicGroup].sleep;
                 }
 
-// Auf Eis gelegt, dafür 2 Gruppen mehr
-// 0.8.103008.2
-//                // "topic":"ctrl/zero/groups/+/pm_ip"
-//                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/pm_ip") != -1) {
-//                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", obj[F("val")].as<const char *>());
-/// TODO:
-//                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", obj[F("val")].as<const char *>());
-//                    strncpy(mCfg->groups[topicGroup].pm_url, obj[F("val")], ZEROEXPORT_GROUP_MAX_LEN_PM_URL);
-//                    strncpy(mCfg->groups[topicGroup].pm_url, String(obj[F("val")]).c_str(), ZEROEXPORT_GROUP_MAX_LEN_PM_URL);
-//                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", String(obj[F("val")]).c_str());
-//                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/pm_ip";
-//                    mLog["v"] = mCfg->groups[topicGroup].pm_url;
-//                }
-//
-//                // "topic":"ctrl/zero/groups/+/pm_jsonPath"
-//                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/pm_jsonPath") != -1) {
-/// TODO:
-//                    snprintf(mCfg->groups[topicGroup].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH, "%s", obj[F("val")].as<const char *>());
-//                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/pm_jsonPath";
-//                    mLog["v"] =  mCfg->groups[topicGroup].pm_jsonPath;
-//                }
+                // Auf Eis gelegt, dafür 2 Gruppen mehr
+                // 0.8.103008.2
+                //                // "topic":"ctrl/zero/groups/+/pm_ip"
+                //                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/pm_ip") != -1) {
+                //                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", obj[F("val")].as<const char *>());
+                /// TODO:
+                //                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", obj[F("val")].as<const char *>());
+                //                    strncpy(mCfg->groups[topicGroup].pm_url, obj[F("val")], ZEROEXPORT_GROUP_MAX_LEN_PM_URL);
+                //                    strncpy(mCfg->groups[topicGroup].pm_url, String(obj[F("val")]).c_str(), ZEROEXPORT_GROUP_MAX_LEN_PM_URL);
+                //                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", String(obj[F("val")]).c_str());
+                //                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/pm_ip";
+                //                    mLog["v"] = mCfg->groups[topicGroup].pm_url;
+                //                }
+                //
+                //                // "topic":"ctrl/zero/groups/+/pm_jsonPath"
+                //                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/pm_jsonPath") != -1) {
+                /// TODO:
+                //                    snprintf(mCfg->groups[topicGroup].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH, "%s", obj[F("val")].as<const char *>());
+                //                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/pm_jsonPath";
+                //                    mLog["v"] =  mCfg->groups[topicGroup].pm_jsonPath;
+                //                }
 
                 // "topic":"ctrl/zero/groups/+/battery/switch"
                 if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/battery/switch") != -1) {

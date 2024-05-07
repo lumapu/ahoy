@@ -856,10 +856,10 @@ class RestApi {
                     objGroupInv[F("turnOff")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].turnOff;
                 }
                 // Battery
-                objGroup[F("battEnabled")]  = (bool)mConfig->plugin.zeroExport.groups[group].battEnabled;
-                objGroup[F("battVoltageOn")]  = ah::round1((float)mConfig->plugin.zeroExport.groups[group].battVoltageOn);
-                objGroup[F("battVoltageOff")]  = ah::round1((float)mConfig->plugin.zeroExport.groups[group].battVoltageOff);
-                objGroup[F("battSoC")]  = String(mConfig->plugin.zeroExport.groups[group].battSoC);
+                objGroup[F("battCfg")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].battCfg;
+                objGroup[F("battTopic")]  = String(mConfig->plugin.zeroExport.groups[group].battTopic);
+                objGroup[F("battLimitOn")]  = ah::round1((float)mConfig->plugin.zeroExport.groups[group].battLimitOn);
+                objGroup[F("battLimitOff")]  = ah::round1((float)mConfig->plugin.zeroExport.groups[group].battLimitOff);
                 // Advanced
                 objGroup[F("setPoint")]  = (int16_t)mConfig->plugin.zeroExport.groups[group].setPoint;
                 objGroup[F("minimum")]  = (bool)mConfig->plugin.zeroExport.groups[group].minimum;
@@ -1173,10 +1173,10 @@ class RestApi {
                     mConfig->plugin.zeroExport.groups[group].inverters[inv].turnOff = jsonIn[F("inverters")][inv][F("turnOff")];
                 }
                 // Battery
-                mConfig->plugin.zeroExport.groups[group].battEnabled = jsonIn[F("battEnabled")];
-                mConfig->plugin.zeroExport.groups[group].battVoltageOn = jsonIn[F("battVoltageOn")];
-                mConfig->plugin.zeroExport.groups[group].battVoltageOff = jsonIn[F("battVoltageOff")];
-                snprintf(mConfig->plugin.zeroExport.groups[group].battSoC, ZEROEXPORT_GROUP_MAX_LEN_BATTERY_SOC, "%s", jsonIn[F("battSoC")].as<const char*>());
+                mConfig->plugin.zeroExport.groups[group].battCfg = jsonIn[F("battCfg")];
+                snprintf(mConfig->plugin.zeroExport.groups[group].battTopic, ZEROEXPORT_GROUP_MAX_LEN_BATT_TOPIC, "%s", jsonIn[F("battTopic")].as<const char*>());
+                mConfig->plugin.zeroExport.groups[group].battLimitOn = jsonIn[F("battLimitOn")];
+                mConfig->plugin.zeroExport.groups[group].battLimitOff = jsonIn[F("battLimitOff")];
                 // Advanced
                 mConfig->plugin.zeroExport.groups[group].setPoint = jsonIn[F("setPoint")];
                 mConfig->plugin.zeroExport.groups[group].minimum = jsonIn[F("minimum")];

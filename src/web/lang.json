@@ -954,24 +954,24 @@
                     "de": "Batterie"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_BATTERY_ENABLED",
-                    "en": "Enabled:",
-                    "de": "Aktiviert:"
+                    "token": "ZE_GROUP_TAB_BATTERY_CFG",
+                    "en": "Mode:",
+                    "de": "Modus:"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_BATTERY_VOLTAGEON",
-                    "en": "Voltage on (Volt):",
-                    "de": "Spannung Ein (Volt):"
+                    "token": "ZE_GROUP_TAB_BATTERY_TOPIC",
+                    "en": "Topic:",
+                    "de": "Topic:"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_BATTERY_VOLTAGEOFF",
-                    "en": "Voltage off (Volt):",
-                    "de": "Spannung Aus (Volt):"
+                    "token": "ZE_GROUP_TAB_BATTERY_LIMITON",
+                    "en": "Limit On:",
+                    "de": "Limit Ein:"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_BATTERY_SOC",
-                    "en": "SoC % (MQTT Topic):",
-                    "de": "SoC (MQTT Topic):"
+                    "token": "ZE_GROUP_TAB_BATTERY_LIMITOFF",
+                    "en": "Limit Off:",
+                    "de": "Limit Aus:"
                 },
                 {
                     "token": "ZE_GROUP_TAB_BATTERY_ONOFF",

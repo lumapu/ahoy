@@ -210,7 +210,7 @@ typedef struct {
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH      100
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_USER           25
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_PASS           25
-#define ZEROEXPORT_GROUP_MAX_LEN_BATTERY_SOC      100
+#define ZEROEXPORT_GROUP_MAX_LEN_BATT_TOPIC       100
 #define ZEROEXPORT_GROUP_MAX_INVERTERS              3
 #define ZEROEXPORT_POWERMETER_MAX_ERRORS            5
 #define ZEROEXPORT_DEF_INV_WAITINGTIME_MS       10000
@@ -241,6 +241,13 @@ typedef enum {
     L2Sum   = 5,
     L3Sum   = 6,
 } zeroExportInverterTarget_t;
+
+typedef enum {
+    none = 0,
+    invUdc,
+    mqttU,
+    mqttSoC
+} zeroExportBatteryCfg;
 
 typedef enum {
     doNone = 0,
@@ -293,10 +300,11 @@ typedef struct {
     // Inverters
     zeroExportGroupInverter_t inverters[ZEROEXPORT_GROUP_MAX_INVERTERS];
     // Battery
-    bool battEnabled;
-    float battVoltageOn;
-    float battVoltageOff;
-    char battSoC[ZEROEXPORT_GROUP_MAX_LEN_BATTERY_SOC];
+    uint8_t battCfg;
+    char battTopic[ZEROEXPORT_GROUP_MAX_LEN_BATT_TOPIC];
+    float battValue;
+    float battLimitOn;
+    float battLimitOff;
     // Advanced
     int16_t setPoint;
     bool minimum;
@@ -696,10 +704,10 @@ class settings {
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].limitNew = 0;
                 }
                 // Battery
-                mCfg.plugin.zeroExport.groups[group].battEnabled = false;
-                mCfg.plugin.zeroExport.groups[group].battVoltageOn = 0;
-                mCfg.plugin.zeroExport.groups[group].battVoltageOff = 0;
-                snprintf(mCfg.plugin.zeroExport.groups[group].battSoC, ZEROEXPORT_GROUP_MAX_LEN_BATTERY_SOC,  "%s", DEF_ZEXPORT);
+                mCfg.plugin.zeroExport.groups[group].battCfg = zeroExportBatteryCfg::none;
+                snprintf(mCfg.plugin.zeroExport.groups[group].battTopic, ZEROEXPORT_GROUP_MAX_LEN_BATT_TOPIC,  "%s", DEF_ZEXPORT);
+                mCfg.plugin.zeroExport.groups[group].battLimitOn = 0;
+                mCfg.plugin.zeroExport.groups[group].battLimitOff = 0;
                 // Advanced
                 mCfg.plugin.zeroExport.groups[group].setPoint = 0;
                 mCfg.plugin.zeroExport.groups[group].minimum = true;
@@ -1047,10 +1055,10 @@ class settings {
                     jsonZeroExportGroupInverter(invArr.createNestedObject(), group, inv, set);
                 }
                 // Battery
-                obj[F("battEnabled")] = mCfg.plugin.zeroExport.groups[group].battEnabled;
-                obj[F("battVoltageOn")] = mCfg.plugin.zeroExport.groups[group].battVoltageOn;
-                obj[F("battVoltageOff")] = mCfg.plugin.zeroExport.groups[group].battVoltageOff;
-                obj[F("battSoC")] = mCfg.plugin.zeroExport.groups[group].battSoC;
+                obj[F("battCfg")] = mCfg.plugin.zeroExport.groups[group].battCfg;
+                obj[F("battTopic")] = mCfg.plugin.zeroExport.groups[group].battTopic;
+                obj[F("battLimitOn")] = mCfg.plugin.zeroExport.groups[group].battLimitOn;
+                obj[F("battLimitOff")] = mCfg.plugin.zeroExport.groups[group].battLimitOff;
                 // Advanced
                 obj[F("setPoint")] = mCfg.plugin.zeroExport.groups[group].setPoint;
                 obj[F("minimum")] = mCfg.plugin.zeroExport.groups[group].minimum;
@@ -1085,14 +1093,14 @@ class settings {
                     }
                 }
                 // Battery
-                if (obj.containsKey(F("battEnabled")))
-                    getVal<bool>(obj, F("battEnabled"), &mCfg.plugin.zeroExport.groups[group].battEnabled);
-                if (obj.containsKey(F("battVoltageOn")))
-                    getVal<float>(obj, F("battVoltageOn"), &mCfg.plugin.zeroExport.groups[group].battVoltageOn);
-                if (obj.containsKey(F("battVoltageOff")))
-                    getVal<float>(obj, F("battVoltageOff"), &mCfg.plugin.zeroExport.groups[group].battVoltageOff);
-                if (obj.containsKey(F("battSoC")))
-                    getChar(obj, F("battSoC"), mCfg.plugin.zeroExport.groups[group].battSoC, ZEROEXPORT_GROUP_MAX_LEN_BATTERY_SOC);
+                if (obj.containsKey(F("battCfg")))
+                    getVal<uint8_t>(obj, F("battCfg"), &mCfg.plugin.zeroExport.groups[group].battCfg);
+                if (obj.containsKey(F("battTopic")))
+                    getChar(obj, F("battTopic"), mCfg.plugin.zeroExport.groups[group].battTopic, ZEROEXPORT_GROUP_MAX_LEN_BATT_TOPIC);
+                if (obj.containsKey(F("battLimitOn")))
+                    getVal<float>(obj, F("battLimitOn"), &mCfg.plugin.zeroExport.groups[group].battLimitOn);
+                if (obj.containsKey(F("battLimitOff")))
+                    getVal<float>(obj, F("battLimitOff"), &mCfg.plugin.zeroExport.groups[group].battLimitOff);
                 // Advanced
                 if (obj.containsKey(F("setPoint")))
                     getVal<int16_t>(obj, F("setPoint"), &mCfg.plugin.zeroExport.groups[group].setPoint);
