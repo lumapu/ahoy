@@ -687,7 +687,7 @@ div.hr {
     border-radius: 3px;
     display: inline-block;
     position: absolute;
-    transform: translate(-50%,-100%);
+    transform: translate(-50%,-50%);
     margin:0 auto;
     color: var(--fg2);
     min-width: 100px;

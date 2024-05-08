@@ -234,6 +234,7 @@ class Inverter {
             initAssignment(&recordAlarm, AlarmData);
             toRadioId();
             curCmtFreq = this->config->frequency; // update to frequency read from settings
+            resetAlarms(true);
         }
 
         uint8_t getPosByChFld(uint8_t channel, uint8_t fieldId, record_t<> *rec) {
@@ -594,8 +595,8 @@ class Inverter {
             memset(mLastYD, 0, sizeof(float) * 6);
 
             if(clear) {
-                tsMaxAcPower = 0;
-                tsMaxTemperature = 0;
+                tsMaxAcPower = *Timestamp;
+                tsMaxTemperature = *Timestamp;
             }
         }
 

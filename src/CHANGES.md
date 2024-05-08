@@ -1,7 +1,8 @@
 # Development Changes
 
 ## 0.8.117 - 2024-05-09
-* fix reboot issue #1607
+* fix reboot issue #1607 #1606
+* fix max temperature tooltip if only one inverter is configured #1605
 
 ## 0.8.116 - 2024-05-05
 * calculation of max AC power

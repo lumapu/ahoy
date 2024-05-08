@@ -55,11 +55,11 @@
                 ]);
             }
 
-            function numMid(val, unit, des, opt={class: "fs-6"}) {
+            function numMid(val, unit, des, opt={class: "row"}) {
                 return ml("div", {class: "col-6 col-sm-4 col-md-3 mb-2"}, [
-                    ml("div", {class: "row"},
+                    ml("div", opt,
                         ml("div", {class: "col"}, [
-                            ml("span", opt, String(Math.round(val * 100) / 100)),
+                            ml("span", {class: "fs-6"}, String(Math.round(val * 100) / 100)),
                             ml("span", {class: "fs-8 mx-1"}, unit)
                         ])
                     ),
@@ -147,7 +147,7 @@
                             ]),
                             ml("div", {class: "hr"}),
                             ml("div", {class: "row mt-2"},[
-                                numMid(obj.ch[0][11], "W", "{#MAX_AC_POWER}", {class: "fs-6 tooltip", data: maxAcPwrDate}),
+                                numMid(obj.ch[0][11], "W", "{#MAX_AC_POWER}", {class: "row tooltip", data: maxAcPwrDate}),
                                 numMid(obj.ch[0][8], "W", "{#DC_POWER}"),
                                 numMid(obj.ch[0][0], "V", "{#AC_VOLTAGE}"),
                                 numMid(obj.ch[0][1], "A", "{#AC_CURRENT}"),
