@@ -34,6 +34,9 @@ class MaxPower {
             if(RealTimeRunData_Debug != cmd)
                 return;
 
+            if(nullptr == iv)
+                return;
+
             if(iv->id >= MAX_NUM_INVERTERS)
                 return;
 

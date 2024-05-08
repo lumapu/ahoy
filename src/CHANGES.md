@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.117 - 2024-05-09
+* fix reboot issue #1607
+
 ## 0.8.116 - 2024-05-05
 * calculation of max AC power
 * fix counter overflow communication queue

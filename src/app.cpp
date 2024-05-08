@@ -481,7 +481,7 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
     }
 
     if(changed)
-        payloadEventListener(RealTimeRunData_Debug, NULL);
+        payloadEventListener(RealTimeRunData_Debug, nullptr);
 }
 
 //-----------------------------------------------------------------------------
