@@ -3,6 +3,7 @@
 ## 0.8.118 - 2024-05-10
 * possible fix reset max values #1609
 * slightly improved WiFi reconnect
+* update AsyncWebserver to `3.2.0`
 
 ## 0.8.117 - 2024-05-09
 * fix reboot issue #1607 #1606

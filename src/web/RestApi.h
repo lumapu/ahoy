@@ -572,13 +572,13 @@ class RestApi {
             }
             obj[F("interval")]          = String(mConfig->inst.sendInterval);
             obj[F("max_num_inverters")] = MAX_NUM_INVERTERS;
-            obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
+            obj[F("rstMid")]            = (bool)mConfig->inst.rstValsAtMidNight;
             obj[F("rstNotAvail")]       = (bool)mConfig->inst.rstValsNotAvail;
             obj[F("rstComStop")]        = (bool)mConfig->inst.rstValsCommStop;
             obj[F("rstComStart")]       = (bool)mConfig->inst.rstValsCommStart;
             obj[F("strtWthtTm")]        = (bool)mConfig->inst.startWithoutTime;
             obj[F("rdGrid")]            = (bool)mConfig->inst.readGrid;
-            obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstMaxValsMidNight;
+            obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstIncludeMaxVals;
         }
 
         void getInverter(JsonObject obj, uint8_t id) {
