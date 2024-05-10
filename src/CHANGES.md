@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.118 - 2024-05-10
+* possible fix reset max values #1609
+* slightly improved WiFi reconnect
+
 ## 0.8.117 - 2024-05-09
 * fix reboot issue #1607 #1606
 * fix max temperature tooltip if only one inverter is configured #1605

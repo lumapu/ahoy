@@ -339,9 +339,9 @@
                     "de": "Werte zur&uuml;cksetzen, sobald der Wechselrichter nicht erreichbar ist"
                 },
                 {
-                    "token": "INV_RESET_MAX_MIDNIGHT",
-                    "en": "Reset 'max' values at midnight",
-                    "de": "Maximalwerte mitternachts zur&uuml;cksetzen"
+                    "token": "INV_RESET_MAX_VALUES",
+                    "en": "Inlude reset 'max' values",
+                    "de": "Maximalwerte auch zur&uuml;cksetzen"
                 },
                 {
                     "token": "INV_START_WITHOUT_TIME",

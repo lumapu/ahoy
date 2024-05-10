@@ -353,20 +353,9 @@ void app::tickMidnight(void) {
         // reset alarms
         if(InverterStatus::OFF == iv->getStatus())
             iv->resetAlarms();
-
-        // clear max values
-        if(mConfig->inst.rstMaxValsMidNight) {
-            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            for(uint8_t i = 0; i <= iv->channels; i++) {
-                uint8_t pos = iv->getPosByChFld(i, FLD_MP, rec);
-                iv->setValue(pos, rec, 0.0f);
-            }
-            if(InverterStatus::OFF == iv->getStatus())
-                iv->resetAlarms(true);
-        }
     }
 
-    if (mConfig->inst.rstYieldMidNight) {
+    if (mConfig->inst.rstValsAtMidNight) {
         zeroIvValues(!CHECK_AVAIL, !SKIP_YIELD_DAY);
 
         #if defined(ENABLE_MQTT)
@@ -470,12 +459,15 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
                 pos = iv->getPosByChFld(ch, fld, rec);
                 iv->setValue(pos, rec, 0.0f);
             }
-            // zero max power
-            if(!skipYieldDay) {
+            // zero max power and max temperature
+            if(mConfig->inst.rstIncludeMaxVals) {
                 pos = iv->getPosByChFld(ch, FLD_MP, rec);
                 iv->setValue(pos, rec, 0.0f);
-            }
-            iv->resetAlarms(true);
+                pos = iv->getPosByChFld(ch, FLD_MT, rec);
+                iv->setValue(pos, rec, 0.0f);
+                iv->resetAlarms(true);
+            } else
+                iv->resetAlarms();
             iv->doCalculations();
         }
     }

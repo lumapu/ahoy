@@ -239,15 +239,15 @@ class Inverter {
 
         uint8_t getPosByChFld(uint8_t channel, uint8_t fieldId, record_t<> *rec) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getPosByChFld"));
-            if(NULL != rec) {
-                uint8_t pos = 0;
-                for(; pos < rec->length; pos++) {
-                    if((rec->assign[pos].ch == channel) && (rec->assign[pos].fieldId == fieldId))
-                        break;
-                }
-                return (pos >= rec->length) ? 0xff : pos;
-            } else
+            if(nullptr == rec)
                 return 0xff;
+
+            uint8_t pos = 0;
+            for(; pos < rec->length; pos++) {
+                if((rec->assign[pos].ch == channel) && (rec->assign[pos].fieldId == fieldId))
+                    break;
+            }
+            return (pos >= rec->length) ? 0xff : pos;
         }
 
         byteAssign_t *getByteAssign(uint8_t pos, record_t<> *rec) {
@@ -363,7 +363,7 @@ class Inverter {
 
         bool setValue(uint8_t pos, record_t<> *rec, REC_TYP val) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:setValue"));
-            if(NULL == rec)
+            if(nullptr == rec)
                 return false;
             if(pos > rec->length)
                 return false;
@@ -585,7 +585,7 @@ class Inverter {
             }
         }
 
-        void resetAlarms(bool clear = false) {
+        void resetAlarms(bool clearTs = false) {
             lastAlarm.fill({0, 0, 0});
             mAlarmNxtWrPos = 0;
             alarmCnt = 0;
@@ -594,7 +594,7 @@ class Inverter {
             memset(mOffYD, 0, sizeof(float) * 6);
             memset(mLastYD, 0, sizeof(float) * 6);
 
-            if(clear) {
+            if(clearTs) {
                 tsMaxAcPower = *Timestamp;
                 tsMaxTemperature = *Timestamp;
             }
