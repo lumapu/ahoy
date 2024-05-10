@@ -20,6 +20,7 @@ class AhoyWifi : public AhoyNetwork {
             if(String(FB_WIFI_SSID) == mConfig->sys.stationSsid)
                 return; // no station wifi defined
 
+            WiFi.disconnect(); // clean up
             WiFi.setHostname(mConfig->sys.deviceName);
             #if !defined(AP_ONLY)
                 WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
@@ -67,7 +68,6 @@ class AhoyWifi : public AhoyNetwork {
                         mConnected = false;
                         mOnNetworkCB(false);
                         MDNS.end();
-                        WiFi.disconnect();
                         begin();
                     }
                     break;
