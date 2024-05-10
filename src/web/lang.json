@@ -914,6 +914,11 @@
                     "de": "Passwort:"
                 },
                 {
+                    "token": "ZE_GROUP_TAB_POWERMETER_TARGET",
+                    "en": "Target:",
+                    "de": "Ziel:"
+                },
+                {
                     "token": "ZE_GROUP_TAB_INVERTER",
                     "en": "Inverter",
                     "de": "Wechselrichter"
@@ -927,11 +932,6 @@
                     "token": "ZE_GROUP_TAB_INVERTER_NAME",
                     "en": "Name",
                     "de": "Name"
-                },
-                {
-                    "token": "ZE_GROUP_TAB_INVERTER_SUM",
-                    "en": "Sum",
-                    "de": "Gesamt"
                 },
                 {
                     "token": "ZE_GROUP_TAB_INVERTER_POWERMIN",

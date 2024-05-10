@@ -166,45 +166,10 @@ class ZeroExport {
 
         // Regelgröße x in Watt
         int16_t x = 0.0;
-        int16_t xSum = 0.0;
-        switch (CfgGroupInv->target) {
-            case zeroExportInverterTarget_t::Sum:
-                x = mPowermeter.getDataAVG(group).P;
-                break;
-            case zeroExportInverterTarget_t::L1:
-                x = mPowermeter.getDataAVG(group).P1;
-                break;
-            case zeroExportInverterTarget_t::L2:
-                x = mPowermeter.getDataAVG(group).P2;
-                break;
-            case zeroExportInverterTarget_t::L3:
-                x = mPowermeter.getDataAVG(group).P3;
-                break;
-            case zeroExportInverterTarget_t::L1Sum:
-                x = mPowermeter.getDataAVG(group).P1;
-                xSum = mPowermeter.getDataAVG(group).P;
-                xSum -= mPowermeter.getDataAVG(group).P2;
-                xSum -= mPowermeter.getDataAVG(group).P3;
-                if (xSum > x) x = xSum;
-                break;
-            case zeroExportInverterTarget_t::L2Sum:
-                x = mPowermeter.getDataAVG(group).P2;
-                xSum = mPowermeter.getDataAVG(group).P;
-                xSum -= mPowermeter.getDataAVG(group).P1;
-                xSum -= mPowermeter.getDataAVG(group).P3;
-                if (xSum > x) x = xSum;
-                break;
-            case zeroExportInverterTarget_t::L3Sum:
-                x = mPowermeter.getDataAVG(group).P3;
-                xSum = mPowermeter.getDataAVG(group).P;
-                xSum -= mPowermeter.getDataAVG(group).P1;
-                xSum -= mPowermeter.getDataAVG(group).P2;
-                if (xSum > x) x = xSum;
-                break;
-            default:
-                x = w;
-                // TODO: ErrorLog
-                break;
+        if (CfgGroup->minimum) {
+            x = mPowermeter.getDataMIN(group);
+        } else {
+            x = mPowermeter.getDataAVG(group);
         }
         mLog["x"] = x;
 

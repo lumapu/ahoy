@@ -843,6 +843,7 @@ class RestApi {
                 objGroup[F("pm_jsonPath")]  = String(mConfig->plugin.zeroExport.groups[group].pm_jsonPath);
                 objGroup[F("pm_user")]  = String(mConfig->plugin.zeroExport.groups[group].pm_user);
                 objGroup[F("pm_pass")]  = String(mConfig->plugin.zeroExport.groups[group].pm_pass);
+                objGroup[F("pm_target")] = (uint8_t)mConfig->plugin.zeroExport.groups[group].pm_target;
                 // Inverters
                 objGroup[F("max_inverters")] = ZEROEXPORT_GROUP_MAX_INVERTERS;
                 JsonArray arrInv = objGroup.createNestedArray(F("inverters"));
@@ -850,7 +851,6 @@ class RestApi {
                     JsonObject objGroupInv = arrInv.createNestedObject();
                     objGroupInv[F("enabled")]  = (bool)mConfig->plugin.zeroExport.groups[group].inverters[inv].enabled;
                     objGroupInv[F("id")]  = (int8_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].id;
-                    objGroupInv[F("target")]  = (int8_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].target;
                     objGroupInv[F("powerMin")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].powerMin;
                     objGroupInv[F("powerMax")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].powerMax;
                     objGroupInv[F("turnOff")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].turnOff;
@@ -1163,11 +1163,11 @@ class RestApi {
                 snprintf(mConfig->plugin.zeroExport.groups[group].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH, "%s", jsonIn[F("pm_jsonPath")].as<const char*>());
                 snprintf(mConfig->plugin.zeroExport.groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER, "%s", jsonIn[F("pm_user")].as<const char*>());
                 snprintf(mConfig->plugin.zeroExport.groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS, "%s", jsonIn[F("pm_pass")].as<const char*>());
+                mConfig->plugin.zeroExport.groups[group].pm_target = jsonIn[F("pm_target")];
                 // Inverters
                 for(uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                     mConfig->plugin.zeroExport.groups[group].inverters[inv].enabled = jsonIn[F("inverters")][inv][F("enabled")];
                     mConfig->plugin.zeroExport.groups[group].inverters[inv].id = jsonIn[F("inverters")][inv][F("id")];
-                    mConfig->plugin.zeroExport.groups[group].inverters[inv].target = jsonIn[F("inverters")][inv][F("target")];
                     mConfig->plugin.zeroExport.groups[group].inverters[inv].powerMin = jsonIn[F("inverters")][inv][F("powerMin")];
                     mConfig->plugin.zeroExport.groups[group].inverters[inv].powerMax = jsonIn[F("inverters")][inv][F("powerMax")];
                     mConfig->plugin.zeroExport.groups[group].inverters[inv].turnOff = jsonIn[F("inverters")][inv][F("turnOff")];

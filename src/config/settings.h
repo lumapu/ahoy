@@ -213,7 +213,6 @@ typedef struct {
 #define ZEROEXPORT_GROUP_MAX_LEN_BATT_TOPIC       100
 #define ZEROEXPORT_GROUP_MAX_INVERTERS              3
 #define ZEROEXPORT_POWERMETER_MAX_ERRORS            5
-#define ZEROEXPORT_DEF_INV_WAITINGTIME_MS       10000
 #define ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF          2
 #define ZEROEXPORT_POWERMETER_SHELLY
 //#define ZEROEXPORT_POWERMETER_TASMOTA
@@ -237,10 +236,7 @@ typedef enum {
     L1      = 1,
     L2      = 2,
     L3      = 3,
-    L1Sum   = 4,
-    L2Sum   = 5,
-    L3Sum   = 6,
-} zeroExportInverterTarget_t;
+} zeroExportPowermeterTarget;
 
 typedef enum {
     none = 0,
@@ -266,7 +262,6 @@ typedef struct {
 typedef struct {
     bool enabled;
     int8_t id;
-    int8_t target;
     uint16_t powerMin;
     uint16_t powerMax;
     bool turnOff;
@@ -297,6 +292,7 @@ typedef struct {
     char pm_jsonPath[ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH];
     char pm_user[ZEROEXPORT_GROUP_MAX_LEN_PM_USER];
     char pm_pass[ZEROEXPORT_GROUP_MAX_LEN_PM_PASS];
+    uint8_t pm_target;
     // Inverters
     zeroExportGroupInverter_t inverters[ZEROEXPORT_GROUP_MAX_INVERTERS];
     // Battery
@@ -316,11 +312,6 @@ typedef struct {
     unsigned long lastRun;
     unsigned long lastRefresh;
     uint16_t wait;
-
-    int32_t pm_P;
-    int32_t pm_P1;
-    int32_t pm_P2;
-    int32_t pm_P3;
 
     bool battSwitch;
 
@@ -687,11 +678,11 @@ class settings {
                 snprintf(mCfg.plugin.zeroExport.groups[group].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH,  "%s", DEF_ZEXPORT);
                 snprintf(mCfg.plugin.zeroExport.groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER,  "%s", DEF_ZEXPORT);
                 snprintf(mCfg.plugin.zeroExport.groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS,  "%s", DEF_ZEXPORT);
+                mCfg.plugin.zeroExport.groups[group].pm_target = zeroExportPowermeterTarget::Sum;
                 // Inverters
                 for(uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].enabled = false;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].id = -1;
-                    mCfg.plugin.zeroExport.groups[group].inverters[inv].target = -1;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMin = 10;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMax = 600;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].turnOff = false;
@@ -720,10 +711,10 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].lastRun = 0;
                 mCfg.plugin.zeroExport.groups[group].lastRefresh = 0;
                 mCfg.plugin.zeroExport.groups[group].wait = 60000;
-                mCfg.plugin.zeroExport.groups[group].pm_P = 0;
-                mCfg.plugin.zeroExport.groups[group].pm_P1 = 0;
-                mCfg.plugin.zeroExport.groups[group].pm_P2 = 0;
-                mCfg.plugin.zeroExport.groups[group].pm_P3 = 0;
+//                mCfg.plugin.zeroExport.groups[group].pm_P = 0;
+//                mCfg.plugin.zeroExport.groups[group].pm_P1 = 0;
+//                mCfg.plugin.zeroExport.groups[group].pm_P2 = 0;
+//                mCfg.plugin.zeroExport.groups[group].pm_P3 = 0;
 
                 mCfg.plugin.zeroExport.groups[group].battSwitch = false;
                 mCfg.plugin.zeroExport.groups[group].power = 0;
@@ -1017,7 +1008,6 @@ class settings {
             if(set) {
                 obj[F("enabled")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].enabled;
                 obj[F("id")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].id;
-                obj[F("target")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].target;
                 obj[F("powerMin")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMin;
                 obj[F("powerMax")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMax;
                 obj[F("turnOff")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].turnOff;
@@ -1026,8 +1016,6 @@ class settings {
                     getVal<bool>(obj, F("enabled"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].enabled);
                 if (obj.containsKey(F("id")))
                     getVal<int8_t>(obj, F("id"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].id);
-                if (obj.containsKey(F("target")))
-                    getVal<int8_t>(obj, F("target"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].target);
                 if (obj.containsKey(F("powerMin")))
                     getVal<uint16_t>(obj, F("powerMin"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMin);
                 if (obj.containsKey(F("powerMax")))
@@ -1049,6 +1037,7 @@ class settings {
                 obj[F("pm_jsonPath")] = mCfg.plugin.zeroExport.groups[group].pm_jsonPath;
                 obj[F("pm_user")] = mCfg.plugin.zeroExport.groups[group].pm_user;
                 obj[F("pm_pass")] = mCfg.plugin.zeroExport.groups[group].pm_pass;
+                obj[F("pm_target")] = mCfg.plugin.zeroExport.groups[group].pm_target;
                 // Inverters
                 JsonArray invArr = obj.createNestedArray(F("inverters"));
                 for(uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
@@ -1086,6 +1075,8 @@ class settings {
                     getChar(obj, F("pm_user"), mCfg.plugin.zeroExport.groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER);
                 if (obj.containsKey(F("pm_pass")))
                     getChar(obj, F("pm_pass"), mCfg.plugin.zeroExport.groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS);
+                if (obj.containsKey(F("pm_target")))
+                    getVal<uint8_t>(obj, F("pm_target"), &mCfg.plugin.zeroExport.groups[group].pm_target);
                 // Inverters
                 if (obj.containsKey(F("inverters"))) {
                     for(uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {

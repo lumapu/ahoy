@@ -1321,7 +1321,6 @@
                     ml("th", {style: "width: 10%;"}, ml("input", {name: "invMax", id: "invMax", type: "hidden", value: maxInv}, null)),
                     ml("th", {style: "width: 10%;"}, "{#ZE_GROUP_TAB_INVERTER_ENABLED}"),
                     ml("th", {}, "{#ZE_GROUP_TAB_INVERTER_NAME}"),
-                    ml("th", {}, "{#ZE_GROUP_TAB_INVERTER_SUM}"),
                     ml("th", {style: "width: 15%;"}, "{#ZE_GROUP_TAB_INVERTER_POWERMIN}"),
                     ml("th", {style: "width: 15%;"}, "{#ZE_GROUP_TAB_INVERTER_POWERMAX}"),
                     ml("th", {style: "width: 5%;"}, "{#ZE_GROUP_TAB_INVERTER_TURNOFF}"),
@@ -1338,11 +1337,6 @@
                         ml("td", {},
                             ml("div", {}, [
                                 ml("select", {name: "invId"+inv, class: "text", id: "invId"+inv}, null),
-                            ]),
-                        ),
-                        ml("td", {},
-                            ml("div", {}, [
-                                ml("select", {name: "invTarget"+inv, class: "text", id: "invTarget"+inv}, null),
                             ]),
                         ),
                         ml("td", {},
@@ -1406,6 +1400,9 @@
                         ),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_PASS}",
                             ml("input", {name: "pm_pass", class: "text", type: "password", value: "****"}, null),
+                        ),
+                        divRow("{#ZE_GROUP_TAB_POWERMETER_TARGET}",
+                            ml("select", {name: "pm_target", class: "text", id: "pm_target"}, null),
                         ),
 // TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
                         divRow("Hinweis: ",
@@ -1480,6 +1477,8 @@
                 modal("{#ZE_GROUP_EDIT_MODAL}: " + obj.id, html);
 //                ser.dispatchEvent(new Event('change'));
 
+                // Tab_Powermeter
+                // - pm_type
 // Inhalt fuer pm_type aus config laden und in eine Funktion ausgliedern
                 var e = document.getElementById("pm_type");
                 selDelAllOpt(e);
@@ -1493,6 +1492,18 @@
                 e.appendChild(opt("6", "Shrdzm"));
                 for (var i = 0; i < e.options.length; i++) {
                     if (e.options[i].value == obj.pm_type) {
+                        e.selectedIndex = i;
+                    }
+                }
+                // - pm_target
+                var e = document.getElementById("pm_target");
+                selDelAllOpt(e);
+                e.appendChild(opt("0", "Sum"));
+                e.appendChild(opt("1", "L1"));
+                e.appendChild(opt("2", "L2"));
+                e.appendChild(opt("3", "L3"));
+                for (var i = 0; i < e.options.length; i++) {
+                    if (e.options[i].value == obj.pm_target) {
                         e.selectedIndex = i;
                     }
                 }
@@ -1513,25 +1524,6 @@
                     }
                     for (var i = 0; i < (e.length); i++) {
                         if (e.options[i].value == obj.inverters[inv].id) {
-                            e.selectedIndex = i;
-                        }
-                    }
-                }
-                // - Target
-                for (var inv = 0; inv < maxInv; inv++) {
-                    var e = document.getElementById("invTarget"+inv);
-                    selDelAllOpt(e);
-// TODO: ?bersetzen?
-                    e.appendChild(opt("-1", "---"));
-                    e.appendChild(opt("0", "Sum"));
-                    e.appendChild(opt("1", "L1"));
-                    e.appendChild(opt("2", "L2"));
-                    e.appendChild(opt("3", "L3"));
-                    e.appendChild(opt("4", "L1 + Sum"));
-                    e.appendChild(opt("5", "L2 + Sum"));
-                    e.appendChild(opt("6", "L3 + Sum"));
-                    for (var i = 0; i < e.options.length; i++) {
-                        if (e.options[i].value == obj.inverters[inv].target) {
                             e.selectedIndex = i;
                         }
                     }
@@ -1583,6 +1575,8 @@
                     o.pm_jsonPath = document.getElementsByName("pm_jsonPath")[0].value;
                     o.pm_user = document.getElementsByName("pm_user")[0].value;
                     o.pm_pass = document.getElementsByName("pm_pass")[0].value;
+                    var e = document.getElementsByName("pm_target")[0];
+		            o.pm_target = e.options[e.selectedIndex].value;
                     // Inverters
                     o.invMax = document.getElementById("invMax").value;
                     o.inverters = [];
@@ -1591,8 +1585,6 @@
                         q.enabled = document.getElementById("invEnabled"+inv).checked;
                         var e = document.getElementById("invId"+inv);
 		                q.id = e.options[e.selectedIndex].value;
-                        var e = document.getElementById("invTarget"+inv);
-		                q.target = e.options[e.selectedIndex].value;
                         q.powerMin = document.getElementById("invPowerMin"+inv).value;
                         q.powerMax = document.getElementById("invPowerMax"+inv).value;
                         q.turnOff = document.getElementById("invTurnOff"+inv).checked;
@@ -1650,6 +1642,7 @@
                     o.pm_jsonPath = "";
                     o.pm_user = "";
                     o.pm_pass = "";
+                    o.pm_target = 0;
                     // Inverters
                     o.invMax = obj.inverters.length;
                     o.inverters = [];
@@ -1658,8 +1651,6 @@
                         q.enabled = false;
                         var e = document.getElementById("invId"+inv);
 		                q.id = -1;
-                        var e = document.getElementById("invTarget"+inv);
-		                q.target = -1;
                         q.powerMin = 0;
                         q.powerMax = 0;
                         q.turnOff = false;
