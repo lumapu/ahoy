@@ -1,5 +1,5 @@
 diff --git a/RF24.cpp b/RF24.cpp
-index 2e500b6..af00758 100644
+index 9e5b4a8..af00758 100644
 --- a/RF24.cpp
 +++ b/RF24.cpp
 @@ -12,228 +12,24 @@
@@ -605,7 +605,8 @@ index 2e500b6..af00758 100644
  /****************************************************************************/
  
 -bool RF24::begin(_SPI* spiBus, rf24_gpio_pin_t _cepin, rf24_gpio_pin_t _cspin)
--{
++bool RF24::begin(RF24_hal* _hal)
+ {
 -    ce_pin = _cepin;
 -    csn_pin = _cspin;
 -    return begin(spiBus);
@@ -616,8 +617,7 @@ index 2e500b6..af00758 100644
 -/****************************************************************************/
 -
 -bool RF24::begin(rf24_gpio_pin_t _cepin, rf24_gpio_pin_t _cspin)
-+bool RF24::begin(RF24_hal* _hal)
- {
+-{
 -    ce_pin = _cepin;
 -    csn_pin = _cspin;
 +    hal = _hal;
@@ -670,11 +670,16 @@ index 2e500b6..af00758 100644
  bool RF24::_init_pins()
  {
      if (!isValid()) {
-@@ -1028,41 +527,7 @@ bool RF24::_init_pins()
+@@ -1028,46 +527,7 @@ bool RF24::_init_pins()
          return false;
      }
  
 -#if defined(RF24_LINUX)
+-
+-    #if defined(MRAA)
+-    GPIO();
+-    gpio.begin(ce_pin, csn_pin);
+-    #endif
 -
 -    pinMode(ce_pin, OUTPUT);
 -    ce(LOW);
@@ -713,7 +718,7 @@ index 2e500b6..af00758 100644
  }
  
  /****************************************************************************/
-@@ -1146,7 +611,7 @@ bool RF24::isChipConnected()
+@@ -1151,7 +611,7 @@ bool RF24::isChipConnected()
  
  bool RF24::isValid()
  {
@@ -722,7 +727,7 @@ index 2e500b6..af00758 100644
  }
  
  /****************************************************************************/
-@@ -1670,15 +1135,8 @@ void RF24::closeReadingPipe(uint8_t pipe)
+@@ -1675,15 +1135,8 @@ void RF24::closeReadingPipe(uint8_t pipe)
  
  void RF24::toggle_features(void)
  {
@@ -740,7 +745,7 @@ index 2e500b6..af00758 100644
  }
  
  /****************************************************************************/
-@@ -1866,6 +1324,11 @@ uint8_t RF24::getARC(void)
+@@ -1871,6 +1324,11 @@ uint8_t RF24::getARC(void)
      return read_register(OBSERVE_TX) & 0x0F;
  }
  
@@ -753,7 +758,7 @@ index 2e500b6..af00758 100644
  
  bool RF24::setDataRate(rf24_datarate_e speed)
 diff --git a/RF24.h b/RF24.h
-index c029c8e..c9d612a 100644
+index dbd32ae..74ae35d 100644
 --- a/RF24.h
 +++ b/RF24.h
 @@ -16,12 +16,7 @@
@@ -770,7 +775,7 @@ index c029c8e..c9d612a 100644
  
  /**
   * @defgroup PALevel Power Amplifier level
-@@ -115,26 +110,8 @@ typedef enum
+@@ -115,29 +110,8 @@ typedef enum
  class RF24
  {
  private:
@@ -779,15 +784,18 @@ index c029c8e..c9d612a 100644
 -#elif defined(SPI_UART)
 -    SPIUARTClass uspi;
 -#endif
-+    RF24_hal *hal;
- 
+-
 -#if defined(RF24_LINUX) || defined(XMEGA_D3) /* XMEGA can use SPI class */
 -    SPI spi;
 -#endif // defined (RF24_LINUX) || defined (XMEGA_D3)
 -#if defined(RF24_SPI_PTR)
 -    _SPI* _spi;
 -#endif // defined (RF24_SPI_PTR)
--
+-#if defined(MRAA)
+-    GPIO gpio;
+-#endif
++    RF24_hal *hal;
+ 
 -    rf24_gpio_pin_t ce_pin;  /* "Chip Enable" pin, activates the RX or TX role */
 -    rf24_gpio_pin_t csn_pin; /* SPI Chip select */
 -    uint32_t spi_speed;      /* SPI Bus Speed */
@@ -798,7 +806,7 @@ index c029c8e..c9d612a 100644
      uint8_t status;                   /* The status byte returned from every SPI transaction */
      uint8_t payload_size;             /* Fixed size of payloads */
      uint8_t pipe0_reading_address[5]; /* Last address set on pipe 0 for reading. */
-@@ -143,16 +120,6 @@ private:
+@@ -146,16 +120,6 @@ private:
      bool _is_p0_rx;                   /* For keeping track of pipe 0's usage in user-triggered RX mode. */
  
  protected:
@@ -815,7 +823,7 @@ index c029c8e..c9d612a 100644
      /** Whether ack payloads are enabled. */
      bool ack_payloads_enabled;
      /** The address width to use (3, 4 or 5 bytes). */
-@@ -195,30 +162,15 @@ public:
+@@ -198,30 +162,15 @@ public:
       *
       * See [Related Pages](pages.html) for device specific information
       *
@@ -850,7 +858,7 @@ index c029c8e..c9d612a 100644
  
  #if defined(RF24_LINUX)
      virtual ~RF24() {};
-@@ -240,58 +192,16 @@ public:
+@@ -243,58 +192,16 @@ public:
       */
      bool begin(void);
  
@@ -861,16 +869,15 @@ index c029c8e..c9d612a 100644
 -     * @note This function assumes the `SPI::begin()` method was called before to
 -     * calling this function.
 -     *
-      * @warning This function is for the Arduino platforms only
-      *
+-     * @warning This function is for the Arduino platforms only
+-     *
 -     * @param spiBus A pointer or reference to an instantiated SPI bus object.
 -     * The `_SPI` datatype is a "wrapped" definition that will represent
 -     * various SPI implementations based on the specified platform.
 -     * @see Review the [Arduino support page](md_docs_arduino.html).
-+     * @param _hal A pointer to the device specific hardware abstraction layer
-      *
-      * @return same result as begin()
-      */
+-     *
+-     * @return same result as begin()
+-     */
 -    bool begin(_SPI* spiBus);
 -
 -    /**
@@ -880,8 +887,8 @@ index c029c8e..c9d612a 100644
 -     * @note This function assumes the `SPI::begin()` method was called before to
 -     * calling this function.
 -     *
--     * @warning This function is for the Arduino platforms only
--     *
+      * @warning This function is for the Arduino platforms only
+      *
 -     * @param spiBus A pointer or reference to an instantiated SPI bus object.
 -     * The `_SPI` datatype is a "wrapped" definition that will represent
 -     * various SPI implementations based on the specified platform.
@@ -889,7 +896,8 @@ index c029c8e..c9d612a 100644
 -     * @param _cspin The pin attached to Chip Select (often labeled CSN) on the radio module.
 -     * - For the Arduino Due board, the [Arduino Due extended SPI feature](https://www.arduino.cc/en/Reference/DueExtendedSPI)
 -     * is not supported. This means that the Due's pins 4, 10, or 52 are not mandated options (can use any digital output pin) for the radio's CSN pin.
--     *
++     * @param _hal A pointer to the device specific hardware abstraction layer
+      *
 -     * @see Review the [Arduino support page](md_docs_arduino.html).
 -     *
 -     * @return same result as begin()
@@ -904,14 +912,14 @@ index c029c8e..c9d612a 100644
 -     * @param _cspin The pin attached to Chip Select (often labeled CSN) on the radio module.
 -     * - For the Arduino Due board, the [Arduino Due extended SPI feature](https://www.arduino.cc/en/Reference/DueExtendedSPI)
 -     * is not supported. This means that the Due's pins 4, 10, or 52 are not mandated options (can use any digital output pin) for the radio's CSN pin.
--     * @return same result as begin()
--     */
+      * @return same result as begin()
+      */
 -    bool begin(rf24_gpio_pin_t _cepin, rf24_gpio_pin_t _cspin);
 +    bool begin(RF24_hal* _hal);
  
      /**
       * Checks if the chip is connected to the SPI bus
-@@ -664,12 +574,12 @@ public:
+@@ -667,12 +574,12 @@ public:
       * This function uses much less ram than other `*print*Details()` methods.
       *
       * @code
@@ -926,7 +934,17 @@ index c029c8e..c9d612a 100644
       * cause undefined behavior.
       *
       * Registers names and/or data corresponding to the index of the `encoded_details` array:
-@@ -1641,6 +1551,7 @@ public:
+@@ -704,9 +611,6 @@ public:
+      * | 35 |    FIFO_STATUS |
+      * | 36 |    DYNPD |
+      * | 37 |    FEATURE |
+-     * | 38-39 | ce_pin |
+-     * | 40-41 | csn_pin |
+-     * | 42 |    SPI speed (in MHz) or'd with (isPlusVariant << 4) |
+      */
+     void encodeRadioDetails(uint8_t* encoded_status);
+ 
+@@ -1644,6 +1548,7 @@ public:
       * @return Returns values from 0 to 15.
       */
      uint8_t getARC(void);
@@ -934,7 +952,7 @@ index c029c8e..c9d612a 100644
  
      /**
       * Set the transmission @ref Datarate
-@@ -1893,17 +1804,6 @@ private:
+@@ -1896,18 +1801,6 @@ private:
       */
      bool _init_pins();
  
@@ -949,16 +967,17 @@ index c029c8e..c9d612a 100644
 -     * @param mode HIGH to take this unit off the SPI bus, LOW to put it on
 -     */
 -    void csn(bool mode);
- 
+-
      /**
       * Set chip enable
-@@ -2412,4 +2312,4 @@ private:
-  * Use `ctrl+c` to quit at any time.
-  */
- 
--#endif // __RF24_H__
-\ No newline at end of file
-+#endif // __RF24_H__
+      *
+diff --git a/RF24_hal.cpp b/RF24_hal.cpp
+new file mode 100644
+index 0000000..3cc78e4
+--- /dev/null
++++ b/RF24_hal.cpp
+@@ -0,0 +1 @@
++#include "RF24_hal.h"
 diff --git a/RF24_hal.h b/RF24_hal.h
 new file mode 100644
 index 0000000..baceab3
