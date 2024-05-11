@@ -181,6 +181,9 @@ class ZeroExport {
         if ((e < CfgGroup->powerTolerance) && (e > -CfgGroup->powerTolerance)) {
             e = 0;
             mLog["eK"] = e;
+            sendLog();
+            clearLog();
+            return;
         }
 
         // Regler
@@ -192,7 +195,12 @@ class ZeroExport {
         int16_t yP = Kp * e;
         CfgGroup->eSum += e;
         int16_t yI = Ki * Ta * CfgGroup->eSum;
-        if (Ta == 0) return;
+        if (Ta == 0) {
+            mLog["Error"] = "Ta = 0";
+            sendLog();
+            clearLog();
+            return;
+        }
         int16_t yD = Kd * (e - CfgGroup->eOld) / Ta;
 
         if (mCfg->debug) {
@@ -389,9 +397,6 @@ class ZeroExport {
      */
     void tickMidnight(void) {
         if ((!mIsInitialized) || (!mCfg->enabled)) return;
-
-        // TODO: activate
-        return;
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             if (!mCfg->groups[group].enabled) continue;

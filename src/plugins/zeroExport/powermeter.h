@@ -3,6 +3,8 @@
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
+#if defined(PLUGIN_ZEROEXPORT)
+
 #ifndef __POWERMETER_H__
 #define __POWERMETER_H__
 
@@ -122,10 +124,10 @@ class powermeter {
         }
     }
 
-    /** groupGetPowermeter
+    /** getDataAVG
      * Holt die Daten vom Powermeter
      * @param group
-     * @returns true/false
+     * @returns value
      */
     float getDataAVG(uint8_t group) {
         float avg = 0.0;
@@ -138,10 +140,10 @@ class powermeter {
         return avg;
     }
 
-    /** groupGetPowermeter
+    /** getDataMIN
      * Holt die Daten vom Powermeter
      * @param group
-     * @returns true/false
+     * @returns value
      */
     float getDataMIN(uint8_t group) {
         float min = 0.0;
@@ -154,7 +156,7 @@ class powermeter {
         return min;
     }
 
-    /**
+    /** onMqttConnect
      *
      */
     void onMqttConnect(void) {
@@ -173,7 +175,7 @@ class powermeter {
 #endif /*defined(ZEROEXPORT_POWERMETER_MQTT)*/
     }
 
-    /**
+    /** onMqttMessage
      *
      */
     void onMqttMessage(JsonObject obj) {
@@ -253,7 +255,7 @@ class powermeter {
     StaticJsonDocument<512> mqttDoc;  // DynamicJsonDocument mqttDoc(512);
     JsonObject mqttObj = mqttDoc.to<JsonObject>();
 
-    /**
+    /** setHeader
      *
      */
     void setHeader(HTTPClient *h) {
@@ -285,8 +287,6 @@ class powermeter {
 
         if (http.GET() == HTTP_CODE_OK) {
             // Parsing
-            // http.getSize());
-            // TODO: Umstellen auf dynamische Größe
             DynamicJsonDocument doc(2048);
             DeserializationError error = deserializeJson(doc, http.getString());
             if (error) {
@@ -586,3 +586,5 @@ class powermeter {
 };
 
 #endif /*__POWERMETER_H__*/
+
+#endif /* #if defined(PLUGIN_ZEROEXPORT) */
