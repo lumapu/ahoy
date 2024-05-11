@@ -115,6 +115,7 @@ void app::setup() {
     mMqttEnabled = (mConfig->mqtt.broker[0] > 0);
     if (mMqttEnabled) {
         mMqtt.setup(this, &mConfig->mqtt, mConfig->sys.deviceName, mVersion, &mSys, &mTimestamp, &mUptime);
+        mMqtt.setConnectionCb(std::bind(&app::mqttConnectCb, this));
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
         mCommunication.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
     }
@@ -145,7 +146,7 @@ void app::setup() {
 
     // Plugin ZeroExport
     #if defined(PLUGIN_ZEROEXPORT)
-    mZeroExport.setup(&mConfig->plugin.zeroExport, &mSys, mConfig, &mApi, &mMqtt);
+    mZeroExport.setup(this, &mTimestamp, &mConfig->plugin.zeroExport, &mSys, mConfig, &mApi, &mMqtt);
     #endif /*PLUGIN_ZEROEXPORT*/
     // Plugin ZeroExport - Ende
 
@@ -403,10 +404,6 @@ void app::tickMinute(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickMidnight(void) {
-    #if defined(PLUGIN_ZEROEXPORT)
-    mZeroExport.tickMidnight();
-    #endif /*defined(PLUGIN_ZEROEXPORT)*/
-
     uint32_t localTime = gTimezone.toLocal(mTimestamp);
     uint32_t nxtTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
     onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
@@ -439,6 +436,10 @@ void app::tickMidnight(void) {
             mMqtt.tickerMidnight();
         #endif
     }
+
+    #if defined(PLUGIN_ZEROEXPORT)
+        mZeroExport.tickMidnight();
+    #endif /*defined(PLUGIN_ZEROEXPORT)*/
 }
 
 //-----------------------------------------------------------------------------
@@ -620,6 +621,13 @@ void app::resetSystem(void) {
 }
 
 //-----------------------------------------------------------------------------
+void app::mqttConnectCb(void) {
+#if defined(PLUGIN_ZEROEXPORT)
+    mZeroExport.onMqttConnect();
+#endif
+}
+
+//-----------------------------------------------------------------------------
 void app::mqttSubRxCb(JsonObject obj) {
     mApi.ctrlRequest(obj);
 #if defined(PLUGIN_ZEROEXPORT)
@@ -673,57 +681,3 @@ void app::updateLed(void) {
             analogWrite(mConfig->led.led[2], led_off);
     }
 }
-//-----------------------------------------------------------------------------
-// Plugin ZeroExport
-#if defined(PLUGIN_ZEROEXPORT)
-void app::zeroexport() {
-    return;
-// TODO: aufr�umen
-// TODO: umziehen nach loop
-
-
-/*
-
-    if (!mConfig->plugin.zeroExport.enabled ||
-    !mSys.getInverterByPos(mConfig->plugin.zeroExport.Iv)->isProducing()) {   // check if plugin is enabled && indicate to send new value
-        mConfig->plugin.zeroExport.lastTime = millis();    // set last timestamp
-        return;
-    }
-
-    if (millis() - mConfig->plugin.zeroExport.lastTime > mConfig->plugin.zeroExport.count_avg  * 1000UL)
-    {
-        Inverter<> *iv = mSys.getInverterByPos(mConfig->plugin.zeroExport.Iv);
-
-        DynamicJsonDocument doc(512);
-        JsonObject object = doc.to<JsonObject>();
-
-        double nValue = round(mZeroExport.getPowertoSetnewValue());
-        double twoPerVal = nValue <= (iv->getMaxPower() / 100 * 2 );
-
-        if(mConfig->plugin.zeroExport.two_percent && (nValue <= twoPerVal))
-            nValue = twoPerVal;
-
-        if(mConfig->plugin.zeroExport.max_power <= nValue)
-            nValue = mConfig->plugin.zeroExport.max_power;
-
-        if(iv->actPowerLimit == nValue) {
-            mConfig->plugin.zeroExport.lastTime = millis();    // set last timestamp
-            return; // if PowerLimit same as befor, then skip
-        }
-
-        object["val"] = nValue;
-        object["id"] = mConfig->plugin.zeroExport.Iv;
-        object["path"] = "ctrl";
-        object["cmd"] = "limit_nonpersistent_absolute";
-
-        String data;
-        serializeJsonPretty(object, data);
-        DPRINTLN(DBG_INFO, data);
-        mApi.ctrlRequest(object);
-
-        mConfig->plugin.zeroExport.lastTime = millis();    // set last timestamp
-    }
-*/
-}
-#endif
-// Plugin ZeroExport - Ende

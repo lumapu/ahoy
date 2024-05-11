@@ -27,6 +27,7 @@
 #include "pubMqttIvData.h"
 
 typedef std::function<void(JsonObject)> subscriptionCb;
+typedef std::function<void(void)> connectionCb;
 
 typedef struct {
     bool running;
@@ -216,6 +217,16 @@ class PubMqtt {
             mClient.subscribe(topic, qos);
         }
 
+        void subscribeExtern(const char *subTopic, uint8_t qos = QOS_0) {
+            char topic[MQTT_TOPIC_LEN + 20];
+            snprintf(topic, (MQTT_TOPIC_LEN + 20), "%s", subTopic);
+            mClient.subscribe(topic, qos);
+        }
+
+        void setConnectionCb(connectionCb cb) {
+            mConnectionCb = cb;
+        }
+
         void setSubscriptionCb(subscriptionCb cb) {
             mSubscriptionCb = cb;
         }
@@ -257,15 +268,21 @@ class PubMqtt {
             tickerMinute();
             publish(mLwtTopic.data(), mqttStr[MQTT_STR_LWT_CONN], true, false);
 
-            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                snprintf(mVal.data(), mVal.size(), "ctrl/limit/%d", i);
-                subscribe(mVal.data(), QOS_2);
-                snprintf(mVal.data(), mVal.size(), "ctrl/restart/%d", i);
-                subscribe(mVal.data());
-                snprintf(mVal.data(), mVal.size(), "ctrl/power/%d", i);
-                subscribe(mVal.data());
-            }
+//            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+//                snprintf(mVal.data(), mVal.size(), "ctrl/limit/%d", i);
+//                subscribe(mVal.data(), QOS_2);
+//                snprintf(mVal.data(), mVal.size(), "ctrl/restart/%d", i);
+//                subscribe(mVal.data());
+//                snprintf(mVal.data(), mVal.size(), "ctrl/power/%d", i);
+//                subscribe(mVal.data());
+//            }
+            snprintf(mVal.data(), mVal.size(), "ctrl/#");
+            subscribe(mVal.data(), QOS_2);
             subscribe(subscr[MQTT_SUBS_SET_TIME]);
+
+            if(NULL == mConnectionCb)
+                return;
+            (mConnectionCb)();
         }
 
         void onDisconnect(espMqttClientTypes::DisconnectReason reason) {
@@ -617,6 +634,7 @@ class PubMqtt {
         uint32_t mRxCnt = 0, mTxCnt = 0;
         std::queue<sendListCmdIv> mSendList;
         std::array<bool, MAX_NUM_INVERTERS> mSendAlarm;
+        connectionCb mConnectionCb = nullptr;
         subscriptionCb mSubscriptionCb = nullptr;
         bool mLastAnyAvail = false;
         std::array<InverterStatus, MAX_NUM_INVERTERS> mLastIvState;

@@ -3,17 +3,22 @@
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
+#if defined(PLUGIN_ZEROEXPORT)
+
 #ifndef __POWERMETER_H__
 #define __POWERMETER_H__
 
 #include <AsyncJson.h>
 #include <HTTPClient.h>
+
 #include "config/settings.h"
 
 #if defined(ZEROEXPORT_POWERMETER_TIBBER)
 #include <base64.h>
 #include <string.h>
+
 #include <list>
+
 #include "plugins/zeroExport/lib/sml.h"
 
 typedef struct {
@@ -23,113 +28,237 @@ typedef struct {
 } OBISHandler;
 #endif
 
-typedef struct {
-    float P;
-    float P1;
-    float P2;
-    float P3;
-} PowermeterBuffer_t;
-
 class powermeter {
    public:
-    powermeter() {
-    }
+    /** powermeter
+     * constructor
+     */
+    powermeter() {}
 
-    ~powermeter() {
-    }
+    /** ~powermeter
+     * destructor
+     */
+    ~powermeter() {}
 
-    bool setup(zeroExport_t *cfg, JsonObject *log /*Hier muss noch geklärt werden was gebraucht wird*/) {
+    /** setup
+     * Initialisierung
+     * @param *cfg
+     * @param *mqtt
+     * @param *log
+     * @returns void
+     */
+    bool setup(zeroExport_t *cfg, PubMqttType *mqtt, JsonObject *log) {
         mCfg = cfg;
+        mMqtt = mqtt;
         mLog = log;
+
         return true;
     }
 
     /** loop
-     * abfrage der gruppen um die aktuellen Werte (Zähler) zu ermitteln.
+     * Arbeitsschleife
+     * @param void
+     * @returns void
+     * @todo emergency
      */
-    void loop(unsigned long *tsp, bool *doLog) {
-        if (*tsp - mPreviousTsp <= 1000) return;  // skip when it is to fast
-        mPreviousTsp = *tsp;
+    void loop(void) {
+        if (millis() - mPreviousTsp <= 1000) return;  // skip when it is to fast
+        mPreviousTsp = millis();
 
-        PowermeterBuffer_t power;
+        bool result = false;
+        float power = 0.0;
 
         for (u_short group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            if ((!mCfg->groups[group].enabled) || (mCfg->groups[group].sleep)) continue;
+
+            if ((millis() - mCfg->groups[group].pm_peviousTsp) <= ((uint16_t)mCfg->groups[group].pm_refresh * 1000)) continue;
+            mCfg->groups[group].pm_peviousTsp = millis();
+
             switch (mCfg->groups[group].pm_type) {
 #if defined(ZEROEXPORT_POWERMETER_SHELLY)
                 case zeroExportPowermeterType_t::Shelly:
-                    power = getPowermeterWattsShelly(*mLog, group);
+                    result = getPowermeterWattsShelly(*mLog, group, &power);
                     break;
 #endif
 #if defined(ZEROEXPORT_POWERMETER_TASMOTA)
                 case zeroExportPowermeterType_t::Tasmota:
-                    power = getPowermeterWattsTasmota(*mLog, group);
-                    break;
-#endif
-#if defined(ZEROEXPORT_POWERMETER_MQTT)
-                case zeroExportPowermeterType_t::Mqtt:
-                    power = getPowermeterWattsMqtt(*mLog, group);
+                    result = getPowermeterWattsTasmota(*mLog, group, &power);
                     break;
 #endif
 #if defined(ZEROEXPORT_POWERMETER_HICHI)
                 case zeroExportPowermeterType_t::Hichi:
-                    power = getPowermeterWattsHichi(*mLog, group);
+                    result = getPowermeterWattsHichi(*mLog, group, &power);
                     break;
 #endif
 #if defined(ZEROEXPORT_POWERMETER_TIBBER)
                 case zeroExportPowermeterType_t::Tibber:
-                    power = getPowermeterWattsTibber(*mLog, group);
+                    result = getPowermeterWattsTibber(*mLog, group, &power);
                     mPreviousTsp += 2000;  // Zusätzliche Pause
                     break;
 #endif
 #if defined(ZEROEXPORT_POWERMETER_SHRDZM)
                 case zeroExportPowermeterType_t::Shrdzm:
-                    power = getPowermeterWattsShrdzm(*mLog, group);
+                    result = getPowermeterWattsShrdzm(*mLog, group, &power);
                     break;
 #endif
             }
 
-            bufferWrite(power, group);
-            if (mCfg->debug) *doLog = true;
+            if (result) {
+                bufferWrite(power, group);
+
+                // MQTT - Powermeter
+                if (mCfg->debug) {
+                    if (mMqtt->isConnected()) {
+                        // P
+                        mqttObj["Sum"] = ah::round1(power);
+                        //                    mqttObj["L1"] = ah::round1(power.P1);
+                        //                    mqttObj["L2"] = ah::round1(power.P2);
+                        //                    mqttObj["L3"] = ah::round1(power.P3);
+                        mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), mqttDoc.as<std::string>().c_str(), false);
+                        mqttDoc.clear();
+
+                        // W (TODO)
+                    }
+                }
+            }
         }
     }
 
-    /** groupGetPowermeter
+    /** getDataAVG
      * Holt die Daten vom Powermeter
      * @param group
-     * @returns true/false
+     * @returns value
      */
-    PowermeterBuffer_t getDataAVG(uint8_t group) {
-        PowermeterBuffer_t avg;
-        avg.P = avg.P1 = avg.P2 = avg.P2 = avg.P3 = 0;
+    float getDataAVG(uint8_t group) {
+        float avg = 0.0;
 
         for (int i = 0; i < 5; i++) {
-            avg.P += mPowermeterBuffer[group][i].P;
-            avg.P1 += mPowermeterBuffer[group][i].P1;
-            avg.P2 += mPowermeterBuffer[group][i].P2;
-            avg.P3 += mPowermeterBuffer[group][i].P3;
+            avg += mPowermeterBuffer[group][i];
         }
-        avg.P = avg.P / 5;
-        avg.P1 = avg.P1 / 5;
-        avg.P2 = avg.P2 / 5;
-        avg.P3 = avg.P3 / 5;
+        avg = avg / 5.0;
 
         return avg;
     }
 
+    /** getDataMIN
+     * Holt die Daten vom Powermeter
+     * @param group
+     * @returns value
+     */
+    float getDataMIN(uint8_t group) {
+        float min = 0.0;
+
+        for (int i = 0; i < 5; i++) {
+            if (i == 0) min = mPowermeterBuffer[group][i];
+            if ( min > mPowermeterBuffer[group][i]) min = mPowermeterBuffer[group][i];
+        }
+
+        return min;
+    }
+
+    /** onMqttConnect
+     *
+     */
+    void onMqttConnect(void) {
+#if defined(ZEROEXPORT_POWERMETER_MQTT)
+
+        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            if (!strcmp(mCfg->groups[group].pm_jsonPath, "")) continue;
+
+            if (!mCfg->groups[group].enabled) continue;
+
+            if (mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) {
+                mMqtt->subscribeExtern(String(mCfg->groups[group].pm_jsonPath).c_str(), QOS_2);
+            }
+        }
+
+#endif /*defined(ZEROEXPORT_POWERMETER_MQTT)*/
+    }
+
+    /** onMqttMessage
+     *
+     */
+    void onMqttMessage(JsonObject obj) {
+        String topic = String(obj["topic"]);
+
+#if defined(ZEROEXPORT_POWERMETER_MQTT)
+
+        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            if (!mCfg->groups[group].enabled) continue;
+
+            if (!mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) continue;
+
+            if (!strcmp(mCfg->groups[group].pm_jsonPath, "")) continue;
+
+            if (strcmp(mCfg->groups[group].pm_jsonPath, String(topic).c_str())) continue;
+
+            float power = 0.0;
+            power = (uint16_t)obj["val"];
+
+            bufferWrite(power, group);
+
+            // MQTT - Powermeter
+            if (mCfg->debug) {
+                if (mMqtt->isConnected()) {
+                    // P
+                    mqttObj["Sum"] = ah::round1(power);
+                    ///                    mqttObj["L1"] = ah::round1(power.P1);
+                    ///                    mqttObj["L2"] = ah::round1(power.P2);
+                    ///                    mqttObj["L3"] = ah::round1(power.P3);
+                    mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), mqttDoc.as<std::string>().c_str(), false);
+                    mqttDoc.clear();
+
+                    // W (TODO)
+                }
+            }
+
+            return;
+        }
+
+#endif /*defined(ZEROEXPORT_POWERMETER_MQTT)*/
+    }
+
    private:
+    /** mqttSubscribe
+     * when a MQTT Msg is needed to subscribe, then a publish is leading
+     * @param gr
+     * @param payload
+     * @returns void
+     */
+    void mqttSubscribe(String gr, String payload) {
+        //        mqttPublish(gr, payload);
+        mMqtt->subscribe(gr.c_str(), QOS_2);
+    }
+
+    /** mqttPublish
+     * when a MQTT Msg is needed to Publish, but not to subscribe.
+     * @param gr
+     * @param payload
+     * @param retain
+     * @returns void
+     */
+    void mqttPublish(String gr, String payload, bool retain = false) {
+        mMqtt->publish(gr.c_str(), payload.c_str(), retain);
+    }
+
     HTTPClient http;
 
     zeroExport_t *mCfg;
+    PubMqttType *mMqtt = nullptr;
     JsonObject *mLog;
 
     unsigned long mPreviousTsp = 0;
 
-    PowermeterBuffer_t mPowermeterBuffer[ZEROEXPORT_MAX_GROUPS][5] = {0};
+    float mPowermeterBuffer[ZEROEXPORT_MAX_GROUPS][5] = {0};
     short mPowermeterBufferPos[ZEROEXPORT_MAX_GROUPS] = {0};
 
+    StaticJsonDocument<512> mqttDoc;  // DynamicJsonDocument mqttDoc(512);
+    JsonObject mqttObj = mqttDoc.to<JsonObject>();
 
-    // set HTTPClient header
-    void setHeader(HTTPClient* h) {
+    /** setHeader
+     *
+     */
+    void setHeader(HTTPClient *h) {
         h->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
         h->setUserAgent("Ahoy-Agent");
         // TODO: Ahoy-0.8.850024-zero
@@ -146,10 +275,7 @@ class powermeter {
      * @param group
      * @returns true/false
      */
-    PowermeterBuffer_t getPowermeterWattsShelly(JsonObject logObj, uint8_t group) {
-        PowermeterBuffer_t result;
-        result.P = result.P1 = result.P2 = result.P3 = 0;
-
+    bool getPowermeterWattsShelly(JsonObject logObj, uint8_t group, float *power) {
         logObj["mod"] = "getPowermeterWattsShelly";
 
         setHeader(&http);
@@ -165,93 +291,63 @@ class powermeter {
             DeserializationError error = deserializeJson(doc, http.getString());
             if (error) {
                 logObj["err"] = "deserializeJson: " + String(error.c_str());
-                return result;
+                return false;
             } else {
-                if (doc.containsKey(F("total_power"))) {
-                    // Shelly 3EM
-                    result.P = doc["total_power"];
-                } else if (doc.containsKey(F("em:0"))) {
-                    // Shelly pro 3EM
-                    result.P = doc["em:0"]["total_act_power"];
-                } else if (doc.containsKey(F("total_act_power"))) {
-                    // Shelly pro 3EM
-                    result.P = doc["total_act_power"];
-                } else {
-                    // Keine Daten
-                    result.P = 0;
-                }
-
-                if (doc.containsKey(F("emeters"))) {
-                    // Shelly 3EM
-                    result.P1 = doc["emeters"][0]["power"];
-                } else if (doc.containsKey(F("em:0"))) {
-                    // Shelly pro 3EM
-                    result.P1 = doc["em:0"]["a_act_power"];
-                } else if (doc.containsKey(F("a_act_power"))) {
-                    // Shelly pro 3EM
-                    result.P1 = doc["a_act_power"];
-                } else if (doc.containsKey(F("switch:0"))) {
-                    // Shelly plus1pm plus2pm
-                    result.P1 = doc["switch:0"]["apower"];
-                    result.P += result.P1;
-                } else if (doc.containsKey(F("apower"))) {
-                    // Shelly Alternative
-                    result.P1 = doc["apower"];
-                    result.P += result.P1;
-                } else {
-                    // Keine Daten
-                    result.P1 = 0;
-                }
-
-                if (doc.containsKey(F("emeters"))) {
-                    // Shelly 3EM
-                    result.P2 = doc["emeters"][1]["power"];
-                } else if (doc.containsKey(F("em:0"))) {
-                    // Shelly pro 3EM
-                    result.P2 = doc["em:0"]["b_act_power"];
-                } else if (doc.containsKey(F("b_act_power"))) {
-                    // Shelly pro 3EM
-                    result.P2 = doc["b_act_power"];
-                } else if (doc.containsKey(F("switch:1"))) {
-                    // Shelly plus1pm plus2pm
-                    result.P2 = doc["switch.1"]["apower"];
-                    result.P += result.P2;
-                    //} else if (doc.containsKey(F("apower"))) {
-                    // Shelly Alternative
-                    //    mCfg->groups[group].pmPowerL2 = doc["apower"];
-                    //    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL2;
-                    //    ret = true;
-                } else {
-                    // Keine Daten
-                    result.P2 = 0;
-                }
-
-                if (doc.containsKey(F("emeters"))) {
-                    // Shelly 3EM
-                    result.P3 = doc["emeters"][2]["power"];
-                } else if (doc.containsKey(F("em:0"))) {
-                    // Shelly pro 3EM
-                    result.P3 = doc["em:0"]["c_act_power"];
-                } else if (doc.containsKey(F("c_act_power"))) {
-                    // Shelly pro 3EM
-                    result.P3 = doc["c_act_power"];
-                } else if (doc.containsKey(F("switch:2"))) {
-                    // Shelly plus1pm plus2pm
-                    result.P3 = doc["switch:2"]["apower"];
-                    result.P += result.P3;
-                    //} else if (doc.containsKey(F("apower"))) {
-                    // Shelly Alternative
-                    //    mCfg->groups[group].pmPowerL3 = doc["apower"];
-                    //    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL3;
-                    //    result = true;
-                } else {
-                    // Keine Daten
-                    result.P3 = 0;
+                switch (mCfg->groups[group].pm_target) {
+                    case zeroExportPowermeterTarget::L1:
+                        if (doc.containsKey(F("emeters"))) {
+                            // Shelly 3EM
+                            *power = doc["emeters"][0]["power"];
+                        } else if (doc.containsKey(F("em:0"))) {
+                            // Shelly pro 3EM
+                            *power = doc["em:0"]["a_act_power"];
+                        } else if (doc.containsKey(F("a_act_power"))) {
+                            // Shelly pro 3EM
+                            *power = doc["a_act_power"];
+                        }
+                        break;
+                    case zeroExportPowermeterTarget::L2:
+                        if (doc.containsKey(F("emeters"))) {
+                            // Shelly 3EM
+                            *power = doc["emeters"][1]["power"];
+                        } else if (doc.containsKey(F("em:0"))) {
+                            // Shelly pro 3EM
+                            *power = doc["em:0"]["b_act_power"];
+                        } else if (doc.containsKey(F("b_act_power"))) {
+                            // Shelly pro 3EM
+                            *power = doc["b_act_power"];
+                        }
+                        break;
+                    case zeroExportPowermeterTarget::L3:
+                        if (doc.containsKey(F("emeters"))) {
+                            // Shelly 3EM
+                            *power = doc["emeters"][2]["power"];
+                        } else if (doc.containsKey(F("em:0"))) {
+                            // Shelly pro 3EM
+                            *power = doc["em:0"]["c_act_power"];
+                        } else if (doc.containsKey(F("c_act_power"))) {
+                            // Shelly pro 3EM
+                            *power = doc["c_act_power"];
+                        }
+                        break;
+                    case zeroExportPowermeterTarget::Sum:
+                    default:
+                        if (doc.containsKey(F("total_power"))) {
+                            // Shelly 3EM
+                            *power = doc["total_power"];
+                        } else if (doc.containsKey(F("em:0"))) {
+                            // Shelly pro 3EM
+                            *power = doc["em:0"]["total_act_power"];
+                        } else if (doc.containsKey(F("total_act_power"))) {
+                            // Shelly pro 3EM
+                            *power = doc["total_act_power"];
+                        }
+                        break;
                 }
             }
         }
         http.end();
-        return result;
+        return true;
     }
 #endif
 
@@ -262,10 +358,7 @@ class powermeter {
      * @param group
      * @returns true/false
      */
-    PowermeterBuffer_t getPowermeterWattsTasmota(JsonObject logObj, uint8_t group) {
-        PowermeterBuffer_t result;
-        result.P = result.P1 = result.P2 = result.P3 = 0;
-
+    bool getPowermeterWattsTasmota(JsonObject logObj, uint8_t group, float *power) {
         logObj["mod"] = "getPowermeterWattsTasmota";
         /*
         // TODO: nicht komplett
@@ -326,28 +419,7 @@ class powermeter {
                     }
                     http.end();
         */
-        return result;
-    }
-#endif
-
-#if defined(ZEROEXPORT_POWERMETER_MQTT)
-    /** getPowermeterWattsMqtt
-     * ...
-     * @param logObj
-     * @param group
-     * @returns true/false
-     */
-    PowermeterBuffer_t getPowermeterWattsMqtt(JsonObject logObj, uint8_t group) {
-        PowermeterBuffer_t result;
-        result.P = result.P1 = result.P2 = result.P3 = 0;
-
-        logObj["mod"] = "getPowermeterWattsMqtt";
-
-        // topic for powermeter?
-        result.P = mCfg->groups[group].pm_P;
-        result.P1 = result.P2 = result.P3 = mCfg->groups[group].pm_P / 3;
-
-        return result;
+        return false;
     }
 #endif
 
@@ -358,10 +430,7 @@ class powermeter {
      * @param group
      * @returns true/false
      */
-    PowermeterBuffer_t getPowermeterWattsHichi(JsonObject logObj, uint8_t group) {
-        PowermeterBuffer_t result;
-        result.P = result.P1 = result.P2 = result.P3 = 0;
-
+    bool getPowermeterWattsHichi(JsonObject logObj, uint8_t group, float *power) {
         logObj["mod"] = "getPowermeterWattsHichi";
 
         // Hier neuer Code - Anfang
@@ -370,7 +439,7 @@ class powermeter {
 
         // Hier neuer Code - Ende
 
-        return result;
+        return false;
     }
 #endif
 
@@ -405,32 +474,27 @@ class powermeter {
      07 01 00 02 08 02 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung Tarif2
     */
     const std::list<OBISHandler> smlHandlerList{
-        {{0x01, 0x00, 0x10, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeterTotal},  // total - OBIS-Kennzahl für momentane Gesamtwirkleistung
-
+        {{0x01, 0x00, 0x10, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeterTotal},   // total - OBIS-Kennzahl für momentane Gesamtwirkleistung
         {{0x01, 0x00, 0x24, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeter1Power},  // OBIS-Kennzahl für momentane Wirkleistung in Phase L1
         {{0x01, 0x00, 0x38, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeter2Power},  // OBIS-Kennzahl für momentane Wirkleistung in Phase L2
         {{0x01, 0x00, 0x4c, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeter3Power},  // OBIS-Kennzahl für momentane Wirkleistung in Phase L3
-
         {{0x01, 0x00, 0x01, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterImport},
         {{0x01, 0x00, 0x02, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterExport}};
 
-    PowermeterBuffer_t getPowermeterWattsTibber(JsonObject logObj, uint8_t group) {
+    bool getPowermeterWattsTibber(JsonObject logObj, uint8_t group, float *power) {
         mPreviousTsp = mPreviousTsp + 2000;  // Zusätzliche Pause
 
-        PowermeterBuffer_t result;
-        result.P = result.P1 = result.P2 = result.P3 = 0;
+        bool result = false;
 
         logObj["mod"] = "getPowermeterWattsTibber";
 
         String auth;
-        if(strlen(mCfg->groups[group].pm_user) > 0 && strlen(mCfg->groups[group].pm_pass) > 0) {
+        if (strlen(mCfg->groups[group].pm_user) > 0 && strlen(mCfg->groups[group].pm_pass) > 0) {
             auth = base64::encode(String(mCfg->groups[group].pm_user) + String(":") + String(mCfg->groups[group].pm_pass));
-            snprintf(mCfg->groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER,  "%s", DEF_ZEXPORT);
-            snprintf(mCfg->groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS,  "%s", auth.c_str());
+            snprintf(mCfg->groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER, "%s", DEF_ZEXPORT);
+            snprintf(mCfg->groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS, "%s", auth.c_str());
             //@TODO:mApp->saveSettings(false);
-        }
-        else
-        {
+        } else {
             auth = mCfg->groups[group].pm_pass;
         }
 
@@ -451,14 +515,8 @@ class powermeter {
 
                 switch (smlCurrentState) {
                     case SML_FINAL:
-                        result.P = _powerMeterTotal;
-                        result.P1 = _powerMeter1Power;
-                        result.P2 = _powerMeter2Power;
-                        result.P3 = _powerMeter3Power;
-
-                        if (!(_powerMeter1Power && _powerMeter2Power && _powerMeter3Power)) {
-                            result.P1 = result.P2 = result.P3 = _powerMeterTotal / 3;
-                        }
+                        *power = _powerMeterTotal;
+                        result = true;
                         break;
                     case SML_LISTEND:
                         // check handlers on last received list
@@ -487,19 +545,14 @@ class powermeter {
      * @TODO: Username & Passwort wird mittels base64 verschlüsselt. Dies wird für die Authentizierung benötigt. Wichtig diese im WebUI unkenntlich zu machen und base64 im eeprom zu speichern, statt klartext.
      * @TODO: Abfrage Interval einbauen. Info: Datei-Size kann auch mal 0-bytes sein?
      */
-    PowermeterBuffer_t getPowermeterWattsShrdzm(JsonObject logObj, uint8_t group) {
-        PowermeterBuffer_t result;
-        result.P = result.P1 = result.P2 = result.P3 = 0;
-
+    bool getPowermeterWattsShrdzm(JsonObject logObj, uint8_t group, float *power) {
         logObj["mod"] = "getPowermeterWattsShrdzm";
 
         setHeader(&http);
 
         String url =
             String("http://") + String(mCfg->groups[group].pm_url) +
-            String("/") + String(mCfg->groups[group].pm_jsonPath +
-            String("?user=") + String(mCfg->groups[group].pm_user) +
-            String("&password=") + String(mCfg->groups[group].pm_pass));
+            String("/") + String(mCfg->groups[group].pm_jsonPath + String("?user=") + String(mCfg->groups[group].pm_user) + String("&password=") + String(mCfg->groups[group].pm_pass));
 
         http.begin(url);
 
@@ -509,25 +562,23 @@ class powermeter {
             DeserializationError error = deserializeJson(doc, http.getString());
             if (error) {
                 logObj["err"] = "deserializeJson: " + String(error.c_str());
-                return result;
+                return false;
             } else {
                 if (doc.containsKey(F("16.7.0"))) {
-                    result.P = doc["16.7.0"];
+                    *power = doc["16.7.0"];
                 }
-
-                if (!(result.P1 && result.P2 && result.P3)) {
-                    result.P1 = result.P2 = result.P3 = result.P / 3;
-                }
-
             }
         }
         http.end();
 
-        return result;
+        return true;
     }
 #endif
 
-    void bufferWrite(PowermeterBuffer_t raw, short group) {
+    /**
+     *
+     */
+    void bufferWrite(float raw, short group) {
         mPowermeterBuffer[group][mPowermeterBufferPos[group]] = raw;
         mPowermeterBufferPos[group]++;
         if (mPowermeterBufferPos[group] >= 5) mPowermeterBufferPos[group] = 0;
@@ -535,3 +586,5 @@ class powermeter {
 };
 
 #endif /*__POWERMETER_H__*/
+
+#endif /* #if defined(PLUGIN_ZEROEXPORT) */

@@ -370,16 +370,11 @@ class app : public IApp, public ah::Scheduler {
            updateLed();
         }
 
+        void mqttConnectCb(void);
         void mqttSubRxCb(JsonObject obj);
 
         void setupLed();
         void updateLed();
-
-        // Plugin ZeroExport
-        #if defined(PLUGIN_ZEROEXPORT)
-        void zeroexport();
-        #endif
-        // Plugin ZeroExport - Ende
 
         void tickReboot(void) {
             DPRINTLN(DBG_INFO, F("Rebooting..."));

@@ -1288,6 +1288,7 @@
             }
 
             /*IF_PLUGIN_ZEROEXPORT*/
+
             function apiCbBattOnOff(obj) {
 //                var e = document.getElementById("battSwitch");
 //                e.value = "88";
@@ -1321,9 +1322,9 @@
                     ml("th", {style: "width: 10%;"}, ml("input", {name: "invMax", id: "invMax", type: "hidden", value: maxInv}, null)),
                     ml("th", {style: "width: 10%;"}, "{#ZE_GROUP_TAB_INVERTER_ENABLED}"),
                     ml("th", {}, "{#ZE_GROUP_TAB_INVERTER_NAME}"),
-                    ml("th", {}, "{#ZE_GROUP_TAB_INVERTER_SUM}"),
                     ml("th", {style: "width: 15%;"}, "{#ZE_GROUP_TAB_INVERTER_POWERMIN}"),
                     ml("th", {style: "width: 15%;"}, "{#ZE_GROUP_TAB_INVERTER_POWERMAX}"),
+                    ml("th", {style: "width: 5%;"}, "{#ZE_GROUP_TAB_INVERTER_TURNOFF}"),
                 ]));
 
                 for(var inv = 0; inv < maxInv; inv++) {
@@ -1331,17 +1332,12 @@
                         ml("td", {}, String(inv)),
                         ml("td", {},
                             ml("div", {}, [
-                            ml("input", {name: "invEnabled"+inv, class: "text", id: "invEnabled"+inv, type: "checkbox"}, null)
+                                ml("input", {name: "invEnabled"+inv, class: "text", id: "invEnabled"+inv, type: "checkbox"}, null)
                             ]),
                         ),
                         ml("td", {},
                             ml("div", {}, [
                                 ml("select", {name: "invId"+inv, class: "text", id: "invId"+inv}, null),
-                            ]),
-                        ),
-                        ml("td", {},
-                            ml("div", {}, [
-                                ml("select", {name: "invTarget"+inv, class: "text", id: "invTarget"+inv}, null),
                             ]),
                         ),
                         ml("td", {},
@@ -1354,14 +1350,19 @@
                                 ml("input", {name: "invPowerMax"+inv, class: "text", id: "invPowerMax"+inv, type: "number", min: "0", max: "65535"}, null)
                             ]),
                         ),
+                        ml("td", {},
+                            ml("div", {}, [
+                                ml("input", {name: "invTurnOff"+inv, class: "text", id: "invTurnOff"+inv, type: "checkbox"}, null)
+                            ]),
+                        ),
                     ]));
                 }
 
                 // Tab_Battery
-                var cb_battEnabled = ml("input", {name: "battEnabled", type: "checkbox"}, null);
-                cb_battEnabled.checked = (obj.battEnabled);
 
                 // Tab_Advanced
+                var cb_minimum = ml("input", {name: "minimum", type: "checkbox"}, null);
+                cb_minimum.checked = (obj.minimum);
 
                 // Tab
                 var html = ml("div", {}, [
@@ -1385,7 +1386,13 @@
                         divRow("{#ZE_GROUP_TAB_POWERMETER_TYPE}",
                             ml("select", {name: "pm_type", class: "text", id: "pm_type"}, null),
                         ),
+                        divRow("{#ZE_GROUP_TAB_POWERMETER_REFRESH}",
+                            ml("input", {name: "pm_refresh", class: "text", type: "number", min: "1", max: "30", step: "1", value: obj.pm_refresh}, null),
+                        ),
 // TODO: URL -> IP
+                        divRow("{#ZE_GROUP_TAB_POWERMETER_TARGET}",
+                            ml("select", {name: "pm_target", class: "text", id: "pm_target"}, null),
+                        ),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_IP}", [
                             ml("input", {name: "pm_url", class: "text", type: "text", value: obj.pm_url, maxlength: "100"}, null),
                         ]),
@@ -1397,6 +1404,9 @@
                         ),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_PASS}",
                             ml("input", {name: "pm_pass", class: "text", type: "password", value: "****"}, null),
+                        ),
+                        divRow("{#ZE_GROUP_TAB_POWERMETER_TOPIC}",
+                            ml("input", {id: 3, name: "pm_topic", class: "text", type: "text", value: ""}, null),
                         ),
 // TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
                         divRow("Hinweis: ",
@@ -1421,9 +1431,18 @@
                     ]),
                     // Battery
                     ml("div", {id: "div{#ZE_GROUP_TAB_BATTERY}", class: "tab-content hide"}, [
-                        divRow("{#ZE_GROUP_TAB_BATTERY_BATTENABLED}", cb_battEnabled),
-                        divRow("{#ZE_GROUP_TAB_BATTERY_BATTVOLTAGEON}", ml("input", {name: "battVoltageOn", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battVoltageOn}, null)),
-                        divRow("{#ZE_GROUP_TAB_BATTERY_BATTVOLTAGEOFF}", ml("input", {name: "battVoltageOff", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battVoltageOff}, null)),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_CFG}",
+                            ml("select", {name: "battCfg", class: "text", id: "battCfg"}, null),
+                        ),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_TOPIC}",
+                            ml("input", {name: "battTopic", class: "text", type: "text", value: obj.battTopic}, null),
+                        ),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_LIMITON}",
+                            ml("input", {name: "battLimitOn", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battLimitOn}, null),
+                        ),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_LIMITOFF}",
+                            ml("input", {name: "battLimitOff", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battLimitOff}, null),
+                        ),
                         divRow("{#ZE_GROUP_TAB_BATTERY_ONOFF}", ml("input", {name: "battSwitch", id: "battSwitch", class: "btn", type: "button", value: "{#BTN_ONOFF}", onclick: battOnOff()}, null)),
 // TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
                         divRow("Hinweis: ",
@@ -1437,7 +1456,7 @@
                     // Advanced
                     ml("div", {id: "div{#ZE_GROUP_TAB_ADVANCED}", class: "tab-content hide"}, [
                         divRow("{#ZE_GROUP_TAB_ADVANCED_SETPOINT}", ml("input", {name: "setPoint", class: "text", type: "number", min: "-32768", max: "32767", step: "1", value: obj.setPoint}, null)),
-                        divRow("{#ZE_GROUP_TAB_ADVANCED_REFRESH}", ml("input", {name: "refresh", class: "text", type: "number", min: "0", max: "255", value: obj.refresh}, null)),
+                        divRow("{#ZE_GROUP_TAB_ADVANCED_MINIMUM}", cb_minimum),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_POWERTOLERANCE}", ml("input", {name: "powerTolerance", class: "text", type: "number", min: "0", max: "255", value: obj.powerTolerance}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_POWERMAX}", ml("input", {name: "powerMax", class: "text", type: "number", min: "0", max: "65535", value: obj.powerMax}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_KP}", ml("input", {name: "Kp", class: "text", type: "number", min: "-1", max: "0", step: "0.001", value: obj.Kp}, null)),
@@ -1462,10 +1481,11 @@
                 modal("{#ZE_GROUP_EDIT_MODAL}: " + obj.id, html);
 //                ser.dispatchEvent(new Event('change'));
 
+                // Tab_Powermeter
+                // - pm_type
 // Inhalt fuer pm_type aus config laden und in eine Funktion ausgliedern
                 var e = document.getElementById("pm_type");
                 selDelAllOpt(e);
-// TODO: uebersetzen?
                 e.appendChild(opt("0", "---"));
                 e.appendChild(opt("1", "Shelly"));
                 //e.appendChild(opt("2", "Tasmota"));
@@ -1478,6 +1498,27 @@
                         e.selectedIndex = i;
                     }
                 }
+
+                // - pm_target
+                var e = document.getElementById("pm_target");
+                selDelAllOpt(e);
+                e.appendChild(opt("0", "Sum"));
+                e.appendChild(opt("1", "L1"));
+                e.appendChild(opt("2", "L2"));
+                e.appendChild(opt("3", "L3"));
+                for (var i = 0; i < e.options.length; i++) {
+                    if (e.options[i].value == obj.pm_target) {
+                        e.selectedIndex = i;
+                    }
+                }
+
+                // add addEventListener
+                const selectElement = document.querySelector("#pm_type");
+                //selectElement.addEventListener("change", (event) => { pm_type_dropdown() });
+                selectElement.addEventListener("change", (event) => { pm_type_dropdown() });
+
+                // run event one time
+                pm_type_dropdown();
 
                 // Tab_Inverters
                 // - Enabled
@@ -1499,25 +1540,6 @@
                         }
                     }
                 }
-                // - Target
-                for (var inv = 0; inv < maxInv; inv++) {
-                    var e = document.getElementById("invTarget"+inv);
-                    selDelAllOpt(e);
-// TODO: ?bersetzen?
-                    e.appendChild(opt("-1", "---"));
-                    e.appendChild(opt("0", "Sum"));
-                    e.appendChild(opt("1", "L1"));
-                    e.appendChild(opt("2", "L2"));
-                    e.appendChild(opt("3", "L3"));
-                    e.appendChild(opt("4", "L1 + Sum"));
-                    e.appendChild(opt("5", "L2 + Sum"));
-                    e.appendChild(opt("6", "L3 + Sum"));
-                    for (var i = 0; i < e.options.length; i++) {
-                        if (e.options[i].value == obj.inverters[inv].target) {
-                            e.selectedIndex = i;
-                        }
-                    }
-                }
                 // - powerMin
                 for (var inv = 0; inv < maxInv; inv++) {
                     var e = document.getElementById("invPowerMin"+inv);
@@ -1528,6 +1550,53 @@
                     var e = document.getElementById("invPowerMax"+inv);
                     e.value = (obj.inverters[inv].powerMax);
                 }
+                // - TurnOff
+                for (var inv = 0; inv < maxInv; inv++) {
+                    var e = document.getElementById("invTurnOff"+inv);
+                    e.checked = (obj.inverters[inv].turnOff);
+                }
+
+                // Tab_Battery
+                // battCfg
+                var e = document.getElementById("battCfg");
+                selDelAllOpt(e);
+// TODO: uebersetzen?
+                e.appendChild(opt("0", "---"));
+                e.appendChild(opt("1", "Inverter U dc"));
+                e.appendChild(opt("2", "MQTT U"));
+                e.appendChild(opt("3", "MQTT Soc"));
+                for (var i = 0; i < e.options.length; i++) {
+                    if (e.options[i].value == obj.battCfg) {
+                        e.selectedIndex = i;
+                    }
+                }
+
+                function pm_type_dropdown()
+                {
+                    var e = document.getElementsByName("pm_type")[0];
+                    var value = e.options[e.selectedIndex].text;
+
+                    var divsToHide = document.getElementById("divPowermeter");
+
+                    // Formular for Powermeter-DropDown
+                    // show all DIVs and remove only what is not necessary
+                    for(var i = 0; i < divsToHide.childElementCount; i++) divsToHide.childNodes[i].style.display = '';
+
+                    if(value == "---") for(var i = 1; i < divsToHide.childElementCount; i++) divsToHide.childNodes[i].style.display = 'none';
+                    else if(value == "Shelly") {
+                        divsToHide.childNodes[7].style.display = 'none';
+                    }
+                    else if(value == "Mqtt") {
+                        divsToHide.childNodes[3].style.display = 'none';
+                        divsToHide.childNodes[4].style.display = 'none';
+                        divsToHide.childNodes[5].style.display = 'none';
+                        divsToHide.childNodes[6].style.display = 'none';
+                    }
+                    else if(value == "Tibber") {
+                        divsToHide.childNodes[4].style.display = 'none';
+                        divsToHide.childNodes[7].style.display = 'none';
+                    }
+                }
 
                 function save() {
                     var o = new Object();
@@ -1537,14 +1606,17 @@
                     o.id = obj.id
                     o.enabled  = document.getElementsByName("enabled")[0].checked;
                     o.name = document.getElementsByName("name")[0].value;
+
                     // Powermeter
-                    //o.pm_type = document.getElementsByName("pm_type")[0].selectedIndex;
+                    o.pm_refresh = document.getElementsByName("pm_refresh")[0].value;
                     var e = document.getElementsByName("pm_type")[0];
 		            o.pm_type = e.options[e.selectedIndex].value;
                     o.pm_url = document.getElementsByName("pm_url")[0].value;
                     o.pm_jsonPath = document.getElementsByName("pm_jsonPath")[0].value;
                     o.pm_user = document.getElementsByName("pm_user")[0].value;
                     o.pm_pass = document.getElementsByName("pm_pass")[0].value;
+                    var e = document.getElementsByName("pm_target")[0];
+		            o.pm_target = e.options[e.selectedIndex].value;
                     // Inverters
                     o.invMax = document.getElementById("invMax").value;
                     o.inverters = [];
@@ -1553,19 +1625,20 @@
                         q.enabled = document.getElementById("invEnabled"+inv).checked;
                         var e = document.getElementById("invId"+inv);
 		                q.id = e.options[e.selectedIndex].value;
-                        var e = document.getElementById("invTarget"+inv);
-		                q.target = e.options[e.selectedIndex].value;
                         q.powerMin = document.getElementById("invPowerMin"+inv).value;
                         q.powerMax = document.getElementById("invPowerMax"+inv).value;
+                        q.turnOff = document.getElementById("invTurnOff"+inv).checked;
                         o.inverters.push(q);
                     }
                     // Battery
-                    o.battEnabled = document.getElementsByName("battEnabled")[0].checked;
-                    o.battVoltageOn = document.getElementsByName("battVoltageOn")[0].value;
-                    o.battVoltageOff = document.getElementsByName("battVoltageOff")[0].value;
+                    var e = document.getElementsByName("battCfg")[0];
+		            o.battCfg = e.options[e.selectedIndex].value;
+                    o.battTopic = document.getElementsByName("battTopic")[0].value;
+                    o.battLimitOn = document.getElementsByName("battLimitOn")[0].value;
+                    o.battLimitOff = document.getElementsByName("battLimitOff")[0].value;
                     // Advanced
                     o.setPoint = document.getElementsByName("setPoint")[0].value;
-                    o.refresh = document.getElementsByName("refresh")[0].value;
+                    o.minimum = document.getElementsByName("minimum")[0].checked;
                     o.powerTolerance = document.getElementsByName("powerTolerance")[0].value;
                     o.powerMax = document.getElementsByName("powerMax")[0].value;
                     o.Kp = document.getElementsByName("Kp")[0].value;
@@ -1603,11 +1676,13 @@
                     o.enabled   = false;
                     o.name = "";
                     // Powermeter
+                    o.pm_refresh = 5;
                     o.pm_type = 0;
                     o.pm_url = "";
                     o.pm_jsonPath = "";
                     o.pm_user = "";
                     o.pm_pass = "";
+                    o.pm_target = 0;
                     // Inverters
                     o.invMax = obj.inverters.length;
                     o.inverters = [];
@@ -1616,19 +1691,19 @@
                         q.enabled = false;
                         var e = document.getElementById("invId"+inv);
 		                q.id = -1;
-                        var e = document.getElementById("invTarget"+inv);
-		                q.target = -1;
                         q.powerMin = 0;
                         q.powerMax = 0;
+                        q.turnOff = false;
                         o.inverters.push(q);
                     }
                     // Battery
-                    o.battEnabled = false;
-                    o.battVoltageOn = 0;
-                    o.battVoltageOff = 0;
+                    o.battCfg = 0;
+                    o.battTopic = "";
+                    o.battLimitOn = 0;
+                    o.battLimitOff = 0;
                     // Advanced
                     o.setPoint = 0;
-                    o.refresh = 10;
+                    o.minimum = true;
                     o.power = 0;
                     o.powerTolerance = 10;
                     o.powerMax = 600;
@@ -1710,6 +1785,10 @@
                 var e = document.getElementById("ze_groups");
                 e.innerHTML = ""; // remove all childs
                 e.append(ml("table", {class: "table"}, ml("tbody", {}, lines)));
+// TODO: Hinweis Developmentversion - Entfernen wenn erledigt
+                e.append(
+                    divRow("ACHTUNG:", "Dies ist eine sehr junge Developmentversion, bitte nicht unbeaufsichtig laufen lassen."),
+                );
 // TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
                 e.append(
                     divRow("Hinweis: ",

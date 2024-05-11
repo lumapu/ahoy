@@ -884,6 +884,11 @@
                     "de": "Leistungsmessung"
                 },
                 {
+                    "token": "ZE_GROUP_TAB_POWERMETER_REFRESH",
+                    "en": "Refresh (s):",
+                    "de": "Zykluszeit (s):"
+                },
+                {
                     "token": "ZE_GROUP_TAB_POWERMETER_TYPE",
                     "en": "Type:",
                     "de": "Typ:"
@@ -909,6 +914,16 @@
                     "de": "Passwort:"
                 },
                 {
+                    "token": "ZE_GROUP_TAB_POWERMETER_TOPIC",
+                    "en": "Topic:",
+                    "de": "Topic:"
+                },
+                {
+                    "token": "ZE_GROUP_TAB_POWERMETER_TARGET",
+                    "en": "Target:",
+                    "de": "Ziel:"
+                },
+                {
                     "token": "ZE_GROUP_TAB_INVERTER",
                     "en": "Inverter",
                     "de": "Wechselrichter"
@@ -924,11 +939,6 @@
                     "de": "Name"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_INVERTER_SUM",
-                    "en": "Sum",
-                    "de": "Gesamt"
-                },
-                {
                     "token": "ZE_GROUP_TAB_INVERTER_POWERMIN",
                     "en": "Power (Min)",
                     "de": "Leistung (Min)"
@@ -939,24 +949,34 @@
                     "de": "Leistung (Max)"
                 },
                 {
+                    "token": "ZE_GROUP_TAB_INVERTER_TURNOFF",
+                    "en": "Turn On/Off",
+                    "de": "Schalte Ein/Aus"
+                },
+                {
                     "token": "ZE_GROUP_TAB_BATTERY",
                     "en": "Battery",
                     "de": "Batterie"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_BATTERY_BATTENABLED",
-                    "en": "Enabled:",
-                    "de": "Aktiviert:"
+                    "token": "ZE_GROUP_TAB_BATTERY_CFG",
+                    "en": "Mode:",
+                    "de": "Modus:"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_BATTERY_BATTVOLTAGEON",
-                    "en": "Voltage on (Volt):",
-                    "de": "Spannung Ein (Volt):"
+                    "token": "ZE_GROUP_TAB_BATTERY_TOPIC",
+                    "en": "Topic:",
+                    "de": "Topic:"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_BATTERY_BATTVOLTAGEOFF",
-                    "en": "Voltage off (Volt):",
-                    "de": "Spannung Aus (Volt):"
+                    "token": "ZE_GROUP_TAB_BATTERY_LIMITON",
+                    "en": "Limit On:",
+                    "de": "Limit Ein:"
+                },
+                {
+                    "token": "ZE_GROUP_TAB_BATTERY_LIMITOFF",
+                    "en": "Limit Off:",
+                    "de": "Limit Aus:"
                 },
                 {
                     "token": "ZE_GROUP_TAB_BATTERY_ONOFF",
@@ -979,9 +999,9 @@
                     "de": "Zielpunkt (Watt):"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_ADVANCED_REFRESH",
-                    "en": "Refresh rate (sec):",
-                    "de": "Aktualisierung (sec):"
+                    "token": "ZE_GROUP_TAB_ADVANCED_MINIMUM",
+                    "en": "Minimum:",
+                    "de": "Minimum (Grundlast):"
                 },
                 {
                     "token": "ZE_GROUP_TAB_ADVANCED_POWERTOLERANCE",
