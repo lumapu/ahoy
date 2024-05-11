@@ -637,40 +637,28 @@ class ZeroExport {
 
         if (obj["path"] == "ctrl" && obj["cmd"] == "zero") {
             int8_t topicGroup = getGroupFromTopic(topic.c_str());
-            if (topicGroup != -1)
-                mLog["g"] = topicGroup;
             int8_t topicInverter = getInverterFromTopic(topic.c_str());
-            if (topicInverter == -1)
-                mLog["i"] = topicInverter;
+
+            if (topicGroup != -1)       mLog["g"] = topicGroup;
+            if (topicInverter == -1)    mLog["i"] = topicInverter;
+
+            mLog["k"] = topic;
 
             // "topic":"ctrl/zero/enabled"
-            if (topic.indexOf("ctrl/zero/enabled") != -1) {
-                mCfg->enabled = (bool)obj["val"];
-                mLog["k"] = "ctrl/zero/enabled";
-                mLog["v"] = mCfg->enabled;
-            }
+            if (topic.indexOf("ctrl/zero/enabled") != -1) mCfg->enabled = mLog["v"] = (bool)obj["val"];
 
             // "topic":"ctrl/zero/sleep"
-            if (topic.indexOf("ctrl/zero/sleep") != -1) {
-                mCfg->sleep = (bool)obj["val"];
-                mLog["k"] = "ctrl/zero/sleep";
-                mLog["v"] = mCfg->sleep;
-            }
+            else if (topic.indexOf("ctrl/zero/sleep") != -1) mCfg->sleep = mLog["v"] = (bool)obj["val"];
 
-            if ((topicGroup >= 0) && (topicGroup < ZEROEXPORT_MAX_GROUPS)) {
+            else if ((topicGroup >= 0) && (topicGroup < ZEROEXPORT_MAX_GROUPS))
+            {
+                String stopicGroup = String(topicGroup);
+
                 // "topic":"ctrl/zero/groups/+/enabled"
-                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/enabled") != -1) {
-                    mCfg->groups[topicGroup].enabled = (bool)obj["val"];
-                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/enabled";
-                    mLog["v"] = mCfg->groups[topicGroup].enabled;
-                }
+                if (topic.endsWith("/enabled")) mCfg->groups[topicGroup].enabled = mLog["v"] = (bool)obj["val"];
 
                 // "topic":"ctrl/zero/groups/+/sleep"
-                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/sleep") != -1) {
-                    mCfg->groups[topicGroup].sleep = (bool)obj["val"];
-                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/sleep";
-                    mLog["v"] = mCfg->groups[topicGroup].sleep;
-                }
+                else if (topic.endsWith("/sleep")) mCfg->groups[topicGroup].sleep = mLog["v"] = (bool)obj["val"];
 
                 // Auf Eis gelegt, dafür 2 Gruppen mehr
                 // 0.8.103008.2
@@ -695,54 +683,36 @@ class ZeroExport {
                 //                }
 
                 // "topic":"ctrl/zero/groups/+/battery/switch"
-                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/battery/switch") != -1) {
-                    mCfg->groups[topicGroup].battSwitch = (bool)obj["val"];
-                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/battery/switch";
-                    mLog["v"] = mCfg->groups[topicGroup].battSwitch;
-                }
+                else if (topic.endsWith("/battery/switch")) mCfg->groups[topicGroup].battSwitch = mLog["v"] = (bool)obj["val"];
 
-                // "topic":"ctrl/zero/groups/+/advanced/setPoint"
-                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/advanced/setPoint") != -1) {
-                    mCfg->groups[topicGroup].setPoint = (int16_t)obj["val"];
-                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/advanced/setPoint";
-                    mLog["v"] = mCfg->groups[topicGroup].setPoint;
-                }
+                else if (topic.indexOf("/advanced/") != -1)
+                {
+                    // "topic":"ctrl/zero/groups/+/advanced/setPoint"
+                    if (topic.endsWith("/setPoint")) mCfg->groups[topicGroup].setPoint = mLog["v"] = (int16_t)obj["val"];
 
-                // "topic":"ctrl/zero/groups/+/advanced/powerTolerance"
-                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerTolerance") != -1) {
-                    mCfg->groups[topicGroup].powerTolerance = (uint8_t)obj["val"];
-                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerTolerance";
-                    mLog["v"] = mCfg->groups[topicGroup].powerTolerance;
-                }
+                    // "topic":"ctrl/zero/groups/+/advanced/powerTolerance"
+                    else if (topic.endsWith("/powerTolerance")) mCfg->groups[topicGroup].powerTolerance = mLog["v"] = (uint8_t)obj["val"];
 
-                // "topic":"ctrl/zero/groups/+/advanced/powerMax"
-                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerMax") != -1) {
-                    mCfg->groups[topicGroup].powerMax = (uint16_t)obj["val"];
-                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/advanced/powerMax";
-                    mLog["v"] = mCfg->groups[topicGroup].powerMax;
+                    // "topic":"ctrl/zero/groups/+/advanced/powerMax"
+                    else if (topic.endsWith("/powerMax")) mCfg->groups[topicGroup].powerMax = mLog["v"] = (uint16_t)obj["val"];
                 }
+                else if (topic.indexOf("/inverter/") != -1)
+                {
+                    if ((topicInverter >= 0) && (topicInverter < ZEROEXPORT_GROUP_MAX_INVERTERS))
+                    {
+                        // "topic":"ctrl/zero/groups/+/inverter/+/enabled"
+                        if (topic.endsWith("/enabled")) mCfg->groups[topicGroup].inverters[topicInverter].enabled = mLog["v"] = (bool)obj["val"];
 
-                if ((topicInverter >= 0) && (topicInverter < ZEROEXPORT_GROUP_MAX_INVERTERS)) {
-                    // "topic":"ctrl/zero/groups/+/inverter/+/enabled"
-                    if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/inverter/" + String(topicInverter) + "/enabled") != -1) {
-                        mCfg->groups[topicGroup].inverters[topicInverter].enabled = (bool)obj["val"];
-                        mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/inverter/" + String(topicInverter) + "/enabled";
-                        mLog["v"] = mCfg->groups[topicGroup].inverters[topicInverter].enabled;
+                        // "topic":"ctrl/zero/groups/+/inverter/+/powerMin"
+                        else if (topic.endsWith("/powerMin")) mCfg->groups[topicGroup].inverters[topicInverter].powerMin = mLog["v"] = (uint16_t)obj["val"];
+
+                        // "topic":"ctrl/zero/groups/+/inverter/+/powerMax"
+                        else if (topic.endsWith("/powerMax")) mCfg->groups[topicGroup].inverters[topicInverter].powerMax = mLog["v"] = (uint16_t)obj["val"];
+                        else mLog["k"] = "error";
                     }
-
-                    // "topic":"ctrl/zero/groups/+/inverter/+/powerMin"
-                    if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/inverter/" + String(topicInverter) + "/powerMin") != -1) {
-                        mCfg->groups[topicGroup].inverters[topicInverter].powerMin = (uint16_t)obj["val"];
-                        mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/inverter/" + String(topicInverter) + "/powerMin";
-                        mLog["v"] = mCfg->groups[topicGroup].inverters[topicInverter].powerMin;
-                    }
-
-                    // "topic":"ctrl/zero/groups/+/inverter/+/powerMax"
-                    if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/inverter/" + String(topicInverter) + "/powerMax") != -1) {
-                        mCfg->groups[topicGroup].inverters[topicInverter].powerMax = (uint16_t)obj["val"];
-                        mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/inverter/" + String(topicInverter) + "/powerMax";
-                        mLog["v"] = mCfg->groups[topicGroup].inverters[topicInverter].powerMax;
-                    }
+                }
+                else {
+                    mLog["k"] = "error";
                 }
             }
         }
@@ -791,6 +761,7 @@ class ZeroExport {
         while (*pGroupSection != '/' && digitsCopied < 2) strGroup[digitsCopied++] = *pGroupSection++;
         strGroup[digitsCopied] = '\0';
         int8_t group = atoi(strGroup);
+        mLog["getGroupFromTopic"] = group;
         return group;
     }
 
