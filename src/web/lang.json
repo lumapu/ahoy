@@ -914,6 +914,11 @@
                     "de": "Passwort:"
                 },
                 {
+                    "token": "ZE_GROUP_TAB_POWERMETER_TOPIC",
+                    "en": "Topic:",
+                    "de": "Topic:"
+                },
+                {
                     "token": "ZE_GROUP_TAB_POWERMETER_TARGET",
                     "en": "Target:",
                     "de": "Ziel:"
