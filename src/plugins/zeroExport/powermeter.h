@@ -14,7 +14,6 @@
 #include "config/settings.h"
 
 #if defined(ZEROEXPORT_POWERMETER_TIBBER)
-#include <base64.h>
 #include <string.h>
 
 #include <list>
@@ -493,16 +492,7 @@ class powermeter {
 
         logObj["mod"] = "getPowermeterWattsTibber";
 
-        String auth;
-        if (strlen(mCfg->groups[group].pm_user) > 0 && strlen(mCfg->groups[group].pm_pass) > 0) {
-            auth = base64::encode(String(mCfg->groups[group].pm_user) + String(":") + String(mCfg->groups[group].pm_pass));
-            snprintf(mCfg->groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER, "%s", DEF_ZEXPORT);
-            snprintf(mCfg->groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS, "%s", auth.c_str());
-            //@TODO:mApp->saveSettings(false);
-        } else {
-            auth = mCfg->groups[group].pm_pass;
-        }
-
+        String auth = mCfg->groups[group].pm_pass;
         String url = String("http://") + mCfg->groups[group].pm_url + String("/") + String(mCfg->groups[group].pm_jsonPath);
 
         setHeader(&http);
