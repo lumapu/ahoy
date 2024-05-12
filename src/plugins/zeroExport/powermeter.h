@@ -65,14 +65,21 @@ class powermeter {
         if (millis() - mPreviousTsp <= 1000) return;  // skip when it is to fast
         mPreviousTsp = millis();
 
+        if (mCfg->debug) DBGPRINTLN(F("pm Takt:"));
+
         bool result = false;
         float power = 0.0;
 
         for (u_short group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             if ((!mCfg->groups[group].enabled) || (mCfg->groups[group].sleep)) continue;
 
-            if ((millis() - mCfg->groups[group].pm_peviousTsp) <= ((uint16_t)mCfg->groups[group].pm_refresh * 1000)) continue;
+            if ((millis() - mCfg->groups[group].pm_peviousTsp) < ((uint16_t)mCfg->groups[group].pm_refresh * 1000)) continue;
             mCfg->groups[group].pm_peviousTsp = millis();
+
+            if (mCfg->debug) DBGPRINTLN(F("pm Do:"));
+
+            result = false;
+            power = 0.0;
 
             switch (mCfg->groups[group].pm_type) {
 #if defined(ZEROEXPORT_POWERMETER_SHELLY)
@@ -107,19 +114,19 @@ class powermeter {
                 bufferWrite(power, group);
 
                 // MQTT - Powermeter
-                if (mCfg->debug) {
+//                if (mCfg->debug) {
                     if (mMqtt->isConnected()) {
                         // P
-                        mqttObj["Sum"] = ah::round1(power);
+//                        mqttObj["Sum"] = ah::round1(power);
                         //                    mqttObj["L1"] = ah::round1(power.P1);
                         //                    mqttObj["L2"] = ah::round1(power.P2);
                         //                    mqttObj["L3"] = ah::round1(power.P3);
-                        mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), mqttDoc.as<std::string>().c_str(), false);
-                        mqttDoc.clear();
+                        mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
+//                        mqttDoc.clear();
 
                         // W (TODO)
                     }
-                }
+//                }
             }
         }
     }
