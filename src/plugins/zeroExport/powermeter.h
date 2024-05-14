@@ -116,15 +116,7 @@ class powermeter {
                 // MQTT - Powermeter
 //                if (mCfg->debug) {
                     if (mMqtt->isConnected()) {
-                        // P
-//                        mqttObj["Sum"] = ah::round1(power);
-                        //                    mqttObj["L1"] = ah::round1(power.P1);
-                        //                    mqttObj["L2"] = ah::round1(power.P2);
-                        //                    mqttObj["L3"] = ah::round1(power.P3);
                         mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
-//                        mqttDoc.clear();
-
-                        // W (TODO)
                     }
 //                }
             }
@@ -156,8 +148,10 @@ class powermeter {
         float min = 0.0;
 
         for (int i = 0; i < 5; i++) {
-            if (i == 0) min = mPowermeterBuffer[group][i];
-            if ( min > mPowermeterBuffer[group][i]) min = mPowermeterBuffer[group][i];
+            if (i == 0)
+                min = mPowermeterBuffer[group][i];
+            if (min > mPowermeterBuffer[group][i])
+                min = mPowermeterBuffer[group][i];
         }
 
         return min;
@@ -170,12 +164,12 @@ class powermeter {
 #if defined(ZEROEXPORT_POWERMETER_MQTT)
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-            if (!strcmp(mCfg->groups[group].pm_jsonPath, "")) continue;
+            if (!strcmp(mCfg->groups[group].pm_src, "")) continue;
 
             if (!mCfg->groups[group].enabled) continue;
 
             if (mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) {
-                mMqtt->subscribeExtern(String(mCfg->groups[group].pm_jsonPath).c_str(), QOS_2);
+                mMqtt->subscribeExtern(String(mCfg->groups[group].pm_src).c_str(), QOS_2);
             }
         }
 
@@ -195,9 +189,9 @@ class powermeter {
 
             if (!mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) continue;
 
-            if (!strcmp(mCfg->groups[group].pm_jsonPath, "")) continue;
+            if (!strcmp(mCfg->groups[group].pm_src, "")) continue;
 
-            if (strcmp(mCfg->groups[group].pm_jsonPath, String(topic).c_str())) continue;
+            if (strcmp(mCfg->groups[group].pm_src, String(topic).c_str())) continue;
 
             float power = 0.0;
             power = (uint16_t)obj["val"];
@@ -207,15 +201,7 @@ class powermeter {
             // MQTT - Powermeter
             if (mCfg->debug) {
                 if (mMqtt->isConnected()) {
-                    // P
-                    mqttObj["Sum"] = ah::round1(power);
-                    ///                    mqttObj["L1"] = ah::round1(power.P1);
-                    ///                    mqttObj["L2"] = ah::round1(power.P2);
-                    ///                    mqttObj["L3"] = ah::round1(power.P3);
-                    mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), mqttDoc.as<std::string>().c_str(), false);
-                    mqttDoc.clear();
-
-                    // W (TODO)
+                    mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
                 }
             }
 
@@ -287,7 +273,7 @@ class powermeter {
 
         setHeader(&http);
 
-        String url = String("http://") + String(mCfg->groups[group].pm_url) + String("/") + String(mCfg->groups[group].pm_jsonPath);
+        String url = String("http://") + String(mCfg->groups[group].pm_src) + String("/") + String(mCfg->groups[group].pm_jsonPath);
         logObj["HTTP_URL"] = url;
 
         http.begin(url);
@@ -380,8 +366,8 @@ class powermeter {
                     http.addHeader("Content-Type", "application/json");
                     http.addHeader("Accept", "application/json");
 
-        //            String url = String("http://") + String(mCfg->groups[group].pm_url) + String("/") + String(mCfg->groups[group].pm_jsonPath);
-                    String url = String(mCfg->groups[group].pm_url);
+        //            String url = String("http://") + String(mCfg->groups[group].pm_src) + String("/") + String(mCfg->groups[group].pm_jsonPath);
+                    String url = String(mCfg->groups[group].pm_src);
                     logObj["HTTP_URL"] = url;
 
                     http.begin(url);
@@ -505,7 +491,7 @@ class powermeter {
             auth = mCfg->groups[group].pm_pass;
         }
 
-        String url = String("http://") + mCfg->groups[group].pm_url + String("/") + String(mCfg->groups[group].pm_jsonPath);
+        String url = String("http://") + mCfg->groups[group].pm_src + String("/") + String(mCfg->groups[group].pm_jsonPath);
 
         setHeader(&http);
         http.begin(url);
@@ -558,7 +544,7 @@ class powermeter {
         setHeader(&http);
 
         String url =
-            String("http://") + String(mCfg->groups[group].pm_url) +
+            String("http://") + String(mCfg->groups[group].pm_src) +
             String("/") + String(mCfg->groups[group].pm_jsonPath + String("?user=") + String(mCfg->groups[group].pm_user) + String("&password=") + String(mCfg->groups[group].pm_pass));
 
         http.begin(url);

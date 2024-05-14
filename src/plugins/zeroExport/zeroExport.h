@@ -676,14 +676,14 @@ class ZeroExport {
                 // 0.8.103008.2
                 //                // "topic":"ctrl/zero/groups/+/pm_ip"
                 //                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/pm_ip") != -1) {
-                //                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", obj[F("val")].as<const char *>());
+                //                    snprintf(mCfg->groups[topicGroup].pm_src, ZEROEXPORT_GROUP_MAX_LEN_PM_SRC, "%s", obj[F("val")].as<const char *>());
                 /// TODO:
-                //                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", obj[F("val")].as<const char *>());
-                //                    strncpy(mCfg->groups[topicGroup].pm_url, obj[F("val")], ZEROEXPORT_GROUP_MAX_LEN_PM_URL);
-                //                    strncpy(mCfg->groups[topicGroup].pm_url, String(obj[F("val")]).c_str(), ZEROEXPORT_GROUP_MAX_LEN_PM_URL);
-                //                    snprintf(mCfg->groups[topicGroup].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", String(obj[F("val")]).c_str());
+                //                    snprintf(mCfg->groups[topicGroup].pm_src, ZEROEXPORT_GROUP_MAX_LEN_PM_SRC, "%s", obj[F("val")].as<const char *>());
+                //                    strncpy(mCfg->groups[topicGroup].pm_src, obj[F("val")], ZEROEXPORT_GROUP_MAX_LEN_PM_SRC);
+                //                    strncpy(mCfg->groups[topicGroup].pm_src, String(obj[F("val")]).c_str(), ZEROEXPORT_GROUP_MAX_LEN_PM_SRC);
+                //                    snprintf(mCfg->groups[topicGroup].pm_src, ZEROEXPORT_GROUP_MAX_LEN_PM_SRC, "%s", String(obj[F("val")]).c_str());
                 //                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/pm_ip";
-                //                    mLog["v"] = mCfg->groups[topicGroup].pm_url;
+                //                    mLog["v"] = mCfg->groups[topicGroup].pm_src;
                 //                }
                 //
                 //                // "topic":"ctrl/zero/groups/+/pm_jsonPath"
