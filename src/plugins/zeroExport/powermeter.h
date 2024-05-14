@@ -190,15 +190,28 @@ class powermeter {
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             if (!mCfg->groups[group].enabled) continue;
-
             if (!mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) continue;
-
             if (!strcmp(mCfg->groups[group].pm_src, "")) continue;
-
             if (strcmp(mCfg->groups[group].pm_src, String(topic).c_str())) continue;
 
             float power = 0.0;
-            power = (uint16_t)obj["val"];
+
+            //TODO: datajson 100 enough?
+            // this if-statement need to check if value contains a json object.
+            // is it so, then deserialize it and get the values (Shelly GEN2)
+            DynamicJsonDocument datajson(100);
+            if (!deserializeJson(datajson, obj["val"]))
+            {
+                switch (mCfg->groups[group].pm_target) {
+                    case 0: power = datajson["a_act_power"]; break;
+                    case 1: power = datajson["b_act_power"]; break;
+                    case 2: power = datajson["c_act_power"]; break;
+                    case 3: power = datajson["total_act_power"]; break;
+                }
+            } else {
+                //TODO: check if parse is possible here? Is that right?
+                power = (uint16_t)obj["val"];
+            }
 
             bufferWrite(power, group);
 
