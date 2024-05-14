@@ -20,6 +20,7 @@
 #include "ESPAsyncWebServer.h"
 
 #include "plugins/history.h"
+#include <base64.h>
 
 #if defined(F) && defined(ESP32)
 #undef F
@@ -1161,8 +1162,15 @@ class RestApi {
                 mConfig->plugin.zeroExport.groups[group].pm_type = jsonIn[F("pm_type")];
                 snprintf(mConfig->plugin.zeroExport.groups[group].pm_src, ZEROEXPORT_GROUP_MAX_LEN_PM_SRC, "%s", jsonIn[F("pm_src")].as<const char*>());
                 snprintf(mConfig->plugin.zeroExport.groups[group].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH, "%s", jsonIn[F("pm_jsonPath")].as<const char*>());
-                snprintf(mConfig->plugin.zeroExport.groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER, "%s", jsonIn[F("pm_user")].as<const char*>());
-                snprintf(mConfig->plugin.zeroExport.groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS, "%s", jsonIn[F("pm_pass")].as<const char*>());
+
+
+                if (jsonIn[F("pm_pass")] != F("****"))
+                {
+                    String auth = base64::encode(String(jsonIn[F("pm_user")]) + String(":") + String(jsonIn[F("pm_pass")]));
+                    snprintf(mConfig->plugin.zeroExport.groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER, "%s", String(jsonIn[F("pm_user")]).c_str());
+                    snprintf(mConfig->plugin.zeroExport.groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS, "%s", auth.c_str());
+                }
+
                 mConfig->plugin.zeroExport.groups[group].pm_target = jsonIn[F("pm_target")];
                 // Inverters
                 for(uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {

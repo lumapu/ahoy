@@ -14,7 +14,6 @@
 #include "config/settings.h"
 
 #if defined(ZEROEXPORT_POWERMETER_TIBBER)
-#include <base64.h>
 #include <string.h>
 
 #include <list>
@@ -98,6 +97,11 @@ class powermeter {
                     break;
 #endif
 #if defined(ZEROEXPORT_POWERMETER_TIBBER)
+                /*  Anscheinend nutzt bei mir Tibber auch diese Freq.
+                    862.75 MHz - keine Verbindung
+                    863.00 MHz - geht (standard) jedoch hat Tibber dann Probleme... => 4 & 5 Balken
+                    863.25 MHz - geht (ohne Tibber Probleme) => 3 & 4 Balken
+                */
                 case zeroExportPowermeterType_t::Tibber:
                     result = getPowermeterWattsTibber(*mLog, group, &power);
                     mPreviousTsp += 2000;  // Zusätzliche Pause
@@ -240,7 +244,7 @@ class powermeter {
     PubMqttType *mMqtt = nullptr;
     JsonObject *mLog;
 
-    unsigned long mPreviousTsp = 0;
+    unsigned long mPreviousTsp = millis();
 
     float mPowermeterBuffer[ZEROEXPORT_MAX_GROUPS][5] = {0};
     short mPowermeterBufferPos[ZEROEXPORT_MAX_GROUPS] = {0};
@@ -481,17 +485,8 @@ class powermeter {
 
         logObj["mod"] = "getPowermeterWattsTibber";
 
-        String auth;
-        if (strlen(mCfg->groups[group].pm_user) > 0 && strlen(mCfg->groups[group].pm_pass) > 0) {
-            auth = base64::encode(String(mCfg->groups[group].pm_user) + String(":") + String(mCfg->groups[group].pm_pass));
-            snprintf(mCfg->groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER, "%s", DEF_ZEXPORT);
-            snprintf(mCfg->groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS, "%s", auth.c_str());
-            //@TODO:mApp->saveSettings(false);
-        } else {
-            auth = mCfg->groups[group].pm_pass;
-        }
-
-        String url = String("http://") + mCfg->groups[group].pm_src + String("/") + String(mCfg->groups[group].pm_jsonPath);
+        String auth = mCfg->groups[group].pm_pass;
+        String url = String("http://") + mCfg->groups[group].pm_url + String("/") + String(mCfg->groups[group].pm_jsonPath);
 
         setHeader(&http);
         http.begin(url);
