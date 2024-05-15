@@ -1509,8 +1509,8 @@
                 }
 
                 // add addEventListener
-                const selectElement = document.querySelector("#pm_type");
-                selectElement.addEventListener("change", (event) => { pm_type_dropdown() });
+                const se_pm_type = document.querySelector("#pm_type");
+                se_pm_type.addEventListener("change", (event) => { pm_type_dropdown() });
 
                 // run event one time
                 pm_type_dropdown();
@@ -1566,6 +1566,31 @@
                     }
                 }
 
+                // add addEventListener
+                const se_battCfg = document.querySelector("#battCfg");
+                se_battCfg.addEventListener("change", (event) => { battCfg_dropdown() });
+
+                // run event one time
+                battCfg_dropdown();
+
+                function battCfg_dropdown()
+                {
+                    var e = document.getElementsByName("battCfg")[0];
+                    var value = e.options[e.selectedIndex].text;
+
+                    var divsToHide = document.getElementById("divBattery");
+
+                    // Formular for Powermeter-DropDown
+                    // show all DIVs and remove only what is not necessary
+                    // 1 = pm_refresh, 2 = pm_target, 3 = pm_src, 4 = pm_jsonPath, 5 = pm_user, 6 = pm_pass
+                    for(var i = 0; i < divsToHide.childElementCount; i++) divsToHide.childNodes[i].style.display = '';
+
+                    if(value == "---") for(var i = 1; i < divsToHide.childElementCount; i++) divsToHide.childNodes[i].style.display = 'none';
+                    else if(value == "Inverter U dc") {
+                        divsToHide.childNodes[1].style.display = 'none';
+                    }
+                }
+
                 function pm_type_dropdown()
                 {
                     var e = document.getElementsByName("pm_type")[0];
@@ -1590,9 +1615,9 @@
                         divsToHide.childNodes[5].style.display = 'none';
                         divsToHide.childNodes[6].style.display = 'none';
                     }
-                    /*else if(value == "Tibber") {
+                    else if(value == "Tibber") {
                         divsToHide.childNodes[4].style.display = 'none';
-                    }*/
+                    }
                     else if(value == "Shrdzm") {
                         divsToHide.childNodes[1].style.display = 'none';
                         divsToHide.childNodes[2].style.display = 'none';
