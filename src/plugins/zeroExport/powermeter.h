@@ -103,8 +103,8 @@ class powermeter {
                     863.25 MHz - geht (ohne Tibber Probleme) => 3 & 4 Balken
                 */
                 case zeroExportPowermeterType_t::Tibber:
+                    if(mCfg->groups[group].pm_refresh < 3) mCfg->groups[group].pm_refresh = 3;
                     result = getPowermeterWattsTibber(*mLog, group, &power);
-                    mPreviousTsp += 2000;  // Zusätzliche Pause
                     break;
 #endif
 #if defined(ZEROEXPORT_POWERMETER_SHRDZM)
@@ -114,15 +114,16 @@ class powermeter {
 #endif
             }
 
-            if (result) {
+            //if (mMqtt->isConnected()) mMqtt->publish(String("zero/state/groups/" + String(group) + "/result").c_str(), String(ret).c_str(), false);
+
+            if (result)
+            {
                 bufferWrite(power, group);
 
                 // MQTT - Powermeter
-//                if (mCfg->debug) {
-                    if (mMqtt->isConnected()) {
-                        mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
-                    }
-//                }
+                if (mMqtt->isConnected()) {
+                    mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
+                }
             }
         }
     }
@@ -181,7 +182,7 @@ class powermeter {
     }
 
     /** onMqttMessage
-     *
+     * This function is needed for all mqtt connections between ahoy and other devices.
      */
     void onMqttMessage(JsonObject obj) {
         String topic = String(obj["topic"]);
@@ -492,20 +493,19 @@ class powermeter {
         {{0x01, 0x00, 0x02, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterExport}};
 
     bool getPowermeterWattsTibber(JsonObject logObj, uint8_t group, float *power) {
-        mPreviousTsp = mPreviousTsp + 2000;  // Zusätzliche Pause
-
         bool result = false;
 
         logObj["mod"] = "getPowermeterWattsTibber";
 
         String auth = mCfg->groups[group].pm_pass;
-        String url = String("http://") + mCfg->groups[group].pm_url + String("/") + String(mCfg->groups[group].pm_jsonPath);
+        String url = String("http://") + mCfg->groups[group].pm_src + String("/") + String(mCfg->groups[group].pm_jsonPath);
 
         setHeader(&http);
         http.begin(url);
         http.addHeader("Authorization", "Basic " + auth);
 
-        if (http.GET() == HTTP_CODE_OK && http.getSize() > 0) {
+        if (http.GET() == HTTP_CODE_OK && http.getSize() > 0)
+        {
             String myString = http.getString();
             double readVal = 0;
             unsigned char c;
