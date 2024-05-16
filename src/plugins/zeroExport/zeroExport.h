@@ -106,18 +106,14 @@ class ZeroExport {
             return;
         }
 
-        // Calc Data->groupPower
+        
         uint16_t groupPower = 0;
-        for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
-            groupPower += mCfg->groups[group].inverters[inv].power;
-        }
-        mLog["gP"] = groupPower;
-
-        // Calc Data->groupLimit
         uint16_t groupLimit = 0;
         for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
-            groupLimit += mCfg->groups[group].inverters[inv].limit;
+            groupPower += mCfg->groups[group].inverters[inv].power; // Calc Data->groupPower
+            groupLimit += mCfg->groups[group].inverters[inv].limit; // Calc Data->groupLimit
         }
+        mLog["gP"] = groupPower;
         mLog["gL"] = groupLimit;
 
         // Batteryprotection
