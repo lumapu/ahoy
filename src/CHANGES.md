@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.119 - 2024-05-16
+* fix reset values at midnight if WiFi isn't available #1620
+* fix typo in English versions
+
 ## 0.8.118 - 2024-05-10
 * possible fix reset max values #1609
 * slightly improved WiFi reconnect

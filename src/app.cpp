@@ -148,12 +148,14 @@ void app::loop(void) {
 //-----------------------------------------------------------------------------
 void app::onNetwork(bool gotIp) {
     mNetworkConnected = gotIp;
-    ah::Scheduler::resetTicker();
-    regularTickers(); //reinstall regular tickers
-    every(std::bind(&app::tickSend, this), mConfig->inst.sendInterval, "tSend");
-    mTickerInstallOnce = true;
-    mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
-    once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
+    if(gotIp) {
+        ah::Scheduler::resetTicker();
+        regularTickers(); //reinstall regular tickers
+        every(std::bind(&app::tickSend, this), mConfig->inst.sendInterval, "tSend");
+        mTickerInstallOnce = true;
+        mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
+        once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
+    }
 }
 
 //-----------------------------------------------------------------------------
