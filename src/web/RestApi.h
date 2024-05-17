@@ -103,8 +103,8 @@ class RestApi {
             else if(path == "setup/getip")    getIp(root);
             #endif /* !defined(ETHERNET) */
             else if(path == "live")           getLive(request,root);
-            else if (path == "powerHistory")  getPowerHistory(request, root);
-            else if (path == "powerHistoryDay")  getPowerHistoryDay(request, root);
+            else if (path == "powerHistory")  getPowerHistory(request, root, HistoryStorageType::POWER);
+            else if (path == "powerHistoryDay")  getPowerHistory(request, root, HistoryStorageType::POWER_DAY);
             else {
                 if(path.substring(0, 12) == "inverter/id/")
                     getInverter(root, request->url().substring(17).toInt());
@@ -927,40 +927,37 @@ class RestApi {
             }
         }
 
-        void getPowerHistory(AsyncWebServerRequest *request, JsonObject obj) {
+        void getPowerHistory(AsyncWebServerRequest *request, JsonObject obj, HistoryStorageType type) {
             getGeneric(request, obj.createNestedObject(F("generic")));
             #if defined(ENABLE_HISTORY)
-            obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::POWER);
+            obj[F("refresh")] = mApp->getHistoryPeriod(static_cast<uint8_t>(type));
+
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
-                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::POWER, fld);
+                uint16_t value = mApp->getHistoryValue(static_cast<uint8_t>(type), fld);
                 obj[F("value")][fld] = value;
                 if (value > max)
                     max = value;
             }
             obj[F("max")] = max;
-            obj[F("lastValueTs")] = mApp->getHistoryLastValueTs((uint8_t)HistoryStorageType::POWER);
-            #endif /*ENABLE_HISTORY*/
-        }
 
-        void getPowerHistoryDay(AsyncWebServerRequest *request, JsonObject obj){
-            //getGeneric(request, obj.createNestedObject(F("generic")));
-            #if defined(ENABLE_HISTORY)
-            obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::POWER_DAY);
-            uint16_t max = 0;
-            for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
-                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::POWER_DAY, fld);
-                obj[F("value")][fld] = value;
-                if (value > max)
-                    max = value;
+            if(HistoryStorageType::POWER_DAY == type) {
+                float yldDay = 0;
+                for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
+                    Inverter<> *iv = mSys->getInverterByPos(i);
+                    if (iv == NULL)
+                        continue;
+                    record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                    yldDay += iv->getChannelFieldValue(CH0, FLD_YD, rec);
+                }
+                obj[F("yld")] = ah::round3(yldDay / 1000.0);
             }
-            obj[F("max")] = max;
-            obj[F("lastValueTs")] = mApp->getHistoryLastValueTs((uint8_t)HistoryStorageType::POWER_DAY);
+
+            obj[F("lastValueTs")] = mApp->getHistoryLastValueTs(static_cast<uint8_t>(type));
             #endif /*ENABLE_HISTORY*/
         }
 
-
-        void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
+        /*void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
             //getGeneric(request, obj.createNestedObject(F("generic")));
             #if defined(ENABLE_HISTORY) && defined(ENABLE_HISTORY_YIELD_PER_DAY)
             obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::YIELD);
@@ -972,8 +969,8 @@ class RestApi {
                     max = value;
             }
             obj[F("max")] = max;
-            #endif /*ENABLE_HISTORY*/
-        }
+            #endif
+        }*/
 
         bool setCtrl(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
             if(jsonIn.containsKey(F("auth"))) {

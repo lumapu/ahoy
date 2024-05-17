@@ -62,9 +62,9 @@ class HistoryData {
 
             for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
                 Inverter<> *iv = mSys->getInverterByPos(i);
-                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
                 if (iv == NULL)
                     continue;
+                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
                 curPwr += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
                 yldDay += iv->getChannelFieldValue(CH0, FLD_YD, rec);
                 if (rec->ts > ts)

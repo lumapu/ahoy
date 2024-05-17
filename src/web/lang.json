@@ -1587,6 +1587,11 @@
                     "token": "LAST_VALUE",
                     "en": "Last value",
                     "de": "Letzter Wert"
+                },
+                {
+                    "token": "YIELD_DAY",
+                    "en": "Yield day",
+                    "de": "Tagesertrag"
                 }
             ]
         }
