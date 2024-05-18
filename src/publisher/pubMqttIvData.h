@@ -215,9 +215,13 @@ class PubMqttIvData {
                     if (mJson && RealTimeRunData_Debug == mCmd) {
                         DynamicJsonDocument doc(300);
                         std::array<char, 300> buf;
+                        bool zero = true;
 
                         for (mPos = 0; mPos < rec->length; mPos++) {
-                            doc[fields[rec->assign[mPos].fieldId]] = ah::round3(mIv->getValue(mPos, rec));
+                            double value = ah::round3(mIv->getValue(mPos, rec));
+                            if (value != 0)
+                                zero = false;
+                            doc[fields[rec->assign[mPos].fieldId]] = value;
 
                             bool publish = false;
                             if (mPos != rec->length - 1) { // not last one
@@ -228,11 +232,15 @@ class PubMqttIvData {
 
                             if (publish) {
                                 publish = false;
-                                // if next channel or end->publish
-                                serializeJson(doc, buf.data(), buf.size());
+                                // if next channel or end->publish but not if values are all zero
+                                if (!zero)
+                                {
+                                    serializeJson(doc, buf.data(), buf.size());
+                                    snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d", mIv->config->name, rec->assign[mPos].ch);
+                                    mPublish(mSubTopic.data(), buf.data(), false, QOS_0);
+                                }
+                                zero = true;
                                 doc.clear();
-                                snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d", mIv->config->name, rec->assign[mPos].ch);
-                                mPublish(mSubTopic.data(), buf.data(), false, QOS_0);
                             }
                         }
                     }
