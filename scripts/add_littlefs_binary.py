@@ -1,10 +1,13 @@
 import os
 import subprocess
 import shutil
+from SCons.Script import DefaultEnvironment
 Import("env")
 
 
 def build_littlefs():
+    if os.path.isfile('data/settings.json') == False:
+        return # nothing to do
     result = subprocess.run(["pio", "run", "--target", "buildfs", "--environment", env['PIOENV']])
     if result.returncode != 0:
         print("Error building LittleFS:")
@@ -13,6 +16,13 @@ def build_littlefs():
         print("LittleFS build successful")
 
 def merge_bins():
+    if os.path.isfile('data/settings.json') == False:
+        return # nothing to do
+
+    BOOTLOADER_OFFSET = 0x0000
+    PARTITIONS_OFFSET = 0x8000
+    FIRMWARE_OFFSET   = 0x10000
+
     flash_size = int(env.BoardConfig().get("upload.maximum_size", "4194304"))
     app0_offset = 0x10000
     if env['PIOENV'][:7] == "esp8266":
@@ -31,6 +41,12 @@ def merge_bins():
     start = os.getcwd()
     os.chdir('.pio/build/' + env['PIOENV'] + '/')
 
+    with open("bootloader.bin", "rb") as bootloader_file:
+        bootloader_data = bootloader_file.read()
+
+    with open("partitions.bin", "rb") as partitions_file:
+        partitions_data = partitions_file.read()
+
     with open("firmware.bin", "rb") as firmware_file:
         firmware_data = firmware_file.read()
 
@@ -38,11 +54,16 @@ def merge_bins():
         littlefs_data = littlefs_file.read()
 
     with open("firmware.factory.bin", "wb") as merged_file:
-        # fill gap with 0xff
-        merged_file.write(firmware_data)
-        if len(firmware_data) < (littlefs_offset - app0_offset):
-            merged_file.write(b'\xFF' * ((littlefs_offset - app0_offset) - len(firmware_data)))
+        merged_file.write(b'\xFF' * BOOTLOADER_OFFSET)
+        merged_file.write(bootloader_data)
 
+        merged_file.write(b'\xFF' * (PARTITIONS_OFFSET - (BOOTLOADER_OFFSET + len(bootloader_data))))
+        merged_file.write(partitions_data)
+
+        merged_file.write(b'\xFF' * (FIRMWARE_OFFSET - (PARTITIONS_OFFSET + len(partitions_data))))
+        merged_file.write(firmware_data)
+
+        merged_file.write(b'\xFF' * (littlefs_offset - (FIRMWARE_OFFSET + len(firmware_data))))
         merged_file.write(littlefs_data)
 
     os.chdir(start)
@@ -50,7 +71,6 @@ def merge_bins():
 def main(target, source, env):
     build_littlefs()
     merge_bins()
-
 
 # ensure that script is called once firmeware was compiled
 env.AddPostAction("$BUILD_DIR/${PROGNAME}.bin", main)
