@@ -13,17 +13,18 @@ def build_littlefs():
         print("LittleFS build successful")
 
 def merge_bins():
-    flash_size = int(env.get("BOARD_FLASH_SIZE", "4MB").replace("MB", ""))
+    flash_size = int(env.BoardConfig().get("upload.maximum_size", "4194304"))
     app0_offset = 0x10000
     if env['PIOENV'][:7] == "esp8266":
         app0_offset = 0
     elif env['PIOENV'][:7] == "esp8285":
         app0_offset = 0
 
+    print(flash_size)
     littlefs_offset = 0x290000
-    if flash_size == 8:
+    if flash_size == 0x330000:
         littlefs_offset = 0x670000
-    elif flash_size == 16:
+    elif flash_size == 0x640000:
         littlefs_offset = 0xc90000
 
     # save current wd
