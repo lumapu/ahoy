@@ -1,4 +1,4 @@
-# Generate factory firmware
+# Generate factory firmware (ESP32)
 
 If the firmware should already contain predefined settings this guide will help you to compile these into a single binary file.
 
@@ -36,11 +36,23 @@ Choose your prefered environment and build firmware as usual. Once the process i
 
 ## Upload to device
 
+Navigate to the firmware output directory `src/.pio/build/[ENVIRONMENT]/` and open a terminal.
+
+### ESP32
+
 Python:
-`esptool.py -b 921600 write_flash --flash_mode dio --flash_size detect 0x10000 firmware.factory.bin`
+`esptool.py -b 921600 write_flash --flash_mode dio --flash_size detect 0x1000 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.factory.bin`
 
 Windows:
-`esptool.exe -b 921600 write_flash --flash_mode dio --flash_size detect 0x10000 firmware.factory.bin`
+`esptool.exe -b 921600 write_flash --flash_mode dio --flash_size detect 0x1000 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.factory.bin`
+
+### ESP32-S3 (OpenDTU Fusion Board)
+
+Python:
+`esptool.py -b 921600 write_flash --flash_mode dio --flash_size detect 0x0 firmware.factory.bin`
+
+Windows:
+`esptool.exe -b 921600 write_flash --flash_mode dio --flash_size detect 0x0 firmware.factory.bin`
 
 For a 4MB flash size the upload should be finished within 22 seconds.
 
