@@ -5,6 +5,7 @@
 * fix typo in English versions
 * add yield day to history graph #1614
 * added script and [instructions](../manual/factory_firmware.md) how to generate factory firmware which includes predefined settings
+* merge PR: Fix MI overnight behaviour #1626
 
 ## 0.8.118 - 2024-05-10
 * possible fix reset max values #1609
