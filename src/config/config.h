@@ -28,6 +28,11 @@
 
 // If the next line is uncommented, Ahoy will stay in access point mode all the time
 //#define AP_ONLY
+#if defined(AP_ONLY)
+    #if defined(ENABLE_MQTT)
+        #undef ENABLE_MQTT
+    #endif
+#endif
 
 // timeout for automatic logoff (20 minutes)
 #define LOGOUT_TIMEOUT      (20 * 60)

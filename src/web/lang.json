@@ -324,9 +324,14 @@
                     "de": "Werte und Gesamtertrag um Mitternacht zur&uuml;cksetzen"
                 },
                 {
-                    "token": "INV_PAUSE_SUNSET",
+                    "token": "INV_RESET_SUNSET",
                     "en": "Reset values at sunset",
                     "de": "Werte bei Sonnenuntergang zur&uuml;cksetzen"
+                },
+                {
+                    "token": "INV_RESET_SUNRISE",
+                    "en": "Reset values at sunrise",
+                    "de": "Werte bei Sonnenaufgang zur&uuml;cksetzen"
                 },
                 {
                     "token": "INV_RESET_NOT_AVAIL",
@@ -334,9 +339,9 @@
                     "de": "Werte zur&uuml;cksetzen, sobald der Wechselrichter nicht erreichbar ist"
                 },
                 {
-                    "token": "INV_RESET_MAX_MIDNIGHT",
-                    "en": "Reset 'max' values at midnight",
-                    "de": "Maximalwerte mitternachts zur&uuml;cksetzen"
+                    "token": "INV_RESET_MAX_VALUES",
+                    "en": "Include reset 'max' values",
+                    "de": "Maximalwerte auch zur&uuml;cksetzen"
                 },
                 {
                     "token": "INV_START_WITHOUT_TIME",
@@ -1587,6 +1592,11 @@
                     "token": "LAST_VALUE",
                     "en": "Last value",
                     "de": "Letzter Wert"
+                },
+                {
+                    "token": "YIELD_DAY",
+                    "en": "Yield day",
+                    "de": "Tagesertrag"
                 }
             ]
         }

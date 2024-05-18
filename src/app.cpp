@@ -33,23 +33,16 @@ void app::setup() {
     resetSystem();
     esp_task_wdt_reset();
 
-    mSettings.setup();
-    mSettings.getPtr(mConfig);
+    mSettings.setup(mConfig);
     ah::Scheduler::setup(mConfig->inst.startWithoutTime);
     DPRINT(DBG_INFO, F("Settings valid: "));
-    DSERIAL.flush();
-    if (mSettings.getValid())
-        DBGPRINTLN(F("true"));
-    else
-        DBGPRINTLN(F("false"));
+    DBGPRINTLN(mConfig->valid ? F("true") : F("false"));
 
     esp_task_wdt_reset();
 
     mNrfRadio.setup(&mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, &mConfig->nrf);
     #if defined(ESP32)
-    if(mConfig->cmt.enabled) {
-        mCmtRadio.setup(&mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, mConfig->sys.region);
-    }
+    mCmtRadio.setup(&mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, &mConfig->cmt, mConfig->sys.region);
     #endif
 
     #ifdef ETHERNET
@@ -57,16 +50,16 @@ void app::setup() {
         mNetwork = static_cast<AhoyNetwork*>(new AhoyEthernet());
     #else
         mNetwork = static_cast<AhoyNetwork*>(new AhoyWifi());
-    #endif // ETHERNET
+    #endif
     mNetwork->setup(mConfig, &mTimestamp, [this](bool gotIp) { this->onNetwork(gotIp); }, [this](bool gotTime) { this->onNtpUpdate(gotTime); });
     mNetwork->begin();
 
     esp_task_wdt_reset();
 
     mCommunication.setup(&mTimestamp, &mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace);
-    mCommunication.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
+    mCommunication.addPayloadListener([this] (uint8_t cmd, Inverter<> *iv) { payloadEventListener(cmd, iv); });
     #if defined(ENABLE_MQTT)
-    mCommunication.addPowerLimitAckListener([this] (Inverter<> *iv) { mMqtt.setPowerLimitAck(iv); });
+        mCommunication.addPowerLimitAckListener([this] (Inverter<> *iv) { mMqtt.setPowerLimitAck(iv); });
     #endif
     mSys.setup(&mTimestamp, &mConfig->inst, this);
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
@@ -81,7 +74,6 @@ void app::setup() {
     esp_task_wdt_reset();
 
     // when WiFi is in client mode, then enable mqtt broker
-    #if !defined(AP_ONLY)
     #if defined(ENABLE_MQTT)
     mMqttEnabled = (mConfig->mqtt.broker[0] > 0);
     if (mMqttEnabled) {
@@ -89,7 +81,6 @@ void app::setup() {
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
         mCommunication.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
     }
-    #endif
     #endif
     setupLed();
 
@@ -103,6 +94,7 @@ void app::setup() {
     mDbgSyslog.setup(mConfig); // be sure to init after mWeb.setup (webSerial uses also debug callback)
     #endif
     // Plugins
+    mMaxPower.setup(&mTimestamp, mConfig->inst.sendInterval);
     #if defined(PLUGIN_DISPLAY)
     if (DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
         #if defined(ESP32)
@@ -126,9 +118,7 @@ void app::setup() {
 
     #if defined(ENABLE_SIMULATOR)
     mSimulator.setup(&mSys, &mTimestamp, 0);
-    mSimulator.addPayloadListener([this](uint8_t cmd, Inverter<> *iv) {
-        payloadEventListener(cmd, iv);
-    });
+    mSimulator.addPayloadListener([this](uint8_t cmd, Inverter<> *iv) { payloadEventListener(cmd, iv); });
     #endif /*ENABLE_SIMULATOR*/
 
     esp_task_wdt_reset();
@@ -142,8 +132,7 @@ void app::loop(void) {
     mNrfRadio.loop();
 
     #if defined(ESP32)
-    if(mConfig->cmt.enabled)
-        mCmtRadio.loop();
+    mCmtRadio.loop();
     #endif
 
     ah::Scheduler::loop();
@@ -159,12 +148,14 @@ void app::loop(void) {
 //-----------------------------------------------------------------------------
 void app::onNetwork(bool gotIp) {
     mNetworkConnected = gotIp;
-    ah::Scheduler::resetTicker();
-    regularTickers(); //reinstall regular tickers
-    every(std::bind(&app::tickSend, this), mConfig->inst.sendInterval, "tSend");
-    mTickerInstallOnce = true;
-    mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
-    once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
+    if(gotIp) {
+        ah::Scheduler::resetTicker();
+        regularTickers(); //reinstall regular tickers
+        every(std::bind(&app::tickSend, this), mConfig->inst.sendInterval, "tSend");
+        mTickerInstallOnce = true;
+        mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
+        once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -173,6 +164,9 @@ void app::regularTickers(void) {
     everySec(std::bind(&WebType::tickSecond, &mWeb), "webSc");
     everySec([this]() { mProtection->tickSecond(); }, "prot");
     everySec([this]() {mNetwork->tickNetworkLoop(); }, "net");
+
+    if(mConfig->inst.startWithoutTime && !mNetworkConnected)
+        every(std::bind(&app::tickSend, this), mConfig->inst.sendInterval, "tSend");
 
     // Plugins
     #if defined(PLUGIN_DISPLAY)
@@ -287,6 +281,8 @@ void app::tickIVCommunication(void) {
                 if (mTimestamp >= (mSunset + mConfig->sun.offsetSecEvening)) { // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
                     nxtTrig = 0;
                 } else { // current time lies within communication start/stop time, set next trigger to communication stop
+                    if((!iv->commEnabled) && mConfig->inst.rstValsCommStart)
+                        zeroValues = true;
                     iv->commEnabled = true;
                     nxtTrig = mSunset + mConfig->sun.offsetSecEvening;
                 }
@@ -359,18 +355,9 @@ void app::tickMidnight(void) {
         // reset alarms
         if(InverterStatus::OFF == iv->getStatus())
             iv->resetAlarms();
-
-        // clear max values
-        if(mConfig->inst.rstMaxValsMidNight) {
-            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            for(uint8_t i = 0; i <= iv->channels; i++) {
-                uint8_t pos = iv->getPosByChFld(i, FLD_MP, rec);
-                iv->setValue(pos, rec, 0.0f);
-            }
-        }
     }
 
-    if (mConfig->inst.rstYieldMidNight) {
+    if (mConfig->inst.rstValsAtMidNight) {
         zeroIvValues(!CHECK_AVAIL, !SKIP_YIELD_DAY);
 
         #if defined(ENABLE_MQTT)
@@ -441,6 +428,9 @@ bool app::sendIv(Inverter<> *iv) {
 void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
     Inverter<> *iv;
     bool changed = false;
+
+    mMaxPower.reset();
+
     // set values to zero, except yields
     for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
         iv = mSys.getInverterByPos(id);
@@ -471,18 +461,21 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
                 pos = iv->getPosByChFld(ch, fld, rec);
                 iv->setValue(pos, rec, 0.0f);
             }
-            // zero max power
-            if(!skipYieldDay) {
+            // zero max power and max temperature
+            if(mConfig->inst.rstIncludeMaxVals) {
                 pos = iv->getPosByChFld(ch, FLD_MP, rec);
                 iv->setValue(pos, rec, 0.0f);
-            }
-            iv->resetAlarms();
+                pos = iv->getPosByChFld(ch, FLD_MT, rec);
+                iv->setValue(pos, rec, 0.0f);
+                iv->resetAlarms(true);
+            } else
+                iv->resetAlarms();
             iv->doCalculations();
         }
     }
 
     if(changed)
-        payloadEventListener(RealTimeRunData_Debug, NULL);
+        payloadEventListener(RealTimeRunData_Debug, nullptr);
 }
 
 //-----------------------------------------------------------------------------

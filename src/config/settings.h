@@ -186,10 +186,11 @@ typedef struct {
     cfgIv_t iv[MAX_NUM_INVERTERS];
 
     uint16_t sendInterval;
-    bool rstYieldMidNight;
+    bool rstValsAtMidNight;
     bool rstValsNotAvail;
     bool rstValsCommStop;
-    bool rstMaxValsMidNight;
+    bool rstValsCommStart;
+    bool rstIncludeMaxVals;
     bool startWithoutTime;
     bool readGrid;
 } cfgInst_t;
@@ -240,8 +241,9 @@ class settings {
             std::fill(reinterpret_cast<char*>(&mCfg), reinterpret_cast<char*>(&mCfg) + sizeof(mCfg), 0);
         }
 
-        void setup() {
+        void setup(settings_t *&c) {
             DPRINTLN(DBG_INFO, F("Initializing FS .."));
+            c = &mCfg;
 
             mCfg.valid = false;
             #if !defined(ESP32)
@@ -275,14 +277,6 @@ class settings {
         void stop() {
             LittleFS.end();
             DPRINTLN(DBG_INFO, F("FS stopped"));
-        }
-
-        void getPtr(settings_t *&cfg) {
-            cfg = &mCfg;
-        }
-
-        bool getValid(void) {
-            return mCfg.valid;
         }
 
         inline bool getLastSaveSucceed() {
@@ -495,13 +489,14 @@ class settings {
             mCfg.mqtt.json = 0; // off
             mCfg.mqtt.enableRetain = true;
 
-            mCfg.inst.sendInterval     = SEND_INTERVAL;
-            mCfg.inst.rstYieldMidNight = false;
-            mCfg.inst.rstValsNotAvail  = false;
-            mCfg.inst.rstValsCommStop  = false;
-            mCfg.inst.startWithoutTime = false;
-            mCfg.inst.rstMaxValsMidNight = false;
-            mCfg.inst.readGrid         = true;
+            mCfg.inst.sendInterval       = SEND_INTERVAL;
+            mCfg.inst.rstValsAtMidNight   = false;
+            mCfg.inst.rstValsNotAvail    = false;
+            mCfg.inst.rstValsCommStop    = false;
+            mCfg.inst.rstValsCommStart   = false;
+            mCfg.inst.startWithoutTime   = false;
+            mCfg.inst.rstIncludeMaxVals = false;
+            mCfg.inst.readGrid           = true;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 mCfg.inst.iv[i].powerLevel  = 0xff; // impossible high value
@@ -830,21 +825,23 @@ class settings {
             if(set) {
                 obj[F("intvl")]          = mCfg.inst.sendInterval;
 //                obj[F("en")] = (bool)mCfg.inst.enabled;
-                obj[F("rstMidNight")]    = (bool)mCfg.inst.rstYieldMidNight;
+                obj[F("rstMidNight")]    = (bool)mCfg.inst.rstValsAtMidNight;
                 obj[F("rstNotAvail")]    = (bool)mCfg.inst.rstValsNotAvail;
                 obj[F("rstComStop")]     = (bool)mCfg.inst.rstValsCommStop;
+                obj[F("rstComStart")]    = (bool)mCfg.inst.rstValsCommStart;
                 obj[F("strtWthtTime")]   = (bool)mCfg.inst.startWithoutTime;
-                obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstMaxValsMidNight;
+                obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstIncludeMaxVals;
                 obj[F("rdGrid")]         = (bool)mCfg.inst.readGrid;
             }
             else {
                 getVal<uint16_t>(obj, F("intvl"), &mCfg.inst.sendInterval);
 //                getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
-                getVal<bool>(obj, F("rstMidNight"), &mCfg.inst.rstYieldMidNight);
+                getVal<bool>(obj, F("rstMidNight"), &mCfg.inst.rstValsAtMidNight);
                 getVal<bool>(obj, F("rstNotAvail"), &mCfg.inst.rstValsNotAvail);
                 getVal<bool>(obj, F("rstComStop"), &mCfg.inst.rstValsCommStop);
+                getVal<bool>(obj, F("rstComStart"), &mCfg.inst.rstValsCommStart);
                 getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
-                getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstMaxValsMidNight);
+                getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstIncludeMaxVals);
                 getVal<bool>(obj, F("rdGrid"), &mCfg.inst.readGrid);
             }
 
@@ -919,6 +916,7 @@ class settings {
         }
     #endif
 
+    private:
         settings_t mCfg;
         bool mLastSaveSucceed = 0;
 };

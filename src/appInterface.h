@@ -64,6 +64,7 @@ class IApp {
         virtual void resetLockTimeout(void) = 0;
         virtual bool isProtected(const char *clientIp, const char *token, bool askedFromWeb) const = 0;
 
+        virtual float getTotalMaxPower(void) = 0;
         virtual uint16_t getHistoryValue(uint8_t type, uint16_t i) = 0;
         virtual uint32_t getHistoryPeriod(uint8_t type) = 0;
         virtual uint16_t getHistoryMaxDay() = 0;

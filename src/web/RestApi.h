@@ -103,9 +103,10 @@ class RestApi {
             else if(path == "setup/getip")    getIp(root);
             #endif /* !defined(ETHERNET) */
             else if(path == "live")           getLive(request,root);
-            else if (path == "powerHistory")  getPowerHistory(request, root);
-            else if (path == "powerHistoryDay")  getPowerHistoryDay(request, root);
-            else if (path == "yieldDayHistory") getYieldDayHistory(request, root);
+            #if defined(ENABLE_HISTORY)
+            else if (path == "powerHistory")  getPowerHistory(request, root, HistoryStorageType::POWER);
+            else if (path == "powerHistoryDay")  getPowerHistory(request, root, HistoryStorageType::POWER_DAY);
+            #endif /*ENABLE_HISTORY*/
             else {
                 if(path.substring(0, 12) == "inverter/id/")
                     getInverter(root, request->url().substring(17).toInt());
@@ -298,7 +299,6 @@ class RestApi {
             #if defined(ENABLE_HISTORY)
             ep[F("powerHistory")]     = url + F("powerHistory");
             ep[F("powerHistoryDay")]  = url + F("powerHistoryDay");
-            ep[F("yieldDayHistory")]  = url + F("yieldDayHistory");
             #endif
         }
 
@@ -574,12 +574,13 @@ class RestApi {
             }
             obj[F("interval")]          = String(mConfig->inst.sendInterval);
             obj[F("max_num_inverters")] = MAX_NUM_INVERTERS;
-            obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
+            obj[F("rstMid")]            = (bool)mConfig->inst.rstValsAtMidNight;
             obj[F("rstNotAvail")]       = (bool)mConfig->inst.rstValsNotAvail;
             obj[F("rstComStop")]        = (bool)mConfig->inst.rstValsCommStop;
+            obj[F("rstComStart")]       = (bool)mConfig->inst.rstValsCommStart;
             obj[F("strtWthtTm")]        = (bool)mConfig->inst.startWithoutTime;
             obj[F("rdGrid")]            = (bool)mConfig->inst.readGrid;
-            obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstMaxValsMidNight;
+            obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstIncludeMaxVals;
         }
 
         void getInverter(JsonObject obj, uint8_t id) {
@@ -604,7 +605,7 @@ class RestApi {
             obj[F("alarm_cnt")]        = iv->alarmCnt;
             obj[F("rssi")]             = iv->rssi;
             obj[F("ts_max_ac_pwr")]    = iv->tsMaxAcPower;
-            obj[F("ts_max_temp")]      = iv->tsMaxTemp;
+            obj[F("ts_max_temp")]      = iv->tsMaxTemperature;
 
             JsonArray ch = obj.createNestedArray("ch");
 
@@ -908,6 +909,7 @@ class RestApi {
         void getLive(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = mConfig->inst.sendInterval;
+            obj[F("max_total_pwr")] = ah::round3(mApp->getTotalMaxPower());
 
             for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
                 obj[F("ch0_fld_units")][fld] = String(units[fieldUnits[acList[fld]]]);
@@ -928,42 +930,39 @@ class RestApi {
             }
         }
 
-        void getPowerHistory(AsyncWebServerRequest *request, JsonObject obj) {
+        #if defined(ENABLE_HISTORY)
+        void getPowerHistory(AsyncWebServerRequest *request, JsonObject obj, HistoryStorageType type) {
             getGeneric(request, obj.createNestedObject(F("generic")));
-            #if defined(ENABLE_HISTORY)
-            obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::POWER);
+            obj[F("refresh")] = mApp->getHistoryPeriod(static_cast<uint8_t>(type));
+
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
-                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::POWER, fld);
+                uint16_t value = mApp->getHistoryValue(static_cast<uint8_t>(type), fld);
                 obj[F("value")][fld] = value;
                 if (value > max)
                     max = value;
             }
             obj[F("max")] = max;
-            obj[F("lastValueTs")] = mApp->getHistoryLastValueTs((uint8_t)HistoryStorageType::POWER);
-            #endif /*ENABLE_HISTORY*/
-        }
 
-        void getPowerHistoryDay(AsyncWebServerRequest *request, JsonObject obj){
-            //getGeneric(request, obj.createNestedObject(F("generic")));
-            #if defined(ENABLE_HISTORY)
-            obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::POWER_DAY);
-            uint16_t max = 0;
-            for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
-                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::POWER_DAY, fld);
-                obj[F("value")][fld] = value;
-                if (value > max)
-                    max = value;
+            if(HistoryStorageType::POWER_DAY == type) {
+                float yldDay = 0;
+                for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
+                    Inverter<> *iv = mSys->getInverterByPos(i);
+                    if (iv == NULL)
+                        continue;
+                    record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                    yldDay += iv->getChannelFieldValue(CH0, FLD_YD, rec);
+                }
+                obj[F("yld")] = ah::round3(yldDay / 1000.0);
             }
-            obj[F("max")] = max;
-            obj[F("lastValueTs")] = mApp->getHistoryLastValueTs((uint8_t)HistoryStorageType::POWER_DAY);
-            #endif /*ENABLE_HISTORY*/
+
+            obj[F("lastValueTs")] = mApp->getHistoryLastValueTs(static_cast<uint8_t>(type));
         }
+        #endif /*ENABLE_HISTORY*/
 
 
+        #if defined(ENABLE_HISTORY_YIELD_PER_DAY)
         void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
-            //getGeneric(request, obj.createNestedObject(F("generic")));
-            #if defined(ENABLE_HISTORY) && defined(ENABLE_HISTORY_YIELD_PER_DAY)
             obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::YIELD);
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
@@ -973,8 +972,8 @@ class RestApi {
                     max = value;
             }
             obj[F("max")] = max;
-            #endif /*ENABLE_HISTORY*/
         }
+        #endif /*ENABLE_HISTORY_YIELD_PER_DAY*/
 
         bool setCtrl(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
             if(jsonIn.containsKey(F("auth"))) {
@@ -1016,8 +1015,6 @@ class RestApi {
                     iv->powerLimit[1] = AbsolutNonPersistent;
 
                 accepted = iv->setDevControlRequest(ActivePowerContr);
-                if(accepted)
-                    mApp->triggerTickSend(iv->id);
             } else if(F("dev") == jsonIn[F("cmd")]) {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
                 iv->setDevCommand(jsonIn[F("val")].as<int>());

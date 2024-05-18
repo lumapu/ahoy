@@ -31,6 +31,7 @@
 #include "utils/syslog.h"
 #include "web/RestApi.h"
 #include "web/Protection.h"
+#include "plugins/MaxPower.h"
 #if defined(ENABLE_HISTORY)
 #include "plugins/history.h"
 #endif /*ENABLE_HISTORY*/
@@ -217,7 +218,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         bool getSettingsValid() override {
-            return mSettings.getValid();
+            return mConfig->valid;
         }
 
         bool getRebootRequestState() override {
@@ -303,8 +304,14 @@ class app : public IApp, public ah::Scheduler {
             DBGPRINTLN(String(newTime));
             if(0 == newTime)
                 mNetwork->updateNtpTime();
-            else
+            else {
                 Scheduler::setTimestamp(newTime);
+                onNtpUpdate(false);
+            }
+        }
+
+        float getTotalMaxPower(void) override {
+            return mMaxPower.getTotalMaxPower();
         }
 
         uint16_t getHistoryValue(uint8_t type, uint16_t i) override {
@@ -354,15 +361,14 @@ class app : public IApp, public ah::Scheduler {
         void zeroIvValues(bool checkAvail = false, bool skipYieldDay = true);
 
         void payloadEventListener(uint8_t cmd, Inverter<> *iv) {
-            #if !defined(AP_ONLY)
+            mMaxPower.payloadEvent(cmd, iv);
             #if defined(ENABLE_MQTT)
                 if (mMqttEnabled)
                     mMqtt.payloadEventListener(cmd, iv);
-            #endif /*ENABLE_MQTT*/
             #endif
             #if defined(PLUGIN_DISPLAY)
-            if(DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
-               mDisplay.payloadEventListener(cmd);
+                if(DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
+                   mDisplay.payloadEventListener(cmd);
             #endif
            updateLed();
         }
@@ -425,8 +431,7 @@ class app : public IApp, public ah::Scheduler {
         #ifdef ENABLE_SYSLOG
         DbgSyslog mDbgSyslog;
         #endif
-        //PayloadType mPayload;
-        //MiPayloadType mMiPayload;
+
         PubSerialType mPubSerial;
         #if !defined(ETHERNET)
         //Improv mImprov;
@@ -447,10 +452,9 @@ class app : public IApp, public ah::Scheduler {
 
         bool mNetworkConnected = false;
 
-        // mqtt
         #if defined(ENABLE_MQTT)
         PubMqttType mMqtt;
-        #endif /*ENABLE_MQTT*/
+        #endif
         bool mTickerInstallOnce = false;
         bool mMqttEnabled = false;
 
@@ -459,6 +463,7 @@ class app : public IApp, public ah::Scheduler {
         uint32_t mSunrise = 0, mSunset = 0;
 
         // plugins
+        MaxPower<float> mMaxPower;
         #if defined(PLUGIN_DISPLAY)
         DisplayType mDisplay;
         DisplayData mDispData;
