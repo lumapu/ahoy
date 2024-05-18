@@ -28,11 +28,9 @@ class IApp {
 
         virtual void addOnce(ah::scdCb c, uint32_t timeout, const char *name) = 0;
 
-        #if !defined(ETHERNET)
         virtual bool getAvailNetworks(JsonObject obj) = 0;
         virtual void setupStation(void) = 0;
         virtual bool getWasInCh12to14(void) const = 0;
-        #endif /* defined(ETHERNET) */
         virtual String getIp(void) = 0;
         virtual bool isApActive(void) = 0;
 

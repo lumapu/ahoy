@@ -60,9 +60,9 @@ For a 4MB flash size the upload should be finished within 22 seconds.
 
 Reboot your ESP an check if all your settings are present.
 
-## Keep updated with 'Mainline'
+## Get updated with 'Mainline'
 
-From time to time a new version of AhoyDTU will be published. To get this changes into your alread prepared factory binary generation environment you have to do only a few steps:
+From time to time a new version of AhoyDTU will be published. To get the changes into your already prepared factory binary generation environment you have to do only a few steps:
 
 1. revert the changes of `platformio.ini` by executing from repository root: `git checkout src/platformio.ini`
 2. pull new changes from remote: `git pull`

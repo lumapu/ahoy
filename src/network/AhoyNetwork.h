@@ -88,7 +88,6 @@ class AhoyNetwork {
             return mAp.isEnabled();
         }
 
-        #if !defined(ETHERNET)
         bool getAvailNetworks(JsonObject obj, IApp *app) {
             if(!mScanActive) {
                 app->addOnce([this]() {scan();}, 1, "scan");
@@ -122,7 +121,6 @@ class AhoyNetwork {
             }
             WiFi.scanNetworks(true, true);
         }
-        #endif
 
     protected:
         virtual void setStaticIp() = 0;
@@ -173,7 +171,6 @@ class AhoyNetwork {
             }
         }
 
-        #if !defined(ETHERNET)
         void sortRSSI(int *sort, int n) {
             for (int i = 0; i < n; i++)
                 sort[i] = i;
@@ -182,7 +179,6 @@ class AhoyNetwork {
                     if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
                         std::swap(sort[i], sort[j]);
         }
-        #endif
 
     private:
         void sendNTPpacket(void) {
@@ -234,9 +230,7 @@ class AhoyNetwork {
         uint32_t *mUtcTimestamp = nullptr;
         bool mConnected = false;
         bool mScanActive = false;
-        #if !defined(ETHERNET)
         bool mWifiConnecting = false;
-        #endif
 
         OnNetworkCB mOnNetworkCB;
         OnTimeCB mOnTimeCB;

@@ -99,14 +99,13 @@ typedef struct {
     int8_t timezone;
 
     char apPwd[PWD_LEN];
-#if !defined(ETHERNET)
     // wifi
     char stationSsid[SSID_LEN];
     char stationPwd[PWD_LEN];
     bool isHidden;
-#else
+    #if defined(ETHERNET)
     cfgEth_t eth;
-#endif /* !defined(ETHERNET) */
+    #endif
 
     cfgIp_t ip;
 } cfgSys_t;

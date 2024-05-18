@@ -12,10 +12,18 @@
 #include <ETH.h>
 #include "AhoyEthernetSpi.h"
 #include "AhoyNetwork.h"
+#include "AhoyWifiEsp32.h"
 
-class AhoyEthernet : public AhoyNetwork {
+class AhoyEthernet : public AhoyWifi {
+    private:
+        enum class Mode {
+            WIRED,
+            WIRELESS
+        };
+
     public:
         void begin() override {
+            mMode = Mode::WIRELESS;
             mAp.enable();
 
             if(!mConfig->sys.eth.enabled)
@@ -25,8 +33,9 @@ class AhoyEthernet : public AhoyNetwork {
             ETH.setHostname(mConfig->sys.deviceName);
         }
 
-        void OnEvent(WiFiEvent_t event) override {
+        void OnEvent(WiFiEvent_t event) {
             switch(event) {
+                case SYSTEM_EVENT_STA_CONNECTED:
                 case ARDUINO_EVENT_ETH_CONNECTED:
                     if(NetworkState::CONNECTED != mStatus) {
                         mStatus = NetworkState::CONNECTED;
@@ -35,14 +44,30 @@ class AhoyEthernet : public AhoyNetwork {
                     }
                     break;
 
+                case SYSTEM_EVENT_STA_GOT_IP:
+                    mStatus = NetworkState::GOT_IP;
+                    if(mAp.isEnabled())
+                        mAp.disable();
+
+                    mMode = Mode::WIRELESS;
+                    if(!mConnected) {
+                        mConnected = true;
+                        ah::welcome(WiFi.localIP().toString(), F("Station WiFi"));
+                        MDNS.begin(mConfig->sys.deviceName);
+                        mOnNetworkCB(true);
+                    }
+                    break;
+
                 case ARDUINO_EVENT_ETH_GOT_IP:
                     mStatus = NetworkState::GOT_IP;
+                    mMode = Mode::WIRED;
                     if(!mConnected) {
                         mAp.disable();
                         mConnected = true;
-                        ah::welcome(ETH.localIP().toString(), F("Station"));
+                        ah::welcome(ETH.localIP().toString(), F("Station Ethernet"));
                         MDNS.begin(mConfig->sys.deviceName);
                         mOnNetworkCB(true);
+                        WiFi.disconnect();
                     }
                     break;
 
@@ -51,9 +76,25 @@ class AhoyEthernet : public AhoyNetwork {
                 case ARDUINO_EVENT_ETH_DISCONNECTED:
                     mStatus = NetworkState::DISCONNECTED;
                     if(mConnected) {
+                        mMode = Mode::WIRELESS;
                         mConnected = false;
                         mOnNetworkCB(false);
-                        mAp.enable();
+                        MDNS.end();
+                        AhoyWifi::begin();
+                    }
+                    break;
+
+                case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+                    [[fallthrough]];
+                case ARDUINO_EVENT_WIFI_STA_STOP:
+                    [[fallthrough]];
+                case SYSTEM_EVENT_STA_DISCONNECTED:
+                    mStatus = NetworkState::DISCONNECTED;
+                    if(mConnected && (Mode::WIRELESS == mMode)) {
+                        mConnected = false;
+                        mOnNetworkCB(false);
+                        MDNS.end();
+                        AhoyWifi::begin();
                     }
                     break;
 
@@ -62,24 +103,27 @@ class AhoyEthernet : public AhoyNetwork {
             }
         }
 
-        void tickNetworkLoop() override {
-            if(mAp.isEnabled())
-                mAp.tickLoop();
-        }
-
-        String getIp(void) override {
-            return ETH.localIP().toString();
+        String getIp(void) {
+            if(Mode::WIRELESS == mMode)
+                return AhoyWifi::getIp();
+            else
+                return ETH.localIP().toString();
         }
 
     private:
         void setStaticIp() override {
             setupIp([this](IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2) -> bool {
-                return ETH.config(ip, gateway, mask, dns1, dns2);
+                if(Mode::WIRELESS == mMode)
+                    return WiFi.config(ip, gateway, mask, dns1, dns2);
+                else
+                    return ETH.config(ip, gateway, mask, dns1, dns2);
             });
         }
 
     private:
         AhoyEthernetSpi mEthSpi;
+        Mode mMode;
+
 };
 
 #endif /*ETHERNET*/

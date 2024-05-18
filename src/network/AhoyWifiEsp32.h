@@ -6,7 +6,7 @@
 #ifndef __AHOY_WIFI_ESP32_H__
 #define __AHOY_WIFI_ESP32_H__
 
-#if defined(ESP32) && !defined(ETHERNET)
+#if defined(ESP32)
 #include <functional>
 #include <AsyncUDP.h>
 #include "AhoyNetwork.h"
@@ -14,7 +14,7 @@
 
 class AhoyWifi : public AhoyNetwork {
     public:
-        void begin() override {
+        virtual void begin() override {
             mAp.enable();
 
             if(String(FB_WIFI_SSID) == mConfig->sys.stationSsid)
@@ -34,7 +34,7 @@ class AhoyWifi : public AhoyNetwork {
             #endif
         }
 
-        void OnEvent(WiFiEvent_t event) override {
+        virtual void OnEvent(WiFiEvent_t event) override {
             switch(event) {
                 case SYSTEM_EVENT_STA_CONNECTED:
                     if(NetworkState::CONNECTED != mStatus) {
@@ -87,12 +87,12 @@ class AhoyWifi : public AhoyNetwork {
         }
 
     private:
-        void setStaticIp() override {
+        virtual void setStaticIp() override {
             setupIp([this](IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2) -> bool {
                 return WiFi.config(ip, gateway, mask, dns1, dns2);
             });
         }
 };
 
-#endif /*ESP32 & !ETHERNET*/
+#endif /*ESP32*/
 #endif /*__AHOY_WIFI_ESP32_H__*/
