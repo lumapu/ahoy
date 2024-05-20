@@ -103,7 +103,7 @@ class powermeter {
                     863.25 MHz - geht (ohne Tibber Probleme) => 3 & 4 Balken
                 */
                 case zeroExportPowermeterType_t::Tibber:
-                    if(mCfg->groups[group].pm_refresh < 3) mCfg->groups[group].pm_refresh = 3;
+                    if (mCfg->groups[group].pm_refresh < 3) mCfg->groups[group].pm_refresh = 3;
                     result = getPowermeterWattsTibber(*mLog, group, &power);
                     break;
 #endif
@@ -114,10 +114,9 @@ class powermeter {
 #endif
             }
 
-            //if (mMqtt->isConnected()) mMqtt->publish(String("zero/state/groups/" + String(group) + "/result").c_str(), String(ret).c_str(), false);
+            // if (mMqtt->isConnected()) mMqtt->publish(String("zero/state/groups/" + String(group) + "/result").c_str(), String(ret).c_str(), false);
 
-            if (result)
-            {
+            if (result) {
                 bufferWrite(power, group);
 
                 // MQTT - Powermeter
@@ -160,6 +159,24 @@ class powermeter {
         }
 
         return min;
+    }
+
+    /** getDataMAX
+     * Holt die Daten vom Powermeter
+     * @param group
+     * @returns value
+     */
+    float getDataMAX(uint8_t group) {
+        float max = 0.0;
+
+        for (int i = 0; i < 5; i++) {
+            if (i == 0)
+                max = mPowermeterBuffer[group][i];
+            if (max < mPowermeterBuffer[group][i])
+                max = mPowermeterBuffer[group][i];
+        }
+
+        return max;
     }
 
     /** onMqttConnect
@@ -492,8 +509,7 @@ class powermeter {
         http.begin(url);
         http.addHeader("Authorization", "Basic " + auth);
 
-        if (http.GET() == HTTP_CODE_OK && http.getSize() > 0)
-        {
+        if (http.GET() == HTTP_CODE_OK && http.getSize() > 0) {
             String myString = http.getString();
             double readVal = 0;
             unsigned char c;
