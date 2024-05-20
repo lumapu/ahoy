@@ -217,7 +217,22 @@ class powermeter {
 
             float power = 0.0;
 
-            power = (uint16_t)obj["val"];
+//            //TODO: datajson 100 enough?
+//            // this if-statement need to check if value contains a json object.
+//            // is it so, then deserialize it and get the values (Shelly GEN2)
+//            DynamicJsonDocument datajson(100);
+//            if (!deserializeJson(datajson, obj["val"]))
+//            {
+//                switch (mCfg->groups[group].pm_target) {
+//                    case 0: power = datajson["a_act_power"]; break;
+//                    case 1: power = datajson["b_act_power"]; break;
+//                    case 2: power = datajson["c_act_power"]; break;
+//                    case 3: power = datajson["total_act_power"]; break;
+//                }
+//            } else {
+//                //TODO: check if parse is possible here? Is that right?
+                power = (uint16_t)obj["val"];
+//            }
 
             bufferWrite(power, group);
 
