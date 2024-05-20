@@ -8,6 +8,7 @@ Import("env")
 def build_littlefs():
     if os.path.isfile('data/settings.json') == False:
         return # nothing to do
+
     result = subprocess.run(["pio", "run", "--target", "buildfs", "--environment", env['PIOENV']])
     if result.returncode != 0:
         print("Error building LittleFS:")
@@ -23,14 +24,16 @@ def merge_bins():
     PARTITIONS_OFFSET = 0x8000
     FIRMWARE_OFFSET   = 0x10000
 
-    flash_size = int(env.BoardConfig().get("upload.maximum_size", "4194304"))
+    if env['PIOENV'][:13] == "esp32-wroom32":
+        BOOTLOADER_OFFSET = 0x1000
+
+    flash_size = int(env.BoardConfig().get("upload.maximum_size", "1310720")) # 0x140000
     app0_offset = 0x10000
     if env['PIOENV'][:7] == "esp8266":
         app0_offset = 0
     elif env['PIOENV'][:7] == "esp8285":
         app0_offset = 0
 
-    print(flash_size)
     littlefs_offset = 0x290000
     if flash_size == 0x330000:
         littlefs_offset = 0x670000
