@@ -485,6 +485,17 @@ class ZeroExport {
                     mLog["i"] = inv;
                     mCfg->groups[group].inverters[inv].waitAck = 0;
                     mLog["wA"] = mCfg->groups[group].inverters[inv].waitAck;
+
+                    mCfg->groups[group].inverters[inv].limit = mCfg->groups[group].inverters[inv].powerMin;
+                    iv->powerLimit[0] = static_cast<uint16_t>(mCfg->groups[group].inverters[inv].limit * 10.0);
+                    iv->powerLimit[1] = AbsolutNonPersistent;
+                    if (iv->setDevControlRequest(ActivePowerContr)) {
+                        mApp->triggerTickSend(iv->id);
+                        mCfg->groups[group].inverters[inv].waitAck = 60;
+                        mCfg->groups[group].inverters[inv].action = zeroExportAction_t::doNone;
+                        mCfg->groups[group].inverters[inv].actionTimer = 0;
+                        mCfg->groups[group].inverters[inv].actionTimestamp = millis();
+                    }
                     sendLog();
                     clearLog();
                 }
