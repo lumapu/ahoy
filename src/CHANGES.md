@@ -2,6 +2,7 @@
 
 ## 0.8.121 - 2024-05-20
 * fix ESP32 factory image generation
+* fix plot of history graph #1635
 
 ## 0.8.120 - 2024-05-18
 * fix crash if invalid serial number was set -> inverter will be disabled automatically
