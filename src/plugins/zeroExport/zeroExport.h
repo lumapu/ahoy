@@ -47,7 +47,7 @@ class ZeroExport {
         mApi = api;
         mMqtt = mqtt;
 
-        mIsInitialized = mPowermeter.setup(mCfg, mqtt, &mLog);
+        mIsInitialized = mPowermeter.setup(mApp, mCfg, mqtt, &mLog);
     }
 
     /** loop
@@ -106,7 +106,7 @@ class ZeroExport {
             return;
         }
 
-        
+
         uint16_t groupPower = 0;
         uint16_t groupLimit = 0;
         for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {

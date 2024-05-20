@@ -46,7 +46,8 @@ class powermeter {
      * @param *log
      * @returns void
      */
-    bool setup(zeroExport_t *cfg, PubMqttType *mqtt, JsonObject *log) {
+    bool setup(IApp *app, zeroExport_t *cfg, PubMqttType *mqtt, JsonObject *log) {
+        mApp = app;
         mCfg = cfg;
         mMqtt = mqtt;
         mLog = log;
@@ -277,6 +278,7 @@ class powermeter {
     zeroExport_t *mCfg;
     PubMqttType *mMqtt = nullptr;
     JsonObject *mLog;
+    IApp *mApp = nullptr;
 
     unsigned long mPreviousTsp = millis();
 
@@ -291,8 +293,9 @@ class powermeter {
      */
     void setHeader(HTTPClient *h) {
         h->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-        h->setUserAgent("Ahoy-Agent");
-        // TODO: Ahoy-0.8.850024-zero
+///        h->setUserAgent("Ahoy-Agent");
+///        // TODO: Ahoy-0.8.850024-zero
+        h->setUserAgent(mApp->getVersion());
         h->setConnectTimeout(500);
         h->setTimeout(1000);
         h->addHeader("Content-Type", "application/json");
