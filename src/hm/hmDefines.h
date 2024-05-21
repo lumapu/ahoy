@@ -62,8 +62,8 @@ enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
         FLD_GRID_PROFILE_VERSION,  /*FLD_ACT_REACTIVE_PWR_LIMIT, FLD_ACT_PF,*/ FLD_LAST_ALARM_CODE, FLD_MP, FLD_MT};
 
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
-        "U_AC", "U_AC_1N", "U_AC_2N", "U_AC_3N", "UAC_12", "UAC_23", "UAC_31", "I_AC",
-        "IAC_1", "I_AC_2", "I_AC_3", "P_AC", "F_AC", "Temp", "PF_AC", "Efficiency", "Irradiation","Q_AC",
+        "U_AC", "U_AC_1N", "U_AC_2N", "U_AC_3N", "U_AC_12", "U_AC_23", "U_AC_31", "I_AC",
+        "I_AC_1", "I_AC_2", "I_AC_3", "P_AC", "F_AC", "Temp", "PF_AC", "Efficiency", "Irradiation","Q_AC",
         "ALARM_MES_ID","FWVersion","FWBuildYear","FWBuildMonthDay","FWBuildHourMinute","BootloaderVersion",
         "active_PowerLimit", "HWPartNumber", "HWVersion", "GridProfileCode",
         "GridProfileVersion", /*"reactivePowerLimit","Powerfactor",*/ "LastAlarmCode", "MaxPower", "MaxTemp"};
@@ -389,8 +389,11 @@ const devInfo_t devInfo[] = {
     { 0x102271, 2000 }, // v2 black backplane, 16A
 
     // HMT
-    { 0x103311, 1800 },
-    { 0x103331, 2250 }
+    { 0x103241, 1600 }, // -4T
+    { 0x103251, 1800 }, // -4T
+    { 0x103271, 2000 }, // -4T
+    { 0x103311, 1800 }, // -6T
+    { 0x103331, 2250 }  // -6T
 };
 
 #define MI_REQ_CH1 0x09

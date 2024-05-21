@@ -235,6 +235,10 @@ class PubMqtt {
             return mRxCnt;
         }
 
+        inline bool isJson() {
+            return mCfgMqtt->json;
+        }
+
         void sendDiscoveryConfig(void) {
             DPRINTLN(DBG_VERBOSE, F("sendMqttDiscoveryConfig"));
             mDiscovery.running  = true;

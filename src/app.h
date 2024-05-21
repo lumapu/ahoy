@@ -239,6 +239,14 @@ class app : public IApp, public ah::Scheduler {
             #endif
         }
 
+        bool getMqttJsonEnabled() override {
+            #if defined(ENABLE_MQTT)
+                return mMqtt.isJson();
+            #else
+                return 0;
+            #endif
+        }
+
         uint32_t getMqttTxCnt() override {
             #if defined(ENABLE_MQTT)
                 return mMqtt.getTxCnt();
