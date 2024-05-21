@@ -1,5 +1,14 @@
 # Development Changes
 
+## 0.8.121 - 2024-05-20
+* fix ESP32 factory image generation
+* fix plot of history graph #1635
+
+## 0.8.120 - 2024-05-18
+* fix crash if invalid serial number was set -> inverter will be disabled automatically
+* improved and fixed factory image generation
+* fix HMT-1800-4T number of inputs #1628
+
 ## 0.8.119 - 2024-05-17
 * fix reset values at midnight if WiFi isn't available #1620
 * fix typo in English versions
