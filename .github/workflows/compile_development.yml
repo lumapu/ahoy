@@ -132,6 +132,11 @@ jobs:
     - name: Run PlatformIO
       run:  pio run -d src -e ${{ matrix.variant }}
 
+    - name: Compress .elf
+      uses: edgarrc/action-7z@v1
+      with:
+        args: 7z a -t7z -mx=9 src/.pio/build/${{ matrix.variant }}firmware.elf.7z src/.pio/build/${{ matrix.variant }}firmware.elf
+
     - name: Rename Firmware
       run: python scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
 
@@ -188,15 +193,6 @@ jobs:
       with:
         name: dev-*
 
-    - name: Create Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: dev-${{ steps.version_name.outputs.name }}
-        path: |
-          ${{ steps.version_name.outputs.name }}/*
-          manual/User_Manual.md
-          manual/Getting_Started.md
-
     - name: Deploy
       uses: nogsantos/scp-deploy@master
       with:
@@ -206,3 +202,17 @@ jobs:
         port: ${{ secrets.FW_SSH_PORT }}
         user: ${{ secrets.FW_SSH_USER }}
         key: ${{ secrets.FW_SSH_KEY }}
+
+    - name: Clean elf files (7z compressed) for Artifact
+      run: |
+        rm -f \
+          ${{ steps.version_name.outputs.name }}/*/firmware.elf.7z
+
+    - name: Create Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dev-${{ steps.version_name.outputs.name }}
+        path: |
+          ${{ steps.version_name.outputs.name }}/*
+          manual/User_Manual.md
+          manual/Getting_Started.md
