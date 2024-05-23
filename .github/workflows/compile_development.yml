@@ -73,7 +73,7 @@ jobs:
     - name: Compress .elf
       uses: edgarrc/action-7z@v1
       with:
-        args: 7z a -t7z -mx=9 src/.pio/build/${{ matrix.variant }}/firmware.elf.7z src/.pio/build/${{ matrix.variant }}/firmware.elf
+        args: 7z a -t7z -mx=9 src/.pio/build/${{ matrix.variant }}/firmware.elf.7z ./src/.pio/build/${{ matrix.variant }}/firmware.elf
 
     - name: Rename Firmware
       run: python scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
@@ -140,7 +140,7 @@ jobs:
     - name: Compress .elf
       uses: edgarrc/action-7z@v1
       with:
-        args: 7z a -t7z -mx=9 src/.pio/build/${{ matrix.variant }}/firmware.elf.7z src/.pio/build/${{ matrix.variant }}/firmware.elf
+        args: 7z a -t7z -mx=9 src/.pio/build/${{ matrix.variant }}/firmware.elf.7z ./src/.pio/build/${{ matrix.variant }}/firmware.elf
 
     - name: Rename Firmware
       run: python scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
