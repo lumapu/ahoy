@@ -14,7 +14,6 @@
 #include "config/settings.h"
 
 #if defined(ZEROEXPORT_POWERMETER_TIBBER)
-#include <base64.h>
 #include <string.h>
 
 #include <list>
@@ -47,7 +46,8 @@ class powermeter {
      * @param *log
      * @returns void
      */
-    bool setup(zeroExport_t *cfg, PubMqttType *mqtt, JsonObject *log) {
+    bool setup(IApp *app, zeroExport_t *cfg, PubMqttType *mqtt, JsonObject *log) {
+        mApp = app;
         mCfg = cfg;
         mMqtt = mqtt;
         mLog = log;
@@ -65,14 +65,21 @@ class powermeter {
         if (millis() - mPreviousTsp <= 1000) return;  // skip when it is to fast
         mPreviousTsp = millis();
 
+        if (mCfg->debug) DBGPRINTLN(F("pm Takt:"));
+
         bool result = false;
         float power = 0.0;
 
         for (u_short group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             if ((!mCfg->groups[group].enabled) || (mCfg->groups[group].sleep)) continue;
 
-            if ((millis() - mCfg->groups[group].pm_peviousTsp) <= ((uint16_t)mCfg->groups[group].pm_refresh * 1000)) continue;
+            if ((millis() - mCfg->groups[group].pm_peviousTsp) < ((uint16_t)mCfg->groups[group].pm_refresh * 1000)) continue;
             mCfg->groups[group].pm_peviousTsp = millis();
+
+            if (mCfg->debug) DBGPRINTLN(F("pm Do:"));
+
+            result = false;
+            power = 0.0;
 
             switch (mCfg->groups[group].pm_type) {
 #if defined(ZEROEXPORT_POWERMETER_SHELLY)
@@ -91,9 +98,14 @@ class powermeter {
                     break;
 #endif
 #if defined(ZEROEXPORT_POWERMETER_TIBBER)
+                /*  Anscheinend nutzt bei mir Tibber auch diese Freq.
+                    862.75 MHz - keine Verbindung
+                    863.00 MHz - geht (standard) jedoch hat Tibber dann Probleme... => 4 & 5 Balken
+                    863.25 MHz - geht (ohne Tibber Probleme) => 3 & 4 Balken
+                */
                 case zeroExportPowermeterType_t::Tibber:
+                    if (mCfg->groups[group].pm_refresh < 3) mCfg->groups[group].pm_refresh = 3;
                     result = getPowermeterWattsTibber(*mLog, group, &power);
-                    mPreviousTsp += 2000;  // Zusätzliche Pause
                     break;
 #endif
 #if defined(ZEROEXPORT_POWERMETER_SHRDZM)
@@ -103,22 +115,14 @@ class powermeter {
 #endif
             }
 
+            // if (mMqtt->isConnected()) mMqtt->publish(String("zero/state/groups/" + String(group) + "/result").c_str(), String(ret).c_str(), false);
+
             if (result) {
                 bufferWrite(power, group);
 
                 // MQTT - Powermeter
-                if (mCfg->debug) {
-                    if (mMqtt->isConnected()) {
-                        // P
-                        mqttObj["Sum"] = ah::round1(power);
-                        //                    mqttObj["L1"] = ah::round1(power.P1);
-                        //                    mqttObj["L2"] = ah::round1(power.P2);
-                        //                    mqttObj["L3"] = ah::round1(power.P3);
-                        mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), mqttDoc.as<std::string>().c_str(), false);
-                        mqttDoc.clear();
-
-                        // W (TODO)
-                    }
+                if (mMqtt->isConnected()) {
+                    mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
                 }
             }
         }
@@ -149,11 +153,31 @@ class powermeter {
         float min = 0.0;
 
         for (int i = 0; i < 5; i++) {
-            if (i == 0) min = mPowermeterBuffer[group][i];
-            if ( min > mPowermeterBuffer[group][i]) min = mPowermeterBuffer[group][i];
+            if (i == 0)
+                min = mPowermeterBuffer[group][i];
+            if (min > mPowermeterBuffer[group][i])
+                min = mPowermeterBuffer[group][i];
         }
 
         return min;
+    }
+
+    /** getDataMAX
+     * Holt die Daten vom Powermeter
+     * @param group
+     * @returns value
+     */
+    float getDataMAX(uint8_t group) {
+        float max = 0.0;
+
+        for (int i = 0; i < 5; i++) {
+            if (i == 0)
+                max = mPowermeterBuffer[group][i];
+            if (max < mPowermeterBuffer[group][i])
+                max = mPowermeterBuffer[group][i];
+        }
+
+        return max;
     }
 
     /** onMqttConnect
@@ -163,12 +187,12 @@ class powermeter {
 #if defined(ZEROEXPORT_POWERMETER_MQTT)
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-            if (!strcmp(mCfg->groups[group].pm_jsonPath, "")) continue;
+            if (!strcmp(mCfg->groups[group].pm_src, "")) continue;
 
             if (!mCfg->groups[group].enabled) continue;
 
             if (mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) {
-                mMqtt->subscribeExtern(String(mCfg->groups[group].pm_jsonPath).c_str(), QOS_2);
+                mMqtt->subscribeExtern(String(mCfg->groups[group].pm_src).c_str(), QOS_2);
             }
         }
 
@@ -176,7 +200,7 @@ class powermeter {
     }
 
     /** onMqttMessage
-     *
+     * This function is needed for all mqtt connections between ahoy and other devices.
      */
     void onMqttMessage(JsonObject obj) {
         String topic = String(obj["topic"]);
@@ -188,27 +212,35 @@ class powermeter {
 
             if (!mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) continue;
 
-            if (!strcmp(mCfg->groups[group].pm_jsonPath, "")) continue;
+            if (!strcmp(mCfg->groups[group].pm_src, "")) continue;
 
-            if (strcmp(mCfg->groups[group].pm_jsonPath, String(topic).c_str())) continue;
+            if (strcmp(mCfg->groups[group].pm_src, String(topic).c_str())) continue;
 
             float power = 0.0;
-            power = (uint16_t)obj["val"];
+
+//            //TODO: datajson 100 enough?
+//            // this if-statement need to check if value contains a json object.
+//            // is it so, then deserialize it and get the values (Shelly GEN2)
+//            DynamicJsonDocument datajson(100);
+//            if (!deserializeJson(datajson, obj["val"]))
+//            {
+//                switch (mCfg->groups[group].pm_target) {
+//                    case 0: power = datajson["a_act_power"]; break;
+//                    case 1: power = datajson["b_act_power"]; break;
+//                    case 2: power = datajson["c_act_power"]; break;
+//                    case 3: power = datajson["total_act_power"]; break;
+//                }
+//            } else {
+//                //TODO: check if parse is possible here? Is that right?
+                power = (uint16_t)obj["val"];
+//            }
 
             bufferWrite(power, group);
 
             // MQTT - Powermeter
             if (mCfg->debug) {
                 if (mMqtt->isConnected()) {
-                    // P
-                    mqttObj["Sum"] = ah::round1(power);
-                    ///                    mqttObj["L1"] = ah::round1(power.P1);
-                    ///                    mqttObj["L2"] = ah::round1(power.P2);
-                    ///                    mqttObj["L3"] = ah::round1(power.P3);
-                    mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), mqttDoc.as<std::string>().c_str(), false);
-                    mqttDoc.clear();
-
-                    // W (TODO)
+                    mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
                 }
             }
 
@@ -246,8 +278,9 @@ class powermeter {
     zeroExport_t *mCfg;
     PubMqttType *mMqtt = nullptr;
     JsonObject *mLog;
+    IApp *mApp = nullptr;
 
-    unsigned long mPreviousTsp = 0;
+    unsigned long mPreviousTsp = millis();
 
     float mPowermeterBuffer[ZEROEXPORT_MAX_GROUPS][5] = {0};
     short mPowermeterBufferPos[ZEROEXPORT_MAX_GROUPS] = {0};
@@ -260,8 +293,9 @@ class powermeter {
      */
     void setHeader(HTTPClient *h) {
         h->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-        h->setUserAgent("Ahoy-Agent");
-        // TODO: Ahoy-0.8.850024-zero
+///        h->setUserAgent("Ahoy-Agent");
+///        // TODO: Ahoy-0.8.850024-zero
+        h->setUserAgent(mApp->getVersion());
         h->setConnectTimeout(500);
         h->setTimeout(1000);
         h->addHeader("Content-Type", "application/json");
@@ -280,7 +314,7 @@ class powermeter {
 
         setHeader(&http);
 
-        String url = String("http://") + String(mCfg->groups[group].pm_url) + String("/") + String(mCfg->groups[group].pm_jsonPath);
+        String url = String("http://") + String(mCfg->groups[group].pm_src) + String("/") + String(mCfg->groups[group].pm_jsonPath);
         logObj["HTTP_URL"] = url;
 
         http.begin(url);
@@ -373,8 +407,8 @@ class powermeter {
                     http.addHeader("Content-Type", "application/json");
                     http.addHeader("Accept", "application/json");
 
-        //            String url = String("http://") + String(mCfg->groups[group].pm_url) + String("/") + String(mCfg->groups[group].pm_jsonPath);
-                    String url = String(mCfg->groups[group].pm_url);
+        //            String url = String("http://") + String(mCfg->groups[group].pm_src) + String("/") + String(mCfg->groups[group].pm_jsonPath);
+                    String url = String(mCfg->groups[group].pm_src);
                     logObj["HTTP_URL"] = url;
 
                     http.begin(url);
@@ -482,23 +516,12 @@ class powermeter {
         {{0x01, 0x00, 0x02, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterExport}};
 
     bool getPowermeterWattsTibber(JsonObject logObj, uint8_t group, float *power) {
-        mPreviousTsp = mPreviousTsp + 2000;  // Zusätzliche Pause
-
         bool result = false;
 
         logObj["mod"] = "getPowermeterWattsTibber";
 
-        String auth;
-        if (strlen(mCfg->groups[group].pm_user) > 0 && strlen(mCfg->groups[group].pm_pass) > 0) {
-            auth = base64::encode(String(mCfg->groups[group].pm_user) + String(":") + String(mCfg->groups[group].pm_pass));
-            snprintf(mCfg->groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER, "%s", DEF_ZEXPORT);
-            snprintf(mCfg->groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS, "%s", auth.c_str());
-            //@TODO:mApp->saveSettings(false);
-        } else {
-            auth = mCfg->groups[group].pm_pass;
-        }
-
-        String url = String("http://") + mCfg->groups[group].pm_url + String("/") + String(mCfg->groups[group].pm_jsonPath);
+        String auth = mCfg->groups[group].pm_pass;
+        String url = String("http://") + mCfg->groups[group].pm_src + String("/") + String(mCfg->groups[group].pm_jsonPath);
 
         setHeader(&http);
         http.begin(url);
@@ -551,7 +574,7 @@ class powermeter {
         setHeader(&http);
 
         String url =
-            String("http://") + String(mCfg->groups[group].pm_url) +
+            String("http://") + String(mCfg->groups[group].pm_src) +
             String("/") + String(mCfg->groups[group].pm_jsonPath + String("?user=") + String(mCfg->groups[group].pm_user) + String("&password=") + String(mCfg->groups[group].pm_pass));
 
         http.begin(url);

@@ -206,7 +206,7 @@ typedef struct {
 #define ZEROEXPORT_MAX_QUEUE_ENTRIES               64
 #define ZEROEXPORT_MAX_GROUPS                       8
 #define ZEROEXPORT_GROUP_MAX_LEN_NAME              25
-#define ZEROEXPORT_GROUP_MAX_LEN_PM_URL           100
+#define ZEROEXPORT_GROUP_MAX_LEN_PM_SRC           100
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH      100
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_USER           25
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_PASS           25
@@ -288,7 +288,7 @@ typedef struct {
     uint8_t pm_refresh;
     unsigned long pm_peviousTsp;
     uint8_t pm_type;
-    char pm_url[ZEROEXPORT_GROUP_MAX_LEN_PM_URL];
+    char pm_src[ZEROEXPORT_GROUP_MAX_LEN_PM_SRC];
     char pm_jsonPath[ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH];
     char pm_user[ZEROEXPORT_GROUP_MAX_LEN_PM_USER];
     char pm_pass[ZEROEXPORT_GROUP_MAX_LEN_PM_PASS];
@@ -674,7 +674,7 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].pm_refresh = 5;
                 mCfg.plugin.zeroExport.groups[group].pm_peviousTsp = 0;
                 mCfg.plugin.zeroExport.groups[group].pm_type = zeroExportPowermeterType_t::None;
-                snprintf(mCfg.plugin.zeroExport.groups[group].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL,  "%s", DEF_ZEXPORT);
+                snprintf(mCfg.plugin.zeroExport.groups[group].pm_src, ZEROEXPORT_GROUP_MAX_LEN_PM_SRC,  "%s", DEF_ZEXPORT);
                 snprintf(mCfg.plugin.zeroExport.groups[group].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH,  "%s", DEF_ZEXPORT);
                 snprintf(mCfg.plugin.zeroExport.groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER,  "%s", DEF_ZEXPORT);
                 snprintf(mCfg.plugin.zeroExport.groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS,  "%s", DEF_ZEXPORT);
@@ -1033,7 +1033,7 @@ class settings {
                 // Powermeter
                 obj[F("pm_refresh")] = mCfg.plugin.zeroExport.groups[group].pm_refresh;
                 obj[F("pm_type")] = mCfg.plugin.zeroExport.groups[group].pm_type;
-                obj[F("pm_url")] = mCfg.plugin.zeroExport.groups[group].pm_url;
+                obj[F("pm_src")] = mCfg.plugin.zeroExport.groups[group].pm_src;
                 obj[F("pm_jsonPath")] = mCfg.plugin.zeroExport.groups[group].pm_jsonPath;
                 obj[F("pm_user")] = mCfg.plugin.zeroExport.groups[group].pm_user;
                 obj[F("pm_pass")] = mCfg.plugin.zeroExport.groups[group].pm_pass;
@@ -1067,8 +1067,8 @@ class settings {
                     getVal<uint8_t>(obj, F("pm_refresh"), &mCfg.plugin.zeroExport.groups[group].pm_refresh);
                 if (obj.containsKey(F("pm_type")))
                     getVal<uint8_t>(obj, F("pm_type"), &mCfg.plugin.zeroExport.groups[group].pm_type);
-                if (obj.containsKey(F("pm_url")))
-                    getChar(obj, F("pm_url"), mCfg.plugin.zeroExport.groups[group].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL);
+                if (obj.containsKey(F("pm_src")))
+                    getChar(obj, F("pm_src"), mCfg.plugin.zeroExport.groups[group].pm_src, ZEROEXPORT_GROUP_MAX_LEN_PM_SRC  );
                 if (obj.containsKey(F("pm_jsonPath")))
                     getChar(obj, F("pm_jsonPath"), mCfg.plugin.zeroExport.groups[group].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH);
                 if (obj.containsKey(F("pm_user")))

@@ -894,9 +894,9 @@
                     "de": "Typ:"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_POWERMETER_IP",
-                    "en": "IP:",
-                    "de": "IP:"
+                    "token": "ZE_GROUP_TAB_POWERMETER_SRC",
+                    "en": "IP / Topic:",
+                    "de": "IP / Topic:"
                 },
                 {
                     "token": "ZE_GROUP_TAB_POWERMETER_JSONPATH",
@@ -912,11 +912,6 @@
                     "token": "ZE_GROUP_TAB_POWERMETER_PASS",
                     "en": "Password:",
                     "de": "Passwort:"
-                },
-                {
-                    "token": "ZE_GROUP_TAB_POWERMETER_TOPIC",
-                    "en": "Topic:",
-                    "de": "Topic:"
                 },
                 {
                     "token": "ZE_GROUP_TAB_POWERMETER_TARGET",
