@@ -90,4 +90,10 @@
     #define BTN_NO "no"
 #endif
 
+#ifdef LANG_DE
+    #define BTN_COREDUMP "CoreDump herunterladen"
+#else /*LANG_EN*/
+    #define BTN_COREDUMP "download CoreDump"
+#endif
+
 #endif /*__LANG_H__*/

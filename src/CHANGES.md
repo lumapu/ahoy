@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.122 - 2024-05-23
+* add button for donwloading coredump
+
 ## 0.8.121 - 2024-05-20
 * fix ESP32 factory image generation
 * fix plot of history graph #1635

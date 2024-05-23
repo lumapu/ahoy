@@ -55,6 +55,7 @@ class RestApi {
             mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
 
             mSrv->on("/get_setup", HTTP_GET,  std::bind(&RestApi::onDwnldSetup, this, std::placeholders::_1));
+            mSrv->on("/coredump", HTTP_GET,  std::bind(&RestApi::getCoreDump, this, std::placeholders::_1));
         }
 
         uint32_t getTimezoneOffset(void) {
@@ -348,6 +349,33 @@ class RestApi {
             fp.close();
         }
 
+        void getCoreDump(AsyncWebServerRequest *request) {
+            const esp_partition_t *partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_COREDUMP, "coredump");
+            if (partition != NULL) {
+                size_t size = partition->size;
+
+                AsyncWebServerResponse *response = request->beginResponse("application/octet-stream", size, [size, partition](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
+                    if((index + maxLen) > size)
+                        maxLen = size - index;
+
+                    if (ESP_OK != esp_partition_read(partition, index, buffer, maxLen))
+                        DPRINTLN(DBG_ERROR, F("can't read partition"));
+
+                    return maxLen;
+                });
+
+                String filename = ah::getDateTimeStrFile(gTimezone.toLocal(mApp->getTimestamp()));
+                filename += "_v" + String(mApp->getVersion());
+
+                response->addHeader("Content-Description", "File Transfer");
+                response->addHeader("Content-Disposition", "attachment; filename=" + filename + "_coredump.bin");
+                request->send(response);
+            } else {
+                AsyncWebServerResponse *response = request->beginResponse(200, F("application/json; charset=utf-8"), "{}");
+                request->send(response);
+            }
+        }
+
         void getGeneric(AsyncWebServerRequest *request, JsonObject obj) {
             mApp->resetLockTimeout();
             #if !defined(ETHERNET)
@@ -435,8 +463,8 @@ class RestApi {
         void getHtmlSystem(AsyncWebServerRequest *request, JsonObject obj) {
             getSysInfo(request, obj.createNestedObject(F("system")));
             getGeneric(request, obj.createNestedObject(F("generic")));
-            char tmp[200];
-            snprintf(tmp, 200, "<a href=\"/factory\" class=\"btn\">%s</a><br/><br/><a href=\"/reboot\" class=\"btn\">%s</a>", FACTORY_RESET, BTN_REBOOT);
+            char tmp[300];
+            snprintf(tmp, 300, "<a href=\"/factory\" class=\"btn\">%s</a><br/><br/><a href=\"/reboot\" class=\"btn\">%s</a><br/><br/><a href=\"/coredump\" class=\"btn\">%s</a>", FACTORY_RESET, BTN_REBOOT, BTN_COREDUMP);
             obj[F("html")] = String(tmp);
         }
 
