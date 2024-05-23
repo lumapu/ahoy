@@ -80,7 +80,7 @@ def renameFw(path_define, env):
     if env[:5] == "esp32":
         os.rename("src/.pio/build/" + env + "/bootloader.bin", dst + "bootloader.bin")
         os.rename("src/.pio/build/" + env + "/partitions.bin", dst + "partitions.bin")
-        os.rename("src/.pio/build/" + env + "/firmware.elf.7z", dst + fnanme[:-3] + "elf.7z")
+        os.rename("src/.pio/build/" + env + "/firmware.elf.7z", dst + fname[:-3] + "elf.7z")
         genOtaBin(dst)
 
     if env[:7] == "esp8285":
