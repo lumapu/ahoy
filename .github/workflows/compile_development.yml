@@ -211,7 +211,7 @@ jobs:
     - name: Clean elf files (7z compressed) for Artifact
       run: |
         rm -f \
-          ${{ steps.version_name.outputs.name }}/*/firmware.elf.7z
+          ${{ steps.version_name.outputs.name }}/*/*.elf.7z
 
     - name: Create Artifact
       uses: actions/upload-artifact@v4
