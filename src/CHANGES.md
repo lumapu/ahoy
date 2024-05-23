@@ -1,7 +1,7 @@
 # Development Changes
 
 ## 0.8.122 - 2024-05-23
-* add button for donwloading coredump
+* add button for donwloading coredump (ESP32 variants only)
 
 ## 0.8.121 - 2024-05-20
 * fix ESP32 factory image generation

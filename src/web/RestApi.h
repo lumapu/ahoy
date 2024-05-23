@@ -55,7 +55,9 @@ class RestApi {
             mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
 
             mSrv->on("/get_setup", HTTP_GET,  std::bind(&RestApi::onDwnldSetup, this, std::placeholders::_1));
+            #if defined(ESP32)
             mSrv->on("/coredump", HTTP_GET,  std::bind(&RestApi::getCoreDump, this, std::placeholders::_1));
+            #endif
         }
 
         uint32_t getTimezoneOffset(void) {
@@ -349,6 +351,7 @@ class RestApi {
             fp.close();
         }
 
+        #if defined(ESP32)
         void getCoreDump(AsyncWebServerRequest *request) {
             const esp_partition_t *partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_COREDUMP, "coredump");
             if (partition != NULL) {
@@ -375,6 +378,7 @@ class RestApi {
                 request->send(response);
             }
         }
+        #endif
 
         void getGeneric(AsyncWebServerRequest *request, JsonObject obj) {
             mApp->resetLockTimeout();
@@ -463,8 +467,13 @@ class RestApi {
         void getHtmlSystem(AsyncWebServerRequest *request, JsonObject obj) {
             getSysInfo(request, obj.createNestedObject(F("system")));
             getGeneric(request, obj.createNestedObject(F("generic")));
+            #if defined(ESP32)
             char tmp[300];
             snprintf(tmp, 300, "<a href=\"/factory\" class=\"btn\">%s</a><br/><br/><a href=\"/reboot\" class=\"btn\">%s</a><br/><br/><a href=\"/coredump\" class=\"btn\">%s</a>", FACTORY_RESET, BTN_REBOOT, BTN_COREDUMP);
+            #else
+            char tmp[200];
+            snprintf(tmp, 200, "<a href=\"/factory\" class=\"btn\">%s</a><br/><br/><a href=\"/reboot\" class=\"btn\">%s</a>", FACTORY_RESET, BTN_REBOOT);
+            #endif
             obj[F("html")] = String(tmp);
         }
 
