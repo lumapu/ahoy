@@ -190,7 +190,7 @@ const byteAssign_t hmt4chAssignment[] = {
     { FLD_MT,       UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
 };
 #define HMT4CH_LIST_LEN      (sizeof(hmt4chAssignment) / sizeof(byteAssign_t))
-#define HMT4CH_PAYLOAD_LEN   98 // FIXME
+#define HMT4CH_PAYLOAD_LEN   98
 
 //-------------------------------------
 // HMT-1800, HMT-2250
