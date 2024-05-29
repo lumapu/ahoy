@@ -119,7 +119,8 @@ class powermeter {
 
             if (result) {
                 bufferWrite(power, group);
-
+                mCfg->groups[group].power = power;
+                
                 // MQTT - Powermeter
                 if (mMqtt->isConnected()) {
                     mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
@@ -236,7 +237,8 @@ class powermeter {
 //            }
 
             bufferWrite(power, group);
-
+            mCfg->groups[group].power = power; // TODO: join two sites together (PM & MQTT)
+            
             // MQTT - Powermeter
             if (mCfg->debug) {
                 if (mMqtt->isConnected()) {
