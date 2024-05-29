@@ -117,7 +117,8 @@ class powermeter {
 
             if (result) {
                 bufferWrite(power, group);
-
+                mCfg->groups[group].power = power;
+                
                 // MQTT - Powermeter
 /// BUG: 002 Anfang - Muss dieser Teil raus? Führt er zu abstürzen wie BUG 001?
                 if (mMqtt->isConnected()) {
@@ -237,7 +238,8 @@ class powermeter {
 //            }
 
             bufferWrite(power, group);
-
+            mCfg->groups[group].power = power; // TODO: join two sites together (PM & MQTT)
+            
             // MQTT - Powermeter
 /// BUG: 001 Anfang - Dieser Teil ist deaktiviert weil er zu abstürzen der DTU führt
 //            if (mCfg->debug) {
