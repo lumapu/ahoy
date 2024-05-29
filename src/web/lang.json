@@ -979,9 +979,14 @@
                     "de": "Power:"
                 },
                 {
-                    "token": "BTN_ONOFF",
+                    "token": "BTN_ON",
                     "en": "On",
                     "de": "Ein"
+                },
+                {
+                    "token": "BTN_OFF",
+                    "en": "Off",
+                    "de": "Aus"
                 },
                 {
                     "token": "ZE_GROUP_TAB_ADVANCED",
