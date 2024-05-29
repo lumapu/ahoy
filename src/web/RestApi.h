@@ -843,7 +843,7 @@ class RestApi {
                 objGroup[F("pm_src")]  = String(mConfig->plugin.zeroExport.groups[group].pm_src);
                 objGroup[F("pm_jsonPath")]  = String(mConfig->plugin.zeroExport.groups[group].pm_jsonPath);
                 objGroup[F("pm_user")]  = String(mConfig->plugin.zeroExport.groups[group].pm_user);
-                objGroup[F("pm_pass")]  = String(mConfig->plugin.zeroExport.groups[group].pm_pass);
+                //objGroup[F("pm_pass")]  = String(mConfig->plugin.zeroExport.groups[group].pm_pass); // for security reason
                 objGroup[F("pm_target")] = (uint8_t)mConfig->plugin.zeroExport.groups[group].pm_target;
                 // Inverters
                 objGroup[F("max_inverters")] = ZEROEXPORT_GROUP_MAX_INVERTERS;
