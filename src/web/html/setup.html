@@ -1300,9 +1300,20 @@
             }
 
             function battOnOff() {
+                // TODO: zuerst wert setzen
+                // dann über ajax denn gesetzten wert zurück aus dem system holen
+                // damit man sieht das es erfolgreich gesetzt worden ist.
+                const sw = document.getElementById("battSwitch");
+                if (sw.value == 0) {
+                    sw.value = 1;
+                    sw.innerHTML = "{#BTN_ON}";
+                } else {
+                    sw.value = 0;
+                    sw.innerHTML = "{#BTN_OFF}";
+                }
+
                 var obj = {cmd: "ze_batt_onff", token: "*"}
                 getAjax("/api/setup", apiCbBattOnOff, "POST", JSON.stringify(obj));
-//                setTimeout(function() {getAjax('/api/setup/networks', listNetworks)}, 5000);
             }
 
             function ZeroExportGroup_Modal(obj, ivObj) {
@@ -1427,27 +1438,15 @@
                     ]),
                     // Battery
                     ml("div", {id: "div{#ZE_GROUP_TAB_BATTERY}", class: "tab-content hide"}, [
-                        divRow("{#ZE_GROUP_TAB_BATTERY_CFG}",
-                            ml("select", {name: "battCfg", class: "text", id: "battCfg"}, null),
-                        ),
-                        divRow("{#ZE_GROUP_TAB_BATTERY_TOPIC}",
-                            ml("input", {name: "battTopic", class: "text", type: "text", value: obj.battTopic}, null),
-                        ),
-                        divRow("{#ZE_GROUP_TAB_BATTERY_LIMITON}",
-                            ml("input", {name: "battLimitOn", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battLimitOn}, null),
-                        ),
-                        divRow("{#ZE_GROUP_TAB_BATTERY_LIMITOFF}",
-                            ml("input", {name: "battLimitOff", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battLimitOff}, null),
-                        ),
-                        divRow("{#ZE_GROUP_TAB_BATTERY_ONOFF}", ml("input", {name: "battSwitch", id: "battSwitch", class: "btn", type: "button", value: "{#BTN_ONOFF}", onclick: battOnOff()}, null)),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_CFG}", ml("select", {name: "battCfg", class: "text", id: "battCfg"}, null),),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_TOPIC}", ml("input", {name: "battTopic", class: "text", type: "text", value: obj.battTopic}, null),),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_LIMITON}", ml("input", {name: "battLimitOn", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battLimitOn}, null),),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_LIMITOFF}", ml("input", {name: "battLimitOff", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battLimitOff}, null),),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_ONOFF}", ml("input", {name: "battSwitch", id: "battSwitch", class: "btn", type: "button",  value: obj.battSwitch}, null)),
 // TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
-                        divRow("Hinweis: ",
-                            ml("a", {href: "https://docs.ahoydtu.de/de/latest/zeroExport.html"}, "Bitte beachten Sie die Ausf&uuml;llhinweise in der Dokumentation."),
-                        ),
+                        divRow("Hinweis: ", ml("a", {href: "https://docs.ahoydtu.de/de/latest/zeroExport.html"}, "Bitte beachten Sie die Ausf&uuml;llhinweise in der Dokumentation."),),
 // TODO: Hinweis Github/Discord - Entfernen wenn erledigt
-                        divRow("ACHTUNG: ",
-                            ml("a", {href: "https://discord.com/channels/984173303147155506/1211365440253726851"}, "Bitte auf Github keine Issues zu Zero er&ouml;ffnen, sondern direkt im Discord melden."),
-                        ),
+                        divRow("ACHTUNG: ", ml("a", {href: "https://discord.com/channels/984173303147155506/1211365440253726851"}, "Bitte auf Github keine Issues zu Zero er&ouml;ffnen, sondern direkt im Discord melden."),),
                     ]),
                     // Advanced
                     ml("div", {id: "div{#ZE_GROUP_TAB_ADVANCED}", class: "tab-content hide"}, [
@@ -1459,13 +1458,9 @@
                         divRow("{#ZE_GROUP_TAB_ADVANCED_KI}", ml("input", {name: "Ki", class: "text", type: "number", min: "-0.01", max: "0", step: "0.001", value: obj.Ki}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_KD}", ml("input", {name: "Kd", class: "text", type: "number", min: "-0.01", max: "0", step: "0.001", value: obj.Kd}, null)),
 // TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
-                        divRow("Hinweis: ",
-                            ml("a", {href: "https://docs.ahoydtu.de/de/latest/zeroExport.html"}, "Bitte beachten Sie die Ausf&uuml;llhinweise in der Dokumentation."),
-                        ),
+                        divRow("Hinweis: ", ml("a", {href: "https://docs.ahoydtu.de/de/latest/zeroExport.html"}, "Bitte beachten Sie die Ausf&uuml;llhinweise in der Dokumentation."),),
 // TODO: Hinweis Github/Discord - Entfernen wenn erledigt
-                        divRow("ACHTUNG: ",
-                            ml("a", {href: "https://discord.com/channels/984173303147155506/1211365440253726851"}, "Bitte auf Github keine Issues zu Zero er&ouml;ffnen, sondern direkt im Discord melden."),
-                        ),
+                        divRow("ACHTUNG: ", ml("a", {href: "https://discord.com/channels/984173303147155506/1211365440253726851"}, "Bitte auf Github keine Issues zu Zero er&ouml;ffnen, sondern direkt im Discord melden."),),
                     ]),
                     // Global
                     ml("div", {class: "row mt-5"}, [
@@ -1475,6 +1470,10 @@
                 ]);
 
                 modal("{#ZE_GROUP_EDIT_MODAL}: " + obj.id, html);
+
+                // add addEventListener for battSwitch
+                const se_battswitch = document.querySelector("#battSwitch");
+                se_battswitch.addEventListener("click", (event) => { battOnOff()});
 //                ser.dispatchEvent(new Event('change'));
 
                 // Tab_Powermeter
@@ -1662,6 +1661,8 @@
                     o.battTopic = document.getElementsByName("battTopic")[0].value;
                     o.battLimitOn = document.getElementsByName("battLimitOn")[0].value;
                     o.battLimitOff = document.getElementsByName("battLimitOff")[0].value;
+                    //o.battSwitch = document.getElementsByName("battSwitch")[0].value;
+
                     // Advanced
                     o.setPoint = document.getElementsByName("setPoint")[0].value;
                     o.minimum = document.getElementsByName("minimum")[0].checked;

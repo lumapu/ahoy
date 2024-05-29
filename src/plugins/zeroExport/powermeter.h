@@ -115,15 +115,16 @@ class powermeter {
 #endif
             }
 
-            // if (mMqtt->isConnected()) mMqtt->publish(String("zero/state/groups/" + String(group) + "/result").c_str(), String(ret).c_str(), false);
-
             if (result) {
                 bufferWrite(power, group);
-
+                mCfg->groups[group].power = power;
+                
                 // MQTT - Powermeter
+/// BUG: 002 Anfang - Muss dieser Teil raus? Führt er zu abstürzen wie BUG 001?
                 if (mMqtt->isConnected()) {
                     mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
                 }
+/// BUG: 002 Ende
             }
         }
     }
@@ -218,6 +219,7 @@ class powermeter {
 
             float power = 0.0;
 
+/// TODO: Json aktivieren
 //            //TODO: datajson 100 enough?
 //            // this if-statement need to check if value contains a json object.
 //            // is it so, then deserialize it and get the values (Shelly GEN2)
@@ -232,19 +234,20 @@ class powermeter {
 //                }
 //            } else {
 //                //TODO: check if parse is possible here? Is that right?
-                power = (uint16_t)obj["val"];
+                power = (float)obj["val"];
 //            }
 
             bufferWrite(power, group);
-
+            mCfg->groups[group].power = power; // TODO: join two sites together (PM & MQTT)
+            
             // MQTT - Powermeter
-            if (mCfg->debug) {
-                if (mMqtt->isConnected()) {
-                    mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
-                }
-            }
-
-            return;
+/// BUG: 001 Anfang - Dieser Teil ist deaktiviert weil er zu abstürzen der DTU führt
+//            if (mCfg->debug) {
+//                if (mMqtt->isConnected()) {
+//                    mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
+//                }
+//            }
+/// BUG: 001 Ende
         }
 
 #endif /*defined(ZEROEXPORT_POWERMETER_MQTT)*/

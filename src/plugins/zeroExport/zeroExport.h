@@ -345,9 +345,11 @@ class ZeroExport {
         sendLog();
 
         // MQTT - Powermeter
-        if (mMqtt->isConnected()) {
-            mqttPublish(String("zero/state/groups/" + String(group) + "/inverter/" + String(inv)).c_str(), mDocLog.as<std::string>().c_str());
-        }
+/// BUG: 003 Anfang
+//        if (mMqtt->isConnected()) {
+//            mqttPublish(String("zero/state/groups/" + String(group) + "/inverter/" + String(inv)).c_str(), mDocLog.as<std::string>().c_str());
+//        }
+/// BUG: 003 Ende
 
         clearLog();
 
@@ -821,11 +823,13 @@ class ZeroExport {
         }
 
         // Log over MQTT
-        if (mCfg->log_over_mqtt) {
-            if (mMqtt->isConnected()) {
-                mMqtt->publish("zero/log", mDocLog.as<std::string>().c_str(), false);
-            }
-        }
+/// BUG: 004 Anfang
+//        if (mCfg->log_over_mqtt) {
+//            if (mMqtt->isConnected()) {
+//                mMqtt->publish("zero/log", mDocLog.as<std::string>().c_str(), false);
+//            }
+//        }
+/// BUG: 004 Ende
     }
 
     /** clearLog
