@@ -843,7 +843,7 @@ class RestApi {
                 objGroup[F("pm_src")]  = String(mConfig->plugin.zeroExport.groups[group].pm_src);
                 objGroup[F("pm_jsonPath")]  = String(mConfig->plugin.zeroExport.groups[group].pm_jsonPath);
                 objGroup[F("pm_user")]  = String(mConfig->plugin.zeroExport.groups[group].pm_user);
-                //objGroup[F("pm_pass")]  = String(mConfig->plugin.zeroExport.groups[group].pm_pass); // for security reason
+                objGroup[F("pm_pass")]  = String(mConfig->plugin.zeroExport.groups[group].pm_pass);
                 objGroup[F("pm_target")] = (uint8_t)mConfig->plugin.zeroExport.groups[group].pm_target;
                 // Inverters
                 objGroup[F("max_inverters")] = ZEROEXPORT_GROUP_MAX_INVERTERS;
@@ -861,6 +861,8 @@ class RestApi {
                 objGroup[F("battTopic")]  = String(mConfig->plugin.zeroExport.groups[group].battTopic);
                 objGroup[F("battLimitOn")]  = ah::round1((float)mConfig->plugin.zeroExport.groups[group].battLimitOn);
                 objGroup[F("battLimitOff")]  = ah::round1((float)mConfig->plugin.zeroExport.groups[group].battLimitOff);
+                objGroup[F("battSwitch")]  = (bool)mConfig->plugin.zeroExport.groups[group].battSwitch;
+
                 // Advanced
                 objGroup[F("setPoint")]  = (int16_t)mConfig->plugin.zeroExport.groups[group].setPoint;
                 objGroup[F("minimum")]  = (bool)mConfig->plugin.zeroExport.groups[group].minimum;
@@ -1145,12 +1147,7 @@ class RestApi {
             #if defined(PLUGIN_ZEROEXPORT)
             else if(F("ze_batt_onff") == jsonIn[F("cmd")]) {
                 uint8_t group = jsonIn[F("id")];
-//                if (mConfig->plugin.zeroExport.groups[group].battSwitch) {
-//                    mConfig->plugin.zeroExport.groups[group].battSwitch = false;
-//                } else {
-                    mConfig->plugin.zeroExport.groups[group].battSwitch = true;
-//                }
-//                mConfig->plugin.zeroExport.groups[group].battSwitch = jsonIn[F("battSwitch")];
+                mConfig->plugin.zeroExport.groups[group].battSwitch = (bool)jsonIn[F("battSwitch")];
             }
             else if(F("ze_save_group") == jsonIn[F("cmd")]) {
                 // General
