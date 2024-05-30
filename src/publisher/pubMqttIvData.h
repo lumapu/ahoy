@@ -309,7 +309,7 @@ class PubMqttIvData {
                         else
                             strcat(mVal.data(), "}");
                     }
-                    mPublish(F("total"), mVal.data(), true, QOS_0);
+                    mPublish("total", mVal.data(), true, QOS_0);
                 }
                 mSendList->pop();
                 mSendTotals = false;
