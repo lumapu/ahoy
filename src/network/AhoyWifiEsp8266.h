@@ -71,6 +71,7 @@ class AhoyWifi : public AhoyNetwork {
                         DBGPRINT(" "  + String(bssid[j], HEX));
                     }
                     DBGPRINTLN("");
+                    setStaticIp();
                     WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd, 0, &bssid[0]);
                     mWifiConnecting = true;
                     break;
@@ -84,7 +85,6 @@ class AhoyWifi : public AhoyNetwork {
                     break;
 
                 case NetworkState::CONNECTED:
-                    setStaticIp();
                     break;
 
                 case NetworkState::GOT_IP:
