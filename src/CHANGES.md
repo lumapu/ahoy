@@ -2,7 +2,7 @@
 
 ## 0.8.123 - 2024-05-30
 * fix ESP8266 static IP #1643 #1608
-* update MqTT library which enhances stability
+* update MqTT library which enhances stability #1646
 
 ## 0.8.122 - 2024-05-23
 * add button for donwloading coredump (ESP32 variants only)
