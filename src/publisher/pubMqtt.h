@@ -62,7 +62,7 @@ class PubMqtt {
             mUptime          = uptime;
             mIntervalTimeout = 1;
 
-            SendIvData.setup(app, sys, utcTs, &mSendList);
+            SendIvData.setup(app, sys, cfg_mqtt, utcTs, &mSendList);
             SendIvData.setPublishFunc([this](const char *subTopic, const char *payload, bool retained, uint8_t qos) {
                 publish(subTopic, payload, retained, true, qos);
             });
@@ -233,10 +233,6 @@ class PubMqtt {
 
         inline uint32_t getRxCnt(void) {
             return mRxCnt;
-        }
-
-        inline bool isJson() {
-            return mCfgMqtt->json;
         }
 
         void sendDiscoveryConfig(void) {

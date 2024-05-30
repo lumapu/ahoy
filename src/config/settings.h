@@ -486,7 +486,7 @@ class settings {
             snprintf(mCfg.mqtt.pwd,    MQTT_PWD_LEN,   "%s", DEF_MQTT_PWD);
             snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
             mCfg.mqtt.interval = 0; // off
-            mCfg.mqtt.json = 0; // off
+            mCfg.mqtt.json = false; // off
             mCfg.mqtt.enableRetain = true;
 
             mCfg.inst.sendInterval       = SEND_INTERVAL;

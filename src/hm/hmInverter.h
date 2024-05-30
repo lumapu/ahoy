@@ -54,9 +54,6 @@ template<class T=float>
 T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-T calcMaxTempCh0(Inverter<> *iv, uint8_t arg0);
-
-template<class T=float>
 T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
@@ -974,28 +971,6 @@ T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0) {
     }
     return acMaxPower;
 }
-
-template<class T=float>
-T calcMaxTempCh0(Inverter<> *iv, uint8_t arg0) {
-    DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcMaxTempCh0"));
-    T maxTemp = 0.0;
-    if(NULL != iv) {
-        record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-        T Temp = iv->getChannelFieldValue(arg0, FLD_T, rec);
-
-        for(uint8_t i = 0; i < rec->length; i++) {
-            if((FLD_MT == rec->assign[i].fieldId) && (0 == rec->assign[i].ch)) {
-                maxTemp = iv->getValue(i, rec);
-            }
-        }
-        if(Temp > maxTemp) {
-            iv->tsMaxTemperature = *iv->Timestamp;
-            return Temp;
-        }
-    }
-    return maxTemp;
-}
-
 
 template<class T=float>
 T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0) {

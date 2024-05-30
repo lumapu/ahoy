@@ -24,10 +24,10 @@ class PubMqttIvData {
     public:
         PubMqttIvData() : mTotal{}, mSubTopic{}, mVal{} {}
 
-        void setup(IApp *app, HMSYSTEM *sys, uint32_t *utcTs, std::queue<sendListCmdIv> *sendList) {
+        void setup(IApp *app, HMSYSTEM *sys, cfgMqtt_t *cfg_mqtt, uint32_t *utcTs, std::queue<sendListCmdIv> *sendList) {
             mApp           = app;
             mSys           = sys;
-            mJson          = app->getMqttJsonEnabled();
+            mCfg           = cfg_mqtt;
             mUtcTimestamp  = utcTs;
             mSendList      = sendList;
             mState         = IDLE;
@@ -194,13 +194,13 @@ class PubMqttIvData {
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec)),
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_VERSION, rec)));
                     } else {
-                        if (!mJson) {
+                        if (!mCfg->json) {
                             snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
                             snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mIv->getValue(mPos, rec)));
                         }
                     }
 
-                    if (InverterDevInform_All == mCmd || InverterDevInform_Simple == mCmd || !mJson) {
+                    if ((InverterDevInform_All == mCmd) || (InverterDevInform_Simple == mCmd) || !mCfg->json) {
                         uint8_t qos = (FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId) ? QOS_2 : QOS_0;
                         if((FLD_EVT != rec->assign[mPos].fieldId)
                             && (FLD_LAST_ALARM_CODE != rec->assign[mPos].fieldId))
@@ -210,26 +210,24 @@ class PubMqttIvData {
                 mPos++;
             } else {
                 if (MqttSentStatus::LAST_SUCCESS_SENT == rec->mqttSentStatus) {
-                    if (mJson && RealTimeRunData_Debug == mCmd) {
+                    if (mCfg->json && (RealTimeRunData_Debug == mCmd)) {
                         DynamicJsonDocument doc(300);
-                        std::array<char, 300> buf;
 
                         for (mPos = 0; mPos < rec->length; mPos++) {
                             doc[fields[rec->assign[mPos].fieldId]] = ah::round3(mIv->getValue(mPos, rec));
 
                             bool publish = false;
-                            if (mPos != rec->length - 1) { // not last one
+                            if (mPos != (rec->length - 1)) { // not last one
                                 if (rec->assign[mPos].ch != rec->assign[mPos+1].ch)
                                     publish = true;
                             } else
                                 publish = true;
 
                             if (publish) {
-                                publish = false;
                                 // if next channel or end->publish
-                                serializeJson(doc, buf.data(), buf.size());
+                                serializeJson(doc, mVal.data(), mVal.size());
                                 snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d", mIv->config->name, rec->assign[mPos].ch);
-                                mPublish(mSubTopic.data(), buf.data(), false, QOS_0);
+                                mPublish(mSubTopic.data(), mVal.data(), false, QOS_0);
                                 doc.clear();
                             }
                         }
@@ -292,14 +290,14 @@ class PubMqttIvData {
                         mTotal[4] = mApp->getTotalMaxPower();
                         break;
                 }
-                if (!mJson) {
+                if (!mCfg->json) {
                     snprintf(mSubTopic.data(), mSubTopic.size(), "total/%s", fields[fieldId]);
                     snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mTotal[mPos]));
                     mPublish(mSubTopic.data(), mVal.data(), retained, QOS_0);
                 }
                 mPos++;
             } else {
-                if (mJson) {
+                if (mCfg->json) {
                     int type[5] = {FLD_PAC, FLD_YT, FLD_YD, FLD_PDC, FLD_MP};
                     snprintf(mVal.data(), mVal.size(), "{");
 
@@ -321,6 +319,7 @@ class PubMqttIvData {
 
     private:
         IApp *mApp = nullptr;
+        cfgMqtt_t *mCfg = nullptr;
 
         HMSYSTEM *mSys = nullptr;
         uint32_t *mUtcTimestamp = nullptr;
@@ -339,8 +338,7 @@ class PubMqttIvData {
         bool mRTRDataHasBeenSent = false;
 
         std::array<char, (32 + MAX_NAME_LENGTH + 1)> mSubTopic;
-        std::array<char, 160> mVal;
-        bool mJson;
+        std::array<char, 300> mVal;
 
         std::queue<sendListCmdIv> *mSendList = nullptr;
 };

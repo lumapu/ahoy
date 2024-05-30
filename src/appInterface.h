@@ -52,7 +52,6 @@ class IApp {
         virtual bool getSettingsValid() = 0;
         virtual void setMqttDiscoveryFlag() = 0;
         virtual bool getMqttIsConnected() = 0;
-        virtual bool getMqttJsonEnabled() = 0;
 
         virtual bool getNrfEnabled() = 0;
         virtual bool getCmtEnabled() = 0;
