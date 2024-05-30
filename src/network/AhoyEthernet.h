@@ -31,6 +31,8 @@ class AhoyEthernet : public AhoyWifi {
 
             mEthSpi.begin(mConfig->sys.eth.pinMiso, mConfig->sys.eth.pinMosi, mConfig->sys.eth.pinSclk, mConfig->sys.eth.pinCs, mConfig->sys.eth.pinIrq, mConfig->sys.eth.pinRst);
             ETH.setHostname(mConfig->sys.deviceName);
+
+            AhoyWifi::begin();
         }
 
         void OnEvent(WiFiEvent_t event) {

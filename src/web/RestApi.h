@@ -101,10 +101,8 @@ class RestApi {
             else if(path == "inverter/list")  getInverterList(root);
             else if(path == "index")          getIndex(request, root);
             else if(path == "setup")          getSetup(request, root);
-            #if !defined(ETHERNET)
             else if(path == "setup/networks") getNetworks(root);
             else if(path == "setup/getip")    getIp(root);
-            #endif /* !defined(ETHERNET) */
             else if(path == "live")           getLive(request,root);
             #if defined(ENABLE_HISTORY)
             else if (path == "powerHistory")  getPowerHistory(request, root, HistoryStorageType::POWER);
@@ -293,10 +291,8 @@ class RestApi {
             ep[F("generic")]          = url + F("generic");
             ep[F("index")]            = url + F("index");
             ep[F("setup")]            = url + F("setup");
-            #if !defined(ETHERNET)
             ep[F("setup/networks")]   = url + F("setup/networks");
             ep[F("setup/getip")]      = url + F("setup/getip");
-            #endif /* !defined(ETHERNET) */
             ep[F("system")]           = url + F("system");
             ep[F("live")]             = url + F("live");
             #if defined(ENABLE_HISTORY)
@@ -383,9 +379,7 @@ class RestApi {
 
         void getGeneric(AsyncWebServerRequest *request, JsonObject obj) {
             mApp->resetLockTimeout();
-            #if !defined(ETHERNET)
             obj[F("wifi_rssi")]   = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
-            #endif
             obj[F("ts_uptime")]   = mApp->getUptime();
             obj[F("ts_now")]      = mApp->getTimestamp();
             obj[F("version")]     = String(mApp->getVersion());
@@ -410,12 +404,10 @@ class RestApi {
 
         void getSysInfo(AsyncWebServerRequest *request, JsonObject obj) {
             obj[F("ap_pwd")]       = mConfig->sys.apPwd;
-            #if !defined(ETHERNET)
             obj[F("ssid")]         = mConfig->sys.stationSsid;
             obj[F("hidd")]         = mConfig->sys.isHidden;
             obj[F("mac")]          = WiFi.macAddress();
             obj[F("wifi_channel")] = WiFi.channel();
-            #endif /* !defined(ETHERNET) */
             obj[F("device_name")]  = mConfig->sys.deviceName;
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
             obj[F("sched_reboot")] = (bool)mConfig->sys.schedReboot;
@@ -905,11 +897,9 @@ class RestApi {
                 warn.add(F(REBOOT_ESP_APPLY_CHANGES));
             if(0 == mApp->getTimestamp())
                 warn.add(F(TIME_NOT_SET));
-            #if !defined(ETHERNET)
-                #if !defined(ESP32)
-                if(mApp->getWasInCh12to14())
-                    warn.add(F(WAS_IN_CH_12_TO_14));
-                #endif
+            #if !defined(ESP32)
+            if(mApp->getWasInCh12to14())
+                warn.add(F(WAS_IN_CH_12_TO_14));
             #endif
         }
 
@@ -933,12 +923,10 @@ class RestApi {
             getDisplay(obj.createNestedObject(F("display")));
         }
 
-        #if !defined(ETHERNET)
         void getNetworks(JsonObject obj) {
             obj[F("success")] = mApp->getAvailNetworks(obj);
             obj[F("ip")] = mApp->getIp();
         }
-        #endif /* !defined(ETHERNET) */
 
         void getIp(JsonObject obj) {
             obj[F("ip")] = mApp->getIp();
@@ -1081,14 +1069,12 @@ class RestApi {
                 mTimezoneOffset = jsonIn[F("val")];
             else if(F("discovery_cfg") == jsonIn[F("cmd")])
                 mApp->setMqttDiscoveryFlag(); // for homeassistant
-            #if !defined(ETHERNET)
             else if(F("save_wifi") == jsonIn[F("cmd")]) {
                 snprintf(mConfig->sys.stationSsid, SSID_LEN, "%s", jsonIn[F("ssid")].as<const char*>());
                 snprintf(mConfig->sys.stationPwd, PWD_LEN, "%s", jsonIn[F("pwd")].as<const char*>());
                 mApp->saveSettings(false); // without reboot
                 mApp->setupStation();
             }
-            #else
             else if(F("save_eth") == jsonIn[F("cmd")]) {
                 mConfig->sys.eth.enabled = jsonIn[F("en")].as<bool>();
                 mConfig->sys.eth.pinCs = jsonIn[F("cs")].as<uint8_t>();
@@ -1099,7 +1085,6 @@ class RestApi {
                 mConfig->sys.eth.pinRst = jsonIn[F("reset")].as<uint8_t>();
                 mApp->saveSettings(true);
             }
-            #endif /* !defined(ETHERNET */
             else if(F("save_iv") == jsonIn[F("cmd")]) {
                 Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")], false);
                 iv->config->enabled = jsonIn[F("en")];
