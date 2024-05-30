@@ -9,6 +9,7 @@
 * add total power to index page (if multiple inverters are configured)
 * show device name in html title #1639
 * update AsyncWebserver library to `3.2.2`
+* add environment name to filename of coredump
 
 ## 0.8.122 - 2024-05-23
 * add button for donwloading coredump (ESP32 variants only)

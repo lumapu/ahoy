@@ -369,6 +369,7 @@ class RestApi {
 
                 String filename = ah::getDateTimeStrFile(gTimezone.toLocal(mApp->getTimestamp()));
                 filename += "_v" + String(mApp->getVersion());
+                filename += "_" + String(ENV_NAME);
 
                 response->addHeader("Content-Description", "File Transfer");
                 response->addHeader("Content-Disposition", "attachment; filename=" + filename + "_coredump.bin");
