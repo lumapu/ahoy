@@ -69,11 +69,16 @@ class HmSystem {
                     iv->ivRadioType = INV_RADIO_TYPE_NRF;
                 }
             } else if(iv->config->serial.b[5] == 0x13) {
-                    iv->ivGen = IV_HMT;
+                iv->ivGen = IV_HMT;
+                if(iv->config->serial.b[4] == 0x61)
+                    iv->type = INV_TYPE_4CH;
+                else
                     iv->type = INV_TYPE_6CH;
-                    iv->ivRadioType = INV_RADIO_TYPE_CMT;
+
+                iv->ivRadioType = INV_RADIO_TYPE_CMT;
             } else if(iv->config->serial.u64 != 0ULL) {
                 DPRINTLN(DBG_ERROR, F("inverter type can't be detected!"));
+                iv->config->enabled = false;
                 return;
             } else
                 iv->ivGen = IV_UNKNOWN;
@@ -115,6 +120,8 @@ class HmSystem {
         INVERTERTYPE *getInverterByPos(uint8_t pos, bool check = true) {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:getInverterByPos"));
             if(pos >= MAX_INVERTER)
+                return nullptr;
+            else if(nullptr == mInverter[pos].config)
                 return nullptr;
             else if((mInverter[pos].config->serial.u64 != 0ULL) || (false == check))
                 return &mInverter[pos];

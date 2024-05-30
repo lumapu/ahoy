@@ -1,0 +1,466 @@
+[
+    {
+        "id": "67bced2c4e728783",
+        "type": "mqtt in",
+        "z": "5de5756d190f9086",
+        "name": "",
+        "topic": "hoymiles/+",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "319864a4e0fd913f",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 80,
+        "y": 2100,
+        "wires": [
+            [
+                "a55632ad0dff0b69"
+            ]
+        ]
+    },
+    {
+        "id": "a7f0d307d7cf77e2",
+        "type": "mqtt in",
+        "z": "5de5756d190f9086",
+        "name": "",
+        "topic": "hoymiles/X/#",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "319864a4e0fd913f",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 90,
+        "y": 2260,
+        "wires": [
+            [
+                "7e17e5a3f4df3011",
+                "1a8cca488d53394a"
+            ]
+        ]
+    },
+    {
+        "id": "7e17e5a3f4df3011",
+        "type": "debug",
+        "z": "5de5756d190f9086",
+        "name": "Inverter X",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 340,
+        "y": 2260,
+        "wires": []
+    },
+    {
+        "id": "fb7357db50501627",
+        "type": "change",
+        "z": "5de5756d190f9086",
+        "name": "Tags setzen",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "(\t    $a := $split(topic, '/');\t    [\t        payload,\t        {\t            \"device\":$a[0],\t            \"name\":$a[1],\t            \"channel\":$a[2]\t        }\t    ]\t)\t",
+                "tot": "jsonata"
+            },
+            {
+                "t": "delete",
+                "p": "topic",
+                "pt": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 610,
+        "y": 2360,
+        "wires": [
+            [
+                "91a4607dfda84b67"
+            ]
+        ]
+    },
+    {
+        "id": "670eb9fbb5c31b2c",
+        "type": "debug",
+        "z": "5de5756d190f9086",
+        "name": "InfluxDB",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 940,
+        "y": 2360,
+        "wires": []
+    },
+    {
+        "id": "1a8cca488d53394a",
+        "type": "switch",
+        "z": "5de5756d190f9086",
+        "name": "",
+        "property": "$split(topic, '/')[2]",
+        "propertyType": "jsonata",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "available",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "last_success",
+                "vt": "str"
+            },
+            {
+                "t": "regex",
+                "v": "(ch[0-6])\\b",
+                "vt": "str",
+                "case": false
+            },
+            {
+                "t": "eq",
+                "v": "radio_stat",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "firmware",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "hardware",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "alarm",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 7,
+        "x": 330,
+        "y": 2380,
+        "wires": [
+            [
+                "845aeb93e39092c5"
+            ],
+            [
+                "241a8e70e9fde93c"
+            ],
+            [
+                "fb7357db50501627"
+            ],
+            [
+                "9d38f021308664c1"
+            ],
+            [
+                "a508355f0cc87966"
+            ],
+            [
+                "d2c9aa1a8978aca6"
+            ],
+            [
+                "b27032beb597d5a7"
+            ]
+        ]
+    },
+    {
+        "id": "845aeb93e39092c5",
+        "type": "debug",
+        "z": "5de5756d190f9086",
+        "name": "available",
+        "active": true,
+        "tosidebar": false,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 600,
+        "y": 2240,
+        "wires": []
+    },
+    {
+        "id": "241a8e70e9fde93c",
+        "type": "debug",
+        "z": "5de5756d190f9086",
+        "name": "last_success",
+        "active": true,
+        "tosidebar": false,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 610,
+        "y": 2300,
+        "wires": []
+    },
+    {
+        "id": "9d38f021308664c1",
+        "type": "debug",
+        "z": "5de5756d190f9086",
+        "name": "radio_stat",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 2400,
+        "wires": []
+    },
+    {
+        "id": "a508355f0cc87966",
+        "type": "debug",
+        "z": "5de5756d190f9086",
+        "name": "firmware",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 2440,
+        "wires": []
+    },
+    {
+        "id": "d2c9aa1a8978aca6",
+        "type": "debug",
+        "z": "5de5756d190f9086",
+        "name": "hardware",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 2480,
+        "wires": []
+    },
+    {
+        "id": "b27032beb597d5a7",
+        "type": "debug",
+        "z": "5de5756d190f9086",
+        "name": "alarm",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 590,
+        "y": 2520,
+        "wires": []
+    },
+    {
+        "id": "d814738cf55ad663",
+        "type": "debug",
+        "z": "5de5756d190f9086",
+        "name": "total",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 590,
+        "y": 2160,
+        "wires": []
+    },
+    {
+        "id": "a55632ad0dff0b69",
+        "type": "switch",
+        "z": "5de5756d190f9086",
+        "name": "",
+        "property": "$split(topic, '/')[1]",
+        "propertyType": "jsonata",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "uptime",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "wifi_rssi",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "status",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "total",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 4,
+        "x": 330,
+        "y": 2100,
+        "wires": [
+            [
+                "1fbb0674d2576ee7"
+            ],
+            [
+                "e6be1c98ac55f511"
+            ],
+            [
+                "f9c2d3b30e34fdda"
+            ],
+            [
+                "d814738cf55ad663"
+            ]
+        ]
+    },
+    {
+        "id": "f9c2d3b30e34fdda",
+        "type": "debug",
+        "z": "5de5756d190f9086",
+        "name": "status",
+        "active": false,
+        "tosidebar": false,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 590,
+        "y": 2100,
+        "wires": []
+    },
+    {
+        "id": "e6be1c98ac55f511",
+        "type": "debug",
+        "z": "5de5756d190f9086",
+        "name": "wifi_rssi",
+        "active": false,
+        "tosidebar": false,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 600,
+        "y": 2040,
+        "wires": []
+    },
+    {
+        "id": "1fbb0674d2576ee7",
+        "type": "debug",
+        "z": "5de5756d190f9086",
+        "name": "uptime",
+        "active": false,
+        "tosidebar": false,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 590,
+        "y": 1980,
+        "wires": []
+    },
+    {
+        "id": "91a4607dfda84b67",
+        "type": "change",
+        "z": "5de5756d190f9086",
+        "name": "Lösche",
+        "rules": [
+            {
+                "t": "delete",
+                "p": "payload[0].YieldDay",
+                "pt": "msg"
+            },
+            {
+                "t": "delete",
+                "p": "payload[0].MaxPower",
+                "pt": "msg"
+            },
+            {
+                "t": "delete",
+                "p": "payload[0].ALARM_MES_ID",
+                "pt": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 780,
+        "y": 2360,
+        "wires": [
+            [
+                "670eb9fbb5c31b2c"
+            ]
+        ]
+    },
+    {
+        "id": "319864a4e0fd913f",
+        "type": "mqtt-broker",
+        "name": "broker",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    }
+]

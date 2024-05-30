@@ -55,6 +55,9 @@ class RestApi {
             mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
 
             mSrv->on("/get_setup", HTTP_GET,  std::bind(&RestApi::onDwnldSetup, this, std::placeholders::_1));
+            #if defined(ESP32)
+            mSrv->on("/coredump", HTTP_GET,  std::bind(&RestApi::getCoreDump, this, std::placeholders::_1));
+            #endif
         }
 
         uint32_t getTimezoneOffset(void) {
@@ -80,7 +83,7 @@ class RestApi {
             mHeapFrag = ESP.getHeapFragmentation();
             #endif
 
-            AsyncJsonResponse* response = new AsyncJsonResponse(false, 6000);
+            AsyncJsonResponse* response = new AsyncJsonResponse(false, 8000);
             JsonObject root = response->getRoot();
 
             String path = request->url().substring(5);
@@ -348,6 +351,36 @@ class RestApi {
             fp.close();
         }
 
+        #if defined(ESP32)
+        void getCoreDump(AsyncWebServerRequest *request) {
+            const esp_partition_t *partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_COREDUMP, "coredump");
+            if (partition != NULL) {
+                size_t size = partition->size;
+
+                AsyncWebServerResponse *response = request->beginResponse("application/octet-stream", size, [size, partition](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
+                    if((index + maxLen) > size)
+                        maxLen = size - index;
+
+                    if (ESP_OK != esp_partition_read(partition, index, buffer, maxLen))
+                        DPRINTLN(DBG_ERROR, F("can't read partition"));
+
+                    return maxLen;
+                });
+
+                String filename = ah::getDateTimeStrFile(gTimezone.toLocal(mApp->getTimestamp()));
+                filename += "_v" + String(mApp->getVersion());
+                filename += "_" + String(ENV_NAME);
+
+                response->addHeader("Content-Description", "File Transfer");
+                response->addHeader("Content-Disposition", "attachment; filename=" + filename + "_coredump.bin");
+                request->send(response);
+            } else {
+                AsyncWebServerResponse *response = request->beginResponse(200, F("application/json; charset=utf-8"), "{}");
+                request->send(response);
+            }
+        }
+        #endif
+
         void getGeneric(AsyncWebServerRequest *request, JsonObject obj) {
             mApp->resetLockTimeout();
             #if !defined(ETHERNET)
@@ -359,6 +392,7 @@ class RestApi {
             obj[F("modules")]     = String(mApp->getVersionModules());
             obj[F("build")]       = String(AUTO_GIT_HASH);
             obj[F("env")]         = String(ENV_NAME);
+            obj[F("host")]        = mConfig->sys.deviceName;
             obj[F("menu_prot")]   = mApp->isProtected(request->client()->remoteIP().toString().c_str(), "", true);
             obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
             obj[F("menu_protEn")] = (bool) (mConfig->sys.adminPwd[0] != '\0');
@@ -386,7 +420,6 @@ class RestApi {
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
             obj[F("sched_reboot")] = (bool)mConfig->sys.schedReboot;
 
-            obj[F("hostname")]     = mConfig->sys.deviceName;
             obj[F("pwd_set")]      = (strlen(mConfig->sys.adminPwd) > 0);
             obj[F("prot_mask")]    = mConfig->sys.protectionMask;
 
@@ -435,8 +468,13 @@ class RestApi {
         void getHtmlSystem(AsyncWebServerRequest *request, JsonObject obj) {
             getSysInfo(request, obj.createNestedObject(F("system")));
             getGeneric(request, obj.createNestedObject(F("generic")));
+            #if defined(ESP32)
+            char tmp[300];
+            snprintf(tmp, 300, "<a href=\"/factory\" class=\"btn\">%s</a><br/><br/><a href=\"/reboot\" class=\"btn\">%s</a><br/><br/><a href=\"/coredump\" class=\"btn\">%s</a>", FACTORY_RESET, BTN_REBOOT, BTN_COREDUMP);
+            #else
             char tmp[200];
             snprintf(tmp, 200, "<a href=\"/factory\" class=\"btn\">%s</a><br/><br/><a href=\"/reboot\" class=\"btn\">%s</a>", FACTORY_RESET, BTN_REBOOT);
+            #endif
             obj[F("html")] = String(tmp);
         }
 
@@ -713,6 +751,7 @@ class RestApi {
             obj[F("user")]       = String(mConfig->mqtt.user);
             obj[F("pwd")]        = (strlen(mConfig->mqtt.pwd) > 0) ? F("{PWD}") : String("");
             obj[F("topic")]      = String(mConfig->mqtt.topic);
+            obj[F("json")]       = (bool) mConfig->mqtt.json;
             obj[F("interval")]   = String(mConfig->mqtt.interval);
             obj[F("retain")]     = (bool)mConfig->mqtt.enableRetain;
         }

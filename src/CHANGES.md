@@ -1,5 +1,28 @@
 # Development Changes
 
+## 0.8.123 - 2024-05-30
+* fix ESP8266, ESP32 static IP #1643 #1608
+* update MqTT library which enhances stability #1646
+* merge PR: MQTT JSON Payload pro Kanal und total, auswählbar #1541
+* add option to publish mqtt as json
+* publish rssi not on ch0 any more, published on `topic/rssi`
+* add total power to index page (if multiple inverters are configured)
+* show device name in html title #1639
+* update AsyncWebserver library to `3.2.2`
+* add environment name to filename of coredump
+
+## 0.8.122 - 2024-05-23
+* add button for donwloading coredump (ESP32 variants only)
+
+## 0.8.121 - 2024-05-20
+* fix ESP32 factory image generation
+* fix plot of history graph #1635
+
+## 0.8.120 - 2024-05-18
+* fix crash if invalid serial number was set -> inverter will be disabled automatically
+* improved and fixed factory image generation
+* fix HMT-1800-4T number of inputs #1628
+
 ## 0.8.119 - 2024-05-17
 * fix reset values at midnight if WiFi isn't available #1620
 * fix typo in English versions

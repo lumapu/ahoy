@@ -43,13 +43,10 @@
             function calcScale(obj) {
                 let s = {}
                 s.x_mul = 60
-                s.ts_start = obj.lastValueTs - (obj.refresh * obj.value.length)
-                s.ts_dur = obj.lastValueTs - s.ts_start
-                s.ts_pad = (s.ts_dur < 1800) ? 0 : s.ts_start % 1800
-                s.ts_dur += s.ts_pad
+                s.ts_dur = obj.refresh * obj.value.length
+                s.ts_start = obj.lastValueTs - s.ts_dur
                 while(s.x_mul * 10 <= s.ts_dur)
                     s.x_mul += (s.x_mul == 60) ? 240 : ((s.x_mul < 1800) ? 300 : 1800)
-                s.x_step = Math.ceil(s.ts_dur / s.x_mul)
 
                 s.y_mul = 10
                 while(s.y_mul * 10 <= obj.max)
@@ -91,8 +88,8 @@
                 }
                 div = x2 / scale.ts_dur
                 for(let i = 0; i < scale.ts_dur; i++) {
-                    if(i % scale.x_mul == 0) {
-                        let d = new Date((scale.ts_start - scale.ts_pad + i) * 1000)
+                    if((i + scale.ts_start) % scale.x_mul == 0) {
+                        let d = new Date((scale.ts_start + i) * 1000)
                         g.push(mlNs("text", {x: (i*div)+17, y: height+20}, ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2)))
                     }
                 }
@@ -107,7 +104,7 @@
                 }
                 div = x2 / scale.ts_dur
                 for(let i = 0; i <= scale.ts_dur; i++) {
-                    if(i % scale.x_mul == 0) {
+                    if((i + scale.ts_start) % scale.x_mul == 0) {
                         g.push(mlNs("line", {x1: (i*div), x2: (i*div), y1: 0, y2: height, "stroke-width": 1, "stroke-dasharray": "1,3", stroke: "#aaa"}))
                     }
                 }
@@ -118,16 +115,15 @@
                 let pts = ""
                 let i = 0, first = -1, last = -1, lastVal = 0
                 let div = scale.y_max / height
-                let xOff = x2 / scale.ts_dur * scale.ts_pad
                 if(div == 0)
                     div = 1
                 for (val of obj.value) {
                     if(val > 0) {
                         lastVal = val
-                        pts += " " + String(i + xOff) + "," + String(height - val / div)
+                        pts += " " + String(i) + "," + String(height - val / div)
                         if(first < 0)
-                            first = i + xOff
-                        last = i + xOff
+                            first = i
+                        last = i
                     }
                     i += 2
                 }
@@ -153,6 +149,7 @@
                     parseNav(obj.generic)
                     parseESP(obj.generic)
                     parseRssi(obj.generic)
+                    parseTitle(obj.generic)
                     window.setInterval("getAjax('/api/powerHistory', parsePowerHistory)", obj.refresh * 1000)
                     setTimeout(() => {
                         window.setInterval("getAjax('/api/powerHistoryDay', parsePowerHistoryDay)", obj.refresh * 1000)

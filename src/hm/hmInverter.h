@@ -538,6 +538,10 @@ class Inverter {
                             rec->length  = (uint8_t)(HMS4CH_LIST_LEN);
                             rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(hms4chAssignment));
                             rec->pyldLen = HMS4CH_PAYLOAD_LEN;
+                        } else if(IV_HMT == ivGen){
+                            rec->length  = (uint8_t)(HMT4CH_LIST_LEN);
+                            rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(hmt4chAssignment));
+                            rec->pyldLen = HMT4CH_PAYLOAD_LEN;
                         }
                         channels = 4;
                     }
