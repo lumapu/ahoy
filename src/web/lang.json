@@ -414,6 +414,11 @@
                     "de": "Passwort (optional)"
                 },
                 {
+                    "token": "MQTT_JSON",
+                    "en": "Payload as JSON",
+                    "de": "Ausgabe als JSON"
+                },
+                {
                     "token": "MQTT_NOTE",
                     "en": "Send Inverter data in a fixed interval, even if there is no change. A value of '0' disables the fixed interval. The data is published once it was successfully received from inverter. (default: 0)",
                     "de": "Wechselrichterdaten in fixem Intervall schicken, auch wenn es keine &Auml;nderung gab. Ein Wert von '0' deaktiviert das fixe Intervall, die Wechselrichterdaten werden &uuml;bertragen, sobald neue zur Verf&uuml;gung stehen. (Standard: 0)"

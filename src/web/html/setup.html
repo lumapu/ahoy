@@ -238,6 +238,10 @@
                                 <div class="col-12 col-sm-3 my-2">Topic</div>
                                 <div class="col-12 col-sm-9"><input type="text" name="mqttTopic" pattern="[\-\+A-Za-z0-9\.\/#\$%&=_]+" title="Invalid input" /></div>
                             </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#MQTT_JSON}</div>
+                                <div class="col-12 col-sm-9"><input type="checkbox" name="mqttJson" /></div>
+                            </div>
                             <p class="des">{#MQTT_NOTE}</p>
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-3 my-2">{#INTERVAL}</div>
@@ -946,6 +950,7 @@
             function parseMqtt(obj) {
                 for(var i of [["Addr", "broker"], ["Port", "port"], ["ClientId", "clientId"], ["User", "user"], ["Pwd", "pwd"], ["Topic", "topic"], ["Interval", "interval"]])
                     document.getElementsByName("mqtt"+i[0])[0].value = obj[i[1]];
+                document.getElementsByName("mqttJson")[0].checked = obj["json"];
                 document.getElementsByName("retain")[0].checked = obj.retain
             }
 

@@ -235,6 +235,10 @@ class PubMqtt {
             return mRxCnt;
         }
 
+        inline bool isJson() {
+            return mCfgMqtt->json;
+        }
+
         void sendDiscoveryConfig(void) {
             DPRINTLN(DBG_VERBOSE, F("sendMqttDiscoveryConfig"));
             mDiscovery.running  = true;
@@ -564,6 +568,9 @@ class PubMqtt {
         }
 
         void sendData(Inverter<> *iv, uint8_t curInfoCmd) {
+            if (mCfgMqtt->json)
+                return;
+
             record_t<> *rec = iv->getRecordStruct(curInfoCmd);
 
             uint32_t lastTs = iv->getLastTs(rec);
