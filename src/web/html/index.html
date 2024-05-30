@@ -57,8 +57,10 @@
             }
 
             function parseGeneric(obj) {
-                if(exeOnce)
+                if(exeOnce) {
                     parseESP(obj)
+                    parseTitle(obj)
+                }
                 parseRssi(obj)
             }
 

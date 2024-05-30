@@ -717,9 +717,10 @@
             }
 
             function parseGeneric(obj) {
-                parseNav(obj);
-                parseESP(obj);
-                parseRssi(obj);
+                parseNav(obj)
+                parseESP(obj)
+                parseRssi(obj)
+                parseTitle(obj)
 
                 if(0 != obj.cst_lnk.length) {
                     document.getElementsByName("cstLnk")[0].value = obj.cst_lnk

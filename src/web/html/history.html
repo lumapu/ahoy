@@ -149,6 +149,7 @@
                     parseNav(obj.generic)
                     parseESP(obj.generic)
                     parseRssi(obj.generic)
+                    parseTitle(obj.generic)
                     window.setInterval("getAjax('/api/powerHistory', parsePowerHistory)", obj.refresh * 1000)
                     setTimeout(() => {
                         window.setInterval("getAjax('/api/powerHistoryDay', parsePowerHistoryDay)", obj.refresh * 1000)
