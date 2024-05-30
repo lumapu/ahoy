@@ -1,7 +1,7 @@
 # Development Changes
 
 ## 0.8.123 - 2024-05-30
-* fix ESP8266 static IP #1643 #1608
+* fix ESP8266, ESP32 static IP #1643 #1608
 * update MqTT library which enhances stability #1646
 * merge PR: MQTT JSON Payload pro Kanal und total, auswählbar #1541
 * add option to publish mqtt as json

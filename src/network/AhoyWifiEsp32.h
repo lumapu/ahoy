@@ -25,6 +25,7 @@ class AhoyWifi : public AhoyNetwork {
             #if !defined(AP_ONLY)
                 WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
                 WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+                setStaticIp();
                 WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd, WIFI_ALL_CHANNEL_SCAN);
                 mWifiConnecting = true;
 
@@ -41,7 +42,6 @@ class AhoyWifi : public AhoyNetwork {
                         mStatus = NetworkState::CONNECTED;
                         mWifiConnecting = false;
                         DPRINTLN(DBG_INFO, F("Network connected"));
-                        setStaticIp();
                     }
                     break;
 
