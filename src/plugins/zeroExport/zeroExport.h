@@ -101,6 +101,7 @@ class ZeroExport {
                 _log.addProperty("nA", "!isAvailable");
                 sendLog();
             }
+            clearLog();
             return;
         }
 
@@ -110,6 +111,7 @@ class ZeroExport {
                 _log.addProperty("wA", CfgGroupInv->waitAck);
                 sendLog();
             }
+            clearLog();
             return;
         }
 
@@ -188,6 +190,7 @@ class ZeroExport {
             e = 0;
             _log.addProperty("eK", e);
             sendLog();
+            clearLog();
             return;
         }
 
@@ -203,6 +206,7 @@ class ZeroExport {
         if (Ta == 0) {
             _log.addProperty("Error", "Ta = 0");
             sendLog();
+            clearLog();
             return;
         }
         int16_t yD = Kd * (e - CfgGroup->eOld) / Ta;
@@ -360,6 +364,9 @@ class ZeroExport {
 //            mqttPublish(String("zero/state/groups/" + String(group) + "/inverter/" + String(inv)).c_str(), mDocLog.as<std::string>().c_str());
 //        }
 /// BUG: 003 Ende
+
+        clearLog();
+
         return;
     }
 
@@ -445,6 +452,7 @@ class ZeroExport {
                         _log.addProperty("lF", mCfg->groups[group].inverters[inv].limit);
                     }
                     sendLog();
+                    clearLog();
                 }
             }
         }
@@ -472,6 +480,7 @@ class ZeroExport {
 
                     _log.addProperty("wA", mCfg->groups[group].inverters[inv].waitAck);
                     sendLog();
+                    clearLog();
                 }
             }
         }
@@ -510,6 +519,7 @@ class ZeroExport {
                         mCfg->groups[group].inverters[inv].actionTimestamp = millis();
                     }
                     sendLog();
+                    clearLog();
                 }
             }
         }
@@ -599,6 +609,7 @@ class ZeroExport {
                 putQueue(Entry);
 
                 sendLog();
+                clearLog();
                 return;
             }
         }
@@ -783,6 +794,7 @@ class ZeroExport {
         }
 
         sendLog();
+        clearLog();
         return;
     }
 
