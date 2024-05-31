@@ -10,7 +10,6 @@ DynamicJsonHandler::~DynamicJsonHandler() {
 String DynamicJsonHandler::toString() {
     String jsonString;
     serializeJson(doc, jsonString);
-    doc.clear(); // TODO: Entfernen wegen mqtt + webserial?
     return jsonString;
 }
 
