@@ -15,6 +15,8 @@
 #include "AsyncJson.h"
 #include "powermeter.h"
 
+#include "utils/DynamicJsonHandler.h"
+
 template <class HMSYSTEM>
 
 class ZeroExport {
@@ -47,8 +49,15 @@ class ZeroExport {
         mApi = api;
         mMqtt = mqtt;
 
-        mIsInitialized = mPowermeter.setup(mApp, mCfg, mqtt, &mLog);
+        mIsInitialized = mPowermeter.setup(mApp, mCfg, mqtt, &_log);
     }
+
+
+    /*void printJson() {
+        serializeJson(doc, Serial);
+        Serial.println();
+        serializeJsonPretty(doc, Serial);
+    }*/
 
     /** loop
      * Arbeitsschleife
@@ -83,26 +92,24 @@ class ZeroExport {
         zeroExportGroupInverter_t *CfgGroupInv = &CfgGroup->inverters[inv];
         Inverter<> *iv = mSys->getInverterByPos(Queue.id);
 
-        mLog["g"] = group;
-        mLog["i"] = inv;
+        _log.addProperty("g", group);
+        _log.addProperty("i", inv);
 
         // Check Data->iv
         if (!iv->isAvailable()) {
             if (mCfg->debug) {
-                mLog["nA"] = "!isAvailable";
+                _log.addProperty("nA", "!isAvailable");
                 sendLog();
             }
-            clearLog();
             return;
         }
 
         // Check Data->waitAck
         if (CfgGroupInv->waitAck > 0) {
             if (mCfg->debug) {
-                mLog["wA"] = CfgGroupInv->waitAck;
+                _log.addProperty("wA", CfgGroupInv->waitAck);
                 sendLog();
             }
-            clearLog();
             return;
         }
 
@@ -113,16 +120,19 @@ class ZeroExport {
             groupPower += mCfg->groups[group].inverters[inv].power; // Calc Data->groupPower
             groupLimit += mCfg->groups[group].inverters[inv].limit; // Calc Data->groupLimit
         }
-        mLog["gP"] = groupPower;
-        mLog["gL"] = groupLimit;
+
+        _log.addProperty("gP", groupPower);
+        _log.addProperty("gL", groupLimit);
 
         // Batteryprotection
-        mLog["bEn"] = (uint8_t)CfgGroup->battCfg;
+        _log.addProperty("bEn", (uint8_t)CfgGroup->battCfg);
+
         switch (CfgGroup->battCfg) {
             case zeroExportBatteryCfg::none:
                 if (CfgGroup->battSwitch != true) {
                     CfgGroup->battSwitch = true;
-                    mLog["bA"] = "turn on";
+
+                    _log.addProperty("bA", "turn on");
                 }
                 break;
             case zeroExportBatteryCfg::invUdc:
@@ -131,34 +141,34 @@ class ZeroExport {
                 if (CfgGroup->battSwitch != true) {
                     if (CfgGroup->battValue > CfgGroup->battLimitOn) {
                         CfgGroup->battSwitch = true;
-                        mLog["bA"] = "turn on";
+                        _log.addProperty("bA", "turn on");
                     }
                     if ((CfgGroup->battValue > CfgGroup->battLimitOff) && (CfgGroupInv->power > 0)) {
                         CfgGroup->battSwitch = true;
-                        mLog["bA"] = "turn on";
+                        _log.addProperty("bA", "turn on");
                     }
                 } else {
                     if (CfgGroup->battValue < CfgGroup->battLimitOff) {
                         CfgGroup->battSwitch = false;
-                        mLog["bA"] = "turn off";
+                        _log.addProperty("bA", "turn off");
                     }
                 }
-                mLog["bU"] = ah::round1(CfgGroup->battValue);
+                _log.addProperty("bU", ah::round1(CfgGroup->battValue));
                 break;
             default:
                 if (CfgGroup->battSwitch == true) {
                     CfgGroup->battSwitch = false;
-                    mLog["bA"] = "turn off";
+                    _log.addProperty("bA", "turn off");
                 }
                 break;
         }
-        mLog["bSw"] = CfgGroup->battSwitch;
+        _log.addProperty("bSw", CfgGroup->battSwitch);
 
         // Controller
 
         // Führungsgröße w in Watt
         int16_t w = CfgGroup->setPoint;
-        mLog["w"] = w;
+        _log.addProperty("w", w);
 
         // Regelgröße x in Watt
         int16_t x = 0.0;
@@ -167,18 +177,17 @@ class ZeroExport {
         } else {
             x = mPowermeter.getDataAVG(group);
         }
-        mLog["x"] = x;
+        _log.addProperty("x", x);
 
         // Regelabweichung e in Watt
         int16_t e = w - x;
-        mLog["e"] = e;
+        _log.addProperty("e", e);
 
         // Keine Regelung innerhalb der Toleranzgrenzen
         if ((e < CfgGroup->powerTolerance) && (e > -CfgGroup->powerTolerance)) {
             e = 0;
-            mLog["eK"] = e;
+            _log.addProperty("eK", e);
             sendLog();
-            clearLog();
             return;
         }
 
@@ -192,29 +201,28 @@ class ZeroExport {
         CfgGroup->eSum += e;
         int16_t yI = Ki * Ta * CfgGroup->eSum;
         if (Ta == 0) {
-            mLog["Error"] = "Ta = 0";
+            _log.addProperty("Error", "Ta = 0");
             sendLog();
-            clearLog();
             return;
         }
         int16_t yD = Kd * (e - CfgGroup->eOld) / Ta;
 
         if (mCfg->debug) {
-            mLog["Kp"] = Kp;
-            mLog["Ki"] = Ki;
-            mLog["Kd"] = Kd;
-            mLog["Ta"] = Ta;
-            mLog["yP"] = yP;
-            mLog["yI"] = yI;
-            mLog["eSum"] = CfgGroup->eSum;
-            mLog["yD"] = yD;
-            mLog["eOld"] = CfgGroup->eOld;
+            _log.addProperty("Kp", Kp);
+            _log.addProperty("Ki", Ki);
+            _log.addProperty("Kd", Kd);
+            _log.addProperty("Ta", Ta);
+            _log.addProperty("yP", yP);
+            _log.addProperty("yI", yI);
+            _log.addProperty("eSum", CfgGroup->eSum);
+            _log.addProperty("yD", yD);
+            _log.addProperty("eOld", CfgGroup->eOld);
         }
 
         CfgGroup->eOld = e;
         int16_t y = yP + yI + yD;
 
-        mLog["y"] = y;
+        _log.addProperty("y", y);
 
         // Regelbegrenzung
         // TODO: Hier könnte man den maximalen Sprung begrenzen
@@ -230,7 +238,7 @@ class ZeroExport {
                 if (CfgGroupInv->actionTimer == 0) CfgGroupInv->actionTimer = 1;
                 if (CfgGroupInv->actionTimer > 10) {
                     CfgGroupInv->action = zeroExportAction_t::doTurnOn;
-                    mLog["do"] = "doTurnOn";
+                    _log.addProperty("do", "doTurnOn");
                 }
             }
             if ((CfgGroupInv->turnOff) && (CfgGroupInv->limitNew <= 0) && (CfgGroupInv->power > 0)) {
@@ -238,26 +246,28 @@ class ZeroExport {
                 if (CfgGroupInv->actionTimer == 0) CfgGroupInv->actionTimer = -1;
                 if (CfgGroupInv->actionTimer < 30) {
                     CfgGroupInv->action = zeroExportAction_t::doTurnOff;
-                    mLog["do"] = "doTurnOff";
+                    _log.addProperty("do", "doTurnOff");
                 }
             }
             if (((CfgGroup->battSwitch == false) || (mCfg->sleep == true) || (CfgGroup->sleep == true)) && (CfgGroupInv->power > 0)) {
                 CfgGroupInv->action = zeroExportAction_t::doTurnOff;
-                mLog["do"] = "sleep";
+                _log.addProperty("do", "sleep");
             }
         }
-        mLog["doT"] = CfgGroupInv->action;
+        _log.addProperty("doT", CfgGroupInv->action);
 
         if (CfgGroupInv->action == zeroExportAction_t::doNone) {
-            mLog["l"] = CfgGroupInv->limit;
-            mLog["ln"] = CfgGroupInv->limitNew;
+            _log.addProperty("l", CfgGroupInv->limit);
+            _log.addProperty("ln", CfgGroupInv->limitNew);
 
             // groupMax
             uint16_t otherIvLimit = groupLimit - CfgGroupInv->limit;
             if ((otherIvLimit + CfgGroupInv->limitNew) > CfgGroup->powerMax) {
                 CfgGroupInv->limitNew = CfgGroup->powerMax - otherIvLimit;
             }
-            if (mCfg->debug) mLog["gPM"] = CfgGroup->powerMax;
+            if (mCfg->debug) {
+                _log.addProperty("gPM", CfgGroup->powerMax);
+            }
 
             // PowerMax
             uint16_t powerMax = 100;
@@ -291,13 +301,13 @@ class ZeroExport {
 
             //            CfgGroupInv->actionTimer = 0;
             // TODO: Timer stoppen wenn Limit gesetzt wird.
-            mLog["lN"] = CfgGroupInv->limitNew;
+            _log.addProperty("lN", CfgGroupInv->limitNew);
 
             CfgGroupInv->limit = CfgGroupInv->limitNew;
         }
 
         // doAction
-        mLog["a"] = CfgGroupInv->action;
+        _log.addProperty("a", CfgGroupInv->action);
 
         switch (CfgGroupInv->action) {
             case zeroExportAction_t::doRestart:
@@ -350,9 +360,6 @@ class ZeroExport {
 //            mqttPublish(String("zero/state/groups/" + String(group) + "/inverter/" + String(inv)).c_str(), mDocLog.as<std::string>().c_str());
 //        }
 /// BUG: 003 Ende
-
-        clearLog();
-
         return;
     }
 
@@ -422,17 +429,22 @@ class ZeroExport {
                 if (!mCfg->groups[group].inverters[inv].enabled) continue;
 
                 if (iv->id == (uint8_t)mCfg->groups[group].inverters[inv].id) {
-                    mLog["g"] = group;
-                    mLog["i"] = inv;
+                    _log.addProperty("g", group);
+                    _log.addProperty("i", inv);
+
                     mCfg->groups[group].inverters[inv].waitAck = 0;
-                    mLog["wA"] = mCfg->groups[group].inverters[inv].waitAck;
+
+                    _log.addProperty("wA", mCfg->groups[group].inverters[inv].waitAck);
+
+                    // Wenn ein neuer LimitWert da ist. Soll es in group schreiben.
                     if (iv->actPowerLimit != 0xffff) {
-                        mLog["l"] = mCfg->groups[group].inverters[inv].limit;
+                        _log.addProperty("l", mCfg->groups[group].inverters[inv].limit);
+
                         mCfg->groups[group].inverters[inv].limit = iv->actPowerLimit;
-                        mLog["lF"] = mCfg->groups[group].inverters[inv].limit;
+
+                        _log.addProperty("lF", mCfg->groups[group].inverters[inv].limit);
                     }
                     sendLog();
-                    clearLog();
                 }
             }
         }
@@ -453,12 +465,13 @@ class ZeroExport {
                 if (!mCfg->groups[group].inverters[inv].enabled) continue;
 
                 if (iv->id == mCfg->groups[group].inverters[inv].id) {
-                    mLog["g"] = group;
-                    mLog["i"] = inv;
+                    _log.addProperty("g", group);
+                    _log.addProperty("i", inv);
+
                     mCfg->groups[group].inverters[inv].waitAck = 0;
-                    mLog["wA"] = mCfg->groups[group].inverters[inv].waitAck;
+
+                    _log.addProperty("wA", mCfg->groups[group].inverters[inv].waitAck);
                     sendLog();
-                    clearLog();
                 }
             }
         }
@@ -479,10 +492,12 @@ class ZeroExport {
                 if (!mCfg->groups[group].inverters[inv].enabled) continue;
 
                 if (iv->id == mCfg->groups[group].inverters[inv].id) {
-                    mLog["g"] = group;
-                    mLog["i"] = inv;
+                    _log.addProperty("g", group);
+                    _log.addProperty("i", inv);
+
                     mCfg->groups[group].inverters[inv].waitAck = 0;
-                    mLog["wA"] = mCfg->groups[group].inverters[inv].waitAck;
+
+                    _log.addProperty("wA", mCfg->groups[group].inverters[inv].waitAck);
 
                     mCfg->groups[group].inverters[inv].limit = mCfg->groups[group].inverters[inv].powerMin;
                     iv->powerLimit[0] = static_cast<uint16_t>(mCfg->groups[group].inverters[inv].limit * 10.0);
@@ -495,7 +510,6 @@ class ZeroExport {
                         mCfg->groups[group].inverters[inv].actionTimestamp = millis();
                     }
                     sendLog();
-                    clearLog();
                 }
             }
         }
@@ -518,8 +532,8 @@ class ZeroExport {
                 if (!CfgGroupInv->enabled) continue;
                 if (CfgGroupInv->id != iv->id) continue;
 
-                mLog["g"] = group;
-                mLog["i"] = inv;
+                _log.addProperty("g", group);
+                _log.addProperty("i", inv);
 
                 // TODO: Ist nach eventAckSetLimit verschoben
                 // if (iv->actPowerLimit != 0xffff) {
@@ -531,17 +545,19 @@ class ZeroExport {
                 // TODO: Es dauert bis getMaxPower übertragen wird.
                 if (iv->getMaxPower() > 0) {
                     CfgGroupInv->MaxPower = iv->getMaxPower();
-                    mLog["pM"] = CfgGroupInv->MaxPower;
+
+                    _log.addProperty("pM", CfgGroupInv->MaxPower);
                 }
 
                 record_t<> *rec;
                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
                 if (iv->getLastTs(rec) > (millis() - 15000)) {
                     CfgGroupInv->power = iv->getChannelFieldValue(CH0, FLD_PAC, rec);
-                    mLog["p"] = CfgGroupInv->power;
+
+                    _log.addProperty("pM", CfgGroupInv->MaxPower);
 
                     CfgGroupInv->dcVoltage = iv->getChannelFieldValue(CH1, FLD_UDC, rec);
-                    mLog["bU"] = ah::round1(CfgGroupInv->dcVoltage);
+                    _log.addProperty("bU", ah::round1(CfgGroupInv->dcVoltage));
 
                     // Batterieüberwachung - Überwachung über die DC-Spannung am PV-Eingang 1 des Inverters
                     if (CfgGroup->battCfg == zeroExportBatteryCfg::invUdc) {
@@ -561,16 +577,16 @@ class ZeroExport {
                         uint16_t powerPercent = 100 / CfgGroupInv->MaxPower * CfgGroupInv->power;
                         uint16_t delta = abs(limitPercent - powerPercent);
                         if ((delta > 10) && (CfgGroupInv->power > 0)) {
-                            mLog["delta"] = delta;
+                            _log.addProperty("delta", delta);
                             unsigned long delay = iv->getLastTs(rec) - CfgGroupInv->actionTimestamp;
-                            mLog["delay"] = delay;
+                            _log.addProperty("delay", delay);
                             if (delay > 30000) {
                                 CfgGroupInv->action = zeroExportAction_t::doActivePowerContr;
-                                mLog["do"] = "doActivePowerContr";
+                                _log.addProperty("do", "doActivePowerContr");
                             }
                             if (delay > 60000) {
                                 CfgGroupInv->action = zeroExportAction_t::doRestart;
-                                mLog["do"] = "doRestart";
+                                _log.addProperty("do", "doRestart");
                             }
                         }
                     }
@@ -583,8 +599,6 @@ class ZeroExport {
                 putQueue(Entry);
 
                 sendLog();
-                clearLog();
-
                 return;
             }
         }
@@ -634,40 +648,59 @@ class ZeroExport {
 
             if (strcmp(mCfg->groups[group].battTopic, String(topic).c_str())) {
                 mCfg->groups[group].battValue = (bool)obj["val"];
-                mLog["k"] = mCfg->groups[group].battTopic;
-                mLog["v"] = mCfg->groups[group].battValue;
+
+
+                _log.addProperty("k", mCfg->groups[group].battTopic);
+                _log.addProperty("v", mCfg->groups[group].battValue);
             }
         }
 
         // "topic":"ctrl/zero"
         if (topic.indexOf("ctrl/zero") == -1) return;
 
-        if (mCfg->debug) mLog["d"] = obj;
+
+        _log.addProperty("d", obj);
 
         if (obj["path"] == "ctrl" && obj["cmd"] == "zero") {
             int8_t topicGroup = getGroupFromTopic(topic.c_str());
             int8_t topicInverter = getInverterFromTopic(topic.c_str());
 
-            if (topicGroup != -1)       mLog["g"] = topicGroup;
-            if (topicInverter == -1)    mLog["i"] = topicInverter;
+            if (topicGroup != -1) {
+                _log.addProperty("g", topicGroup);
+            }
+            if (topicInverter == -1) {
+                _log.addProperty("i", topicInverter);
+            }
 
-            mLog["k"] = topic;
+            _log.addProperty("k", topic);
 
             // "topic":"ctrl/zero/enabled"
-            if (topic.indexOf("ctrl/zero/enabled") != -1) mCfg->enabled = mLog["v"] = (bool)obj["val"];
+            if (topic.indexOf("ctrl/zero/enabled") != -1) {
+                _log.addProperty("v", (bool)obj["val"]);
+                mCfg->enabled = (bool)obj["val"];
+            }
 
             // "topic":"ctrl/zero/sleep"
-            else if (topic.indexOf("ctrl/zero/sleep") != -1) mCfg->sleep = mLog["v"] = (bool)obj["val"];
+            else if (topic.indexOf("ctrl/zero/sleep") != -1) {
+                _log.addProperty("v", (bool)obj["val"]);
+                mCfg->sleep = (bool)obj["val"];
+            }
 
             else if ((topicGroup >= 0) && (topicGroup < ZEROEXPORT_MAX_GROUPS))
             {
                 String stopicGroup = String(topicGroup);
 
                 // "topic":"ctrl/zero/groups/+/enabled"
-                if (topic.endsWith("/enabled")) mCfg->groups[topicGroup].enabled = mLog["v"] = (bool)obj["val"];
+                if (topic.endsWith("/enabled")) {
+                    _log.addProperty("v", (bool)obj["val"]);
+                    mCfg->groups[topicGroup].enabled = (bool)obj["val"];
+                }
 
                 // "topic":"ctrl/zero/groups/+/sleep"
-                else if (topic.endsWith("/sleep")) mCfg->groups[topicGroup].sleep = mLog["v"] = (bool)obj["val"];
+                else if (topic.endsWith("/sleep")) {
+                    _log.addProperty("v", (bool)obj["val"]);
+                    mCfg->groups[topicGroup].sleep = (bool)obj["val"];
+                }
 
                 // Auf Eis gelegt, dafür 2 Gruppen mehr
                 // 0.8.103008.2
@@ -692,42 +725,64 @@ class ZeroExport {
                 //                }
 
                 // "topic":"ctrl/zero/groups/+/battery/switch"
-                else if (topic.endsWith("/battery/switch")) mCfg->groups[topicGroup].battSwitch = mLog["v"] = (bool)obj["val"];
+                else if (topic.endsWith("/battery/switch")) {
+                    _log.addProperty("v", (bool)obj["val"]);
+                    mCfg->groups[topicGroup].battSwitch = (bool)obj["val"];
+                }
 
                 else if (topic.indexOf("/advanced/") != -1)
                 {
                     // "topic":"ctrl/zero/groups/+/advanced/setPoint"
-                    if (topic.endsWith("/setPoint")) mCfg->groups[topicGroup].setPoint = mLog["v"] = (int16_t)obj["val"];
+                    if (topic.endsWith("/setPoint")) {
+                        _log.addProperty("v", (int16_t)obj["val"]);
+                        mCfg->groups[topicGroup].setPoint = (int16_t)obj["val"];
+                    }
 
                     // "topic":"ctrl/zero/groups/+/advanced/powerTolerance"
-                    else if (topic.endsWith("/powerTolerance")) mCfg->groups[topicGroup].powerTolerance = mLog["v"] = (uint8_t)obj["val"];
+                    else if (topic.endsWith("/powerTolerance")) {
+                        _log.addProperty("v", (uint8_t)obj["val"]);
+                        mCfg->groups[topicGroup].powerTolerance = (uint8_t)obj["val"];
+                    }
 
                     // "topic":"ctrl/zero/groups/+/advanced/powerMax"
-                    else if (topic.endsWith("/powerMax")) mCfg->groups[topicGroup].powerMax = mLog["v"] = (uint16_t)obj["val"];
+                    else if (topic.endsWith("/powerMax"))  {
+                        _log.addProperty("v", (uint16_t)obj["val"]);
+                        mCfg->groups[topicGroup].powerMax = (uint16_t)obj["val"];
+                    }
                 }
                 else if (topic.indexOf("/inverter/") != -1)
                 {
                     if ((topicInverter >= 0) && (topicInverter < ZEROEXPORT_GROUP_MAX_INVERTERS))
                     {
                         // "topic":"ctrl/zero/groups/+/inverter/+/enabled"
-                        if (topic.endsWith("/enabled")) mCfg->groups[topicGroup].inverters[topicInverter].enabled = mLog["v"] = (bool)obj["val"];
+                        if (topic.endsWith("/enabled")) {
+                            _log.addProperty("v", (bool)obj["val"]);
+                            mCfg->groups[topicGroup].inverters[topicInverter].enabled = (bool)obj["val"];
+                        }
 
                         // "topic":"ctrl/zero/groups/+/inverter/+/powerMin"
-                        else if (topic.endsWith("/powerMin")) mCfg->groups[topicGroup].inverters[topicInverter].powerMin = mLog["v"] = (uint16_t)obj["val"];
-
+                        else if (topic.endsWith("/powerMin")) {
+                            _log.addProperty("v", (uint16_t)obj["val"]);
+                            mCfg->groups[topicGroup].inverters[topicInverter].powerMin = (uint16_t)obj["val"];
+                        }
                         // "topic":"ctrl/zero/groups/+/inverter/+/powerMax"
-                        else if (topic.endsWith("/powerMax")) mCfg->groups[topicGroup].inverters[topicInverter].powerMax = mLog["v"] = (uint16_t)obj["val"];
-                        else mLog["k"] = "error";
+                        else if (topic.endsWith("/powerMax")) {
+                            _log.addProperty("v", (uint16_t)obj["val"]);
+                            mCfg->groups[topicGroup].inverters[topicInverter].powerMax = (uint16_t)obj["val"];
+                        }
+                        else
+                        {
+                            _log.addProperty("k", "error");
+                        }
                     }
                 }
                 else {
-                    mLog["k"] = "error";
+                    _log.addProperty("k", "error");
                 }
             }
         }
 
         sendLog();
-        clearLog();
         return;
     }
 
@@ -770,7 +825,8 @@ class ZeroExport {
         while (*pGroupSection != '/' && digitsCopied < 2) strGroup[digitsCopied++] = *pGroupSection++;
         strGroup[digitsCopied] = '\0';
         int8_t group = atoi(strGroup);
-        mLog["getGroupFromTopic"] = group;
+
+        _log.addProperty("getGroupFromTopic", "group");
         return group;
     }
 
@@ -819,7 +875,7 @@ class ZeroExport {
     void sendLog(void) {
         // Log over Webserial
         if (mCfg->log_over_webserial) {
-            DPRINTLN(DBG_INFO, String("ze: ") + mDocLog.as<String>());
+            DPRINTLN(DBG_INFO, String("ze: ") + _log.toString());
         }
 
         // Log over MQTT
@@ -836,11 +892,14 @@ class ZeroExport {
      * Löscht den LogSpeicher
      */
     void clearLog(void) {
-        mDocLog.clear();
+        _log.clear();
     }
 
     // private member variables
     bool mIsInitialized = false;
+
+    // Maximale Größe des JSON-Dokuments
+    static const size_t max_size = 5000;
 
     IApp *mApp = nullptr;
     uint32_t *mTimestamp = nullptr;
@@ -855,15 +914,12 @@ class ZeroExport {
 
     unsigned long mLastRun = 0;
 
-    StaticJsonDocument<5000> mDocLog;
-    JsonObject mLog = mDocLog.to<JsonObject>();
-
     powermeter mPowermeter;
 
     PubMqttType *mMqtt = nullptr;
     bool mIsSubscribed = false;
-    StaticJsonDocument<512> mqttDoc;  // DynamicJsonDocument mqttDoc(512);
-    JsonObject mqttObj = mqttDoc.to<JsonObject>();
+
+    DynamicJsonHandler _log;
 };
 
 #endif /*__ZEROEXPORT__*/
