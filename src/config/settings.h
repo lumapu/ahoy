@@ -313,14 +313,15 @@ typedef struct {
     unsigned long lastRefresh;
     uint16_t wait;
 
+    bool battSwitchInit;
     bool battSwitch;
 
     // PID controller
     float eSum;
     float eOld;
-    float Kp;
-    float Ki;
-    float Kd;
+    uint8_t Kp;
+    uint8_t Ki;
+    uint8_t Kd;
     float y;
 } zeroExportGroup_t;
 
@@ -704,7 +705,7 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].minimum = true;
                 mCfg.plugin.zeroExport.groups[group].powerTolerance = 10;
                 mCfg.plugin.zeroExport.groups[group].powerMax = 600;
-                mCfg.plugin.zeroExport.groups[group].Kp = -1;
+                mCfg.plugin.zeroExport.groups[group].Kp = 50;
                 mCfg.plugin.zeroExport.groups[group].Ki = 0;
                 mCfg.plugin.zeroExport.groups[group].Kd = 0;
                 //
@@ -716,6 +717,7 @@ class settings {
 //                mCfg.plugin.zeroExport.groups[group].pm_P2 = 0;
 //                mCfg.plugin.zeroExport.groups[group].pm_P3 = 0;
 
+                mCfg.plugin.zeroExport.groups[group].battSwitchInit = false;
                 mCfg.plugin.zeroExport.groups[group].battSwitch = false;
                 mCfg.plugin.zeroExport.groups[group].power = 0;
             }
@@ -1102,11 +1104,11 @@ class settings {
                 if (obj.containsKey(F("powerMax")))
                     getVal<uint16_t>(obj, F("powerMax"), &mCfg.plugin.zeroExport.groups[group].powerMax);
                 if (obj.containsKey(F("Kp")))
-                    getVal<float>(obj, F("Kp"), &mCfg.plugin.zeroExport.groups[group].Kp);
+                    getVal<uint8_t>(obj, F("Kp"), &mCfg.plugin.zeroExport.groups[group].Kp);
                 if (obj.containsKey(F("Ki")))
-                    getVal<float>(obj, F("Ki"), &mCfg.plugin.zeroExport.groups[group].Ki);
+                    getVal<uint8_t>(obj, F("Ki"), &mCfg.plugin.zeroExport.groups[group].Ki);
                 if (obj.containsKey(F("Kd")))
-                    getVal<float>(obj, F("Kd"), &mCfg.plugin.zeroExport.groups[group].Kd);
+                    getVal<uint8_t>(obj, F("Kd"), &mCfg.plugin.zeroExport.groups[group].Kd);
             }
         }
 

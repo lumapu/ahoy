@@ -1,6 +1,13 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://github.com/lumpapu/ahoy
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+//
+// The DynamicJsonHandler class is a helper class designed to facilitate the handling of JSON documents on embedded systems such as the ESP32. 
+// It uses the ArduinoJson library to dynamically manage JSON data and provides functionality for adding properties, 
+// serializing the document, and managing storage.
+//
+// Written from tictrick & DanielR92
+//
 //-----------------------------------------------------------------------------
 
 #ifndef __DYNAMICJSONHANDLER_H__
@@ -9,6 +16,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <string>
+#include "config/settings.h"    // needed for MAX_ALLOWED_BUF_SIZE
 
 class DynamicJsonHandler {
 public:
@@ -24,8 +32,8 @@ public:
 
 private:
     DynamicJsonDocument doc;
-    static const size_t min_size = 256;
-    static const size_t max_size = 5000; // Max RAM : 2 = da es für resizeDocument eng werden könnte?
+    const size_t min_size = 256;
+    const size_t max_size = MAX_ALLOWED_BUF_SIZE / 2; // Max RAM : 2 = da es für resizeDocument eng werden könnte?
 
     void resizeDocument(size_t requiredSize);
     size_t min(size_t a, size_t b);

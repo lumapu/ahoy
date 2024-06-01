@@ -866,12 +866,12 @@ class RestApi {
                 // Advanced
                 objGroup[F("setPoint")]  = (int16_t)mConfig->plugin.zeroExport.groups[group].setPoint;
                 objGroup[F("minimum")]  = (bool)mConfig->plugin.zeroExport.groups[group].minimum;
-                objGroup[F("power")]  = (int32_t)mConfig->plugin.zeroExport.groups[group].power;
+                objGroup[F("power")]  = (float)mConfig->plugin.zeroExport.groups[group].power;
                 objGroup[F("powerTolerance")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].powerTolerance;
                 objGroup[F("powerMax")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].powerMax;
-                objGroup[F("Kp")]  = ah::round3((float)mConfig->plugin.zeroExport.groups[group].Kp);
-                objGroup[F("Ki")]  = ah::round3((float)mConfig->plugin.zeroExport.groups[group].Ki);
-                objGroup[F("Kd")]  = ah::round3((float)mConfig->plugin.zeroExport.groups[group].Kd);
+                objGroup[F("Kp")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].Kp;
+                objGroup[F("Ki")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].Ki;
+                objGroup[F("Kd")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].Kd;
             }
         }
         #endif
@@ -1146,8 +1146,8 @@ class RestApi {
             // Plugin ZeroExport
             #if defined(PLUGIN_ZEROEXPORT)
             else if(F("ze_batt_onff") == jsonIn[F("cmd")]) {
-                uint8_t group = jsonIn[F("id")];
-                mConfig->plugin.zeroExport.groups[group].battSwitch = (bool)jsonIn[F("battSwitch")];
+                uint8_t group = (uint8_t)jsonIn[F("id")];
+                mConfig->plugin.zeroExport.groups[group].battSwitch = (bool)jsonIn[F("val")];
             }
             else if(F("ze_save_group") == jsonIn[F("cmd")]) {
                 // General
