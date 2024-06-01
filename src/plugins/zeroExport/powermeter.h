@@ -294,7 +294,7 @@ class powermeter {
     /** setHeader
      *
      */
-    void setHeader(HTTPClient *h, String auth = "", u8_t realm = NULL) {
+    void setHeader(HTTPClient *h, String auth = "", u8_t realm = 0) {
         h->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 ///        h->setUserAgent("Ahoy-Agent");
 ///        // TODO: Ahoy-0.8.850024-zero

@@ -24,7 +24,7 @@ class ZeroExport {
     /** ZeroExport
      * constructor
      */
-    ZeroExport() {}
+    ZeroExport() { }
 
     /** ~ZeroExport
      * destructor
@@ -91,6 +91,31 @@ class ZeroExport {
         zeroExportGroup_t *CfgGroup = &mCfg->groups[group];
         zeroExportGroupInverter_t *CfgGroupInv = &CfgGroup->inverters[inv];
         Inverter<> *iv = mSys->getInverterByPos(Queue.id);
+        if(NULL == iv) return;
+
+        if(!CfgGroup->battSwitch && !CfgGroup->battSwitchInit)
+        {
+            if(!iv->alarmCnt) return;
+            bool stb_flag = false;
+
+            for(int16_t i = 0; i < iv->alarmCnt; i++) {
+                if(iv->lastAlarm[i].code == 124) {
+                    stb_flag = true;
+                    _log.addProperty("alarm1", stb_flag);
+                    _log.addProperty("start", iv->lastAlarm[i].start );
+                    _log.addProperty("end", iv->lastAlarm[i].end );
+
+                    if (iv->lastAlarm[i].end > iv->lastAlarm[i].start) {
+                        stb_flag = false;
+                        _log.addProperty("alarm2", stb_flag);
+                    }
+                    sendLog();
+                    clearLog();
+                }
+            }
+            if(!stb_flag) CfgGroup->battSwitch = true;
+            CfgGroup->battSwitchInit = true;
+        }
 
         _log.addProperty("g", group);
         _log.addProperty("i", inv);
@@ -115,7 +140,7 @@ class ZeroExport {
             return;
         }
 
-
+        // Wird nur zum debuggen benötigt?
         uint16_t groupPower = 0;
         uint16_t groupLimit = 0;
         for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
@@ -125,6 +150,8 @@ class ZeroExport {
 
         _log.addProperty("gP", groupPower);
         _log.addProperty("gL", groupLimit);
+        // Wird nur zum debuggen benötigt?
+
 
         // Batteryprotection
         _log.addProperty("bEn", (uint8_t)CfgGroup->battCfg);
@@ -145,10 +172,10 @@ class ZeroExport {
                         CfgGroup->battSwitch = true;
                         _log.addProperty("bA", "turn on");
                     }
-                    if ((CfgGroup->battValue > CfgGroup->battLimitOff) && (CfgGroupInv->power > 0)) {
-                        CfgGroup->battSwitch = true;
-                        _log.addProperty("bA", "turn on");
-                    }
+                    //if ((CfgGroup->battValue > CfgGroup->battLimitOff) && (CfgGroupInv->power > 0)) {
+                    //    CfgGroup->battSwitch = true;
+                    //    _log.addProperty("bA", "turn on");
+                    //}
                 } else {
                     if (CfgGroup->battValue < CfgGroup->battLimitOff) {
                         CfgGroup->battSwitch = false;
