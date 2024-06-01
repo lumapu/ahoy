@@ -313,6 +313,7 @@ typedef struct {
     unsigned long lastRefresh;
     uint16_t wait;
 
+    bool battSwitchInit;
     bool battSwitch;
 
     // PID controller
@@ -716,6 +717,7 @@ class settings {
 //                mCfg.plugin.zeroExport.groups[group].pm_P2 = 0;
 //                mCfg.plugin.zeroExport.groups[group].pm_P3 = 0;
 
+                mCfg.plugin.zeroExport.groups[group].battSwitchInit = false;
                 mCfg.plugin.zeroExport.groups[group].battSwitch = false;
                 mCfg.plugin.zeroExport.groups[group].power = 0;
             }
