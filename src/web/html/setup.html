@@ -1454,9 +1454,9 @@
                         divRow("{#ZE_GROUP_TAB_ADVANCED_MINIMUM}", cb_minimum),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_POWERTOLERANCE}", ml("input", {name: "powerTolerance", class: "text", type: "number", min: "0", max: "255", value: obj.powerTolerance}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_POWERMAX}", ml("input", {name: "powerMax", class: "text", type: "number", min: "0", max: "65535", value: obj.powerMax}, null)),
-                        divRow("{#ZE_GROUP_TAB_ADVANCED_KP}", ml("input", {name: "Kp", class: "text", type: "number", min: "-1", max: "0", step: "0.001", value: obj.Kp}, null)),
-                        divRow("{#ZE_GROUP_TAB_ADVANCED_KI}", ml("input", {name: "Ki", class: "text", type: "number", min: "-0.01", max: "0", step: "0.001", value: obj.Ki}, null)),
-                        divRow("{#ZE_GROUP_TAB_ADVANCED_KD}", ml("input", {name: "Kd", class: "text", type: "number", min: "-0.01", max: "0", step: "0.001", value: obj.Kd}, null)),
+                        divRow("{#ZE_GROUP_TAB_ADVANCED_KP}", ml("input", {name: "Kp", class: "text", type: "number", min: "0", max: "100", step: "1", value: obj.Kp}, null)),
+                        divRow("{#ZE_GROUP_TAB_ADVANCED_KI}", ml("input", {name: "Ki", class: "text", type: "number", min: "0", max: "100", step: "1", value: obj.Ki}, null)),
+                        divRow("{#ZE_GROUP_TAB_ADVANCED_KD}", ml("input", {name: "Kd", class: "text", type: "number", min: "0", max: "100", step: "1", value: obj.Kd}, null)),
 // TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
                         divRow("Hinweis: ", ml("a", {href: "https://docs.ahoydtu.de/de/latest/zeroExport.html"}, "Bitte beachten Sie die Ausf&uuml;llhinweise in der Dokumentation."),),
 // TODO: Hinweis Github/Discord - Entfernen wenn erledigt
@@ -1734,7 +1734,7 @@
                     o.power = 0;
                     o.powerTolerance = 10;
                     o.powerMax = 600;
-                    o.Kp = -1;
+                    o.Kp = 50;
                     o.Ki = 0;
                     o.Kd = 0;
                     // Global

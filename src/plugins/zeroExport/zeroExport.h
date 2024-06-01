@@ -195,9 +195,9 @@ class ZeroExport {
         }
 
         // Regler
-        float Kp = CfgGroup->Kp;
-        float Ki = CfgGroup->Ki;
-        float Kd = CfgGroup->Kd;
+        float Kp = CfgGroup->Kp * -0.01;
+        float Ki = CfgGroup->Ki * -0.001;
+        float Kd = CfgGroup->Kd * -0.001;
         unsigned long Ta = Tsp - CfgGroup->lastRefresh;
         CfgGroup->lastRefresh = Tsp;
         int16_t yP = Kp * e;
