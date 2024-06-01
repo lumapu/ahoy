@@ -1290,29 +1290,21 @@
             /*IF_PLUGIN_ZEROEXPORT*/
 
             function apiCbBattOnOff(obj) {
-//                var e = document.getElementById("battSwitch");
-//                e.value = "88";
-//                selDelAllOpt(e);
-//                if(obj["success"])
-//                    e.appendChild(opt("-1", "{#NETWORK_SCANNING}"))
-//                else
-//                    e.appendChild(opt("-1", "{#ERROR} " + obj["error"]));
+                var e = document.getElementById("battSwitch");
+                if(obj["success"]) {
+                    // dann über ajax denn gesetzten wert zurück aus dem system holen
+                    modalClose();
+                    getAjax("/api/setup", parse);
+                }
+                else
+                    e.innerHTML = "{#ERROR}" + obj["error"];
+
             }
 
             function battOnOff() {
-                // TODO: zuerst wert setzen
-                // dann über ajax denn gesetzten wert zurück aus dem system holen
-                // damit man sieht das es erfolgreich gesetzt worden ist.
                 const sw = document.getElementById("battSwitch");
-                if (sw.value == 0) {
-                    sw.value = 1;
-                    sw.innerHTML = "{#BTN_ON}";
-                } else {
-                    sw.value = 0;
-                    sw.innerHTML = "{#BTN_OFF}";
-                }
-
-                var obj = {cmd: "ze_batt_onff", token: "*"}
+                if(sw == null) return;
+                var obj = {cmd: "ze_batt_onff", token: "*", id: parseInt(sw.dataset.group), val: (sw.dataset.status === "true") ? false : true}
                 getAjax("/api/setup", apiCbBattOnOff, "POST", JSON.stringify(obj));
             }
 
@@ -1442,7 +1434,7 @@
                         divRow("{#ZE_GROUP_TAB_BATTERY_TOPIC}", ml("input", {name: "battTopic", class: "text", type: "text", value: obj.battTopic}, null),),
                         divRow("{#ZE_GROUP_TAB_BATTERY_LIMITON}", ml("input", {name: "battLimitOn", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battLimitOn}, null),),
                         divRow("{#ZE_GROUP_TAB_BATTERY_LIMITOFF}", ml("input", {name: "battLimitOff", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battLimitOff}, null),),
-                        divRow("{#ZE_GROUP_TAB_BATTERY_ONOFF}", ml("input", {name: "battSwitch", id: "battSwitch", class: "btn", type: "button",  value: obj.battSwitch}, null)),
+                        divRow("{#ZE_GROUP_TAB_BATTERY_ONOFF}", ml("input", {name: "battSwitch", id: "battSwitch", "data-group": String(obj.id), "data-status": String(obj.battSwitch), class: "btn", type: "button",  value: (obj.battSwitch ? "{#BTN_ON}" : "{#BTN_OFF}")}, null)),
 // TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
                         divRow("Hinweis: ", ml("a", {href: "https://docs.ahoydtu.de/de/latest/zeroExport.html"}, "Bitte beachten Sie die Ausf&uuml;llhinweise in der Dokumentation."),),
 // TODO: Hinweis Github/Discord - Entfernen wenn erledigt
