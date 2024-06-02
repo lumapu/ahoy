@@ -76,13 +76,9 @@ void app::setup() {
     mCommunication.addPowerPowerAckListener([this] (Inverter<> *iv) {
         mZeroExport.eventAckSetPower(iv);
     });
-    #endif /*PLUGIN_ZEROEXPORT*/
-    #if defined(PLUGIN_ZEROEXPORT)
     mCommunication.addPowerRebootAckListener([this] (Inverter<> *iv) {
         mZeroExport.eventAckSetReboot(iv);
     });
-    #endif /*PLUGIN_ZEROEXPORT*/
-    #if defined(PLUGIN_ZEROEXPORT)
     mCommunication.addNewDataListener([this] (Inverter<> *iv) {
         mZeroExport.eventNewDataAvailable(iv);
     });

@@ -67,7 +67,9 @@
 
 #define MQTT_MAX_PACKET_SIZE    384
 
-
+#if defined(PLUGIN_ZEROEXPORT)
+#define ZEXPORT_ADDR_LEN        100 // Zero-Export Address
+#endif /*PLUGIN_ZEROEXPORT*/
 typedef struct {
     uint8_t ip[4];      // ip address
     uint8_t mask[4];    // sub mask
