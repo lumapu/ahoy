@@ -27,11 +27,22 @@ def getFlagsOfEnv(env):
         elif len(flags[i]) > 0:
             build_flags = build_flags + [flags[i]]
 
+def parseDefinesH():
+    global build_flags
+    pattern = r'^\s*#\s*define\s+(\w+)'
+
+    with open("defines.h", "r") as f:
+        for line in f:
+            match = re.match(pattern, line)
+            if match:
+                build_flags += [match.group(1)]
+
 
 def get_build_flags():
     getFlagsOfEnv("env:" + env['PIOENV'])
     config = configparser.ConfigParser()
     config.read('platformio.ini')
+    parseDefinesH()
 
     # translate board
     board = config["env:" + env['PIOENV']]['board']

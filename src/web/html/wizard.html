@@ -4,7 +4,7 @@
         <title>{#NAV_WIZARD}</title>
         {#HTML_HEADER}
     </head>
-    <body>
+    <body onload="init()">
         <div id="wrapper">
             <div class="container d-flex aic jc">
                 <div id="con"></div>
@@ -14,6 +14,7 @@
             var v;
             var found = false;
             var c = document.getElementById("con");
+            var redirIp = "http://192.168.4.1/index"
 
             /*IF_ESP32*/
             var pinList = [
@@ -206,7 +207,7 @@
                     ]),
                     ...lst,
                     ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn", value: "{#BTN_REBOOT}", onclick: () => {saveEth()}}, null))),
-                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/"}, "{#STOP_WIZARD}")))
+                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {onclick: () => {redirect()}}, "{#STOP_WIZARD}")))
                 ])
             }
             /*ELSE*/
@@ -218,7 +219,7 @@
                     sect("{#WIFI_MANUAL}", ml("input", {id: "man", type: "text"})),
                     sect("{#WIFI_PASSWORD}", ml("input", {id: "pwd", type: "password"})),
                     ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn", value: "{#BTN_NEXT}", onclick: () => {saveWifi()}}, null))),
-                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/index"}, "{#STOP_WIZARD}")))
+                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {onclick: () => {redirect()}}, "{#STOP_WIZARD}")))
                 ])
             }
             /*ENDIF_ETHERNET*/
@@ -229,17 +230,17 @@
                     ml("div", {class: "row"}, ml("div", {class: "col"}, ml("span", {class: "fs-5"}, "{#TEST_CONNECTION}"))),
                     sect("{#TRY_TO_CONNECT}", ml("span", {id: "state"}, "{#CONNECTING}")),
                     ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn hide", id: "btn", value: "{#BTN_FINISH}", onclick: () => {redirect()}}, null))),
-                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/index"}, "{#STOP_WIZARD}")))
+                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {onclick: () => {redirect()}}, "{#STOP_WIZARD}")))
                 )
-                v = setInterval(() => {getAjax('/api/setup/getip', printIp)}, 300);
+                v = setInterval(() => {getAjax('/api/setup/getip', printIp)}, 1000);
             }
 
             function redirect() {
-                window.location.replace("http://192.168.4.1/")
+                window.location.replace(redirIp)
             }
 
             function printIp(obj) {
-                if("0.0.0.0" != obj["ip"]) {
+                if("0.0.0.0" != obj.ip) {
                     clearInterval(v)
                     setHide("btn", false)
                     document.getElementById("state").innerHTML = "{#NETWORK_SUCCESS}" + obj.ip
@@ -266,29 +267,36 @@
             }
             /*ENDIF_ETHERNET*/
 
-            /*IF_ETHERNET*/
-            getAjax("/api/setup", ((o) => c.append(step1(o.eth))));
-            /*ELSE*/
-            function nets(obj) {
-                if(!obj.success)
-                    return;
+            function init() {
+                /*IF_ETHERNET*/
+                getAjax("/api/setup", ((o) => c.append(step1(o.eth))));
+                /*ELSE*/
+                function nets(obj) {
+                    clearInterval(v)
+                    v = setInterval(() => {getAjax('/api/setup/networks', nets)}, 4000)
 
-                var e = document.getElementById("net");
-                if(obj.networks.length > 0) {
-                    var a = []
-                    a.push(ml("option", {value: -1}, obj.networks.length + " {#NUM_NETWORKS_FOUND}"))
-                    for(n of obj.networks) {
-                        a.push(ml("option", {value: n.ssid}, n.ssid + " (" + n.rssi + "dBm)"))
-                        found = true;
+                    if(!obj.success)
+                        return;
+
+                    var e = document.getElementById("net");
+                    if(obj.networks.length > 0) {
+                        var a = []
+                        a.push(ml("option", {value: -1}, obj.networks.length + " {#NUM_NETWORKS_FOUND}"))
+                        for(n of obj.networks) {
+                            a.push(ml("option", {value: n.ssid}, n.ssid + " (" + n.rssi + "dBm)"))
+                            found = true;
+                        }
+                        e.replaceChildren(...a)
                     }
-                    e.replaceChildren(...a)
-                }
-            }
 
-            c.append(step1())
-            getAjax('/api/setup/networks', nets)
-            v = setInterval(() => {getAjax('/api/setup/networks', nets)}, 1000)
-            /*ENDIF_ETHERNET*/
+                    if("0.0.0.0" != obj.ip)
+                        redirIp = "http://" + obj.ip + "/index"
+                }
+
+                c.append(step1())
+                getAjax('/api/setup/networks', nets)
+                /*ENDIF_ETHERNET*/
+            }
 
         </script>
     </body>

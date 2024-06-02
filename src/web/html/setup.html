@@ -52,14 +52,18 @@
                     <div class="s_content">
                         <fieldset class="mb-2">
                             <legend class="des">WiFi</legend>
-
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-3 my-2">{#AP_PWD}</div>
                                 <div class="col-12 col-sm-9"><input type="text" name="ap_pwd" minlength="8" /></div>
                             </div>
+                            <!--IF_ETHERNET-->
+                            <!--ELSE-->
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3 my-2">SSID</div>
-                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/><br/><a href="/wizard">{#SCAN_WIFI}</a></div>
+                                <div class="col-12 col-sm-9">
+                                    <input type="text" name="ssid"/><br/>
+                                    <a href="/wizard">{#SCAN_WIFI}</a>
+                                </div>
                             </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3">{#SSID_HIDDEN}</div>
@@ -69,6 +73,7 @@
                                 <div class="col-12 col-sm-3 my-2">{#PASSWORD}</div>
                                 <div class="col-12 col-sm-9"><input type="password" name="pwd" value="{PWD}"/></div>
                             </div>
+                            <!--ENDIF_ETHERNET-->
                         </fieldset>
                         <fieldset class="mb-4">
                             <legend class="des">{#STATIC_IP}</legend>
@@ -125,7 +130,11 @@
                                 <div class="col-4"><input type="checkbox" name="invRstMid"/></div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-8 mb-2">{#INV_PAUSE_SUNSET}</div>
+                                <div class="col-8 mb-2">{#INV_RESET_SUNRISE}</div>
+                                <div class="col-4"><input type="checkbox" name="invRstComStart"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 mb-2">{#INV_RESET_SUNSET}</div>
                                 <div class="col-4"><input type="checkbox" name="invRstComStop"/></div>
                             </div>
                             <div class="row mb-3">
@@ -133,7 +142,7 @@
                                 <div class="col-4"><input type="checkbox" name="invRstNotAvail"/></div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-8">{#INV_RESET_MAX_MIDNIGHT}</div>
+                                <div class="col-8">{#INV_RESET_MAX_VALUES}</div>
                                 <div class="col-4"><input type="checkbox" name="invRstMaxMid"/></div>
                             </div>
                             <div class="row mb-3">
@@ -231,6 +240,10 @@
                                 <div class="col-12 col-sm-3 my-2">Topic</div>
                                 <div class="col-12 col-sm-9"><input type="text" name="mqttTopic" pattern="[\-\+A-Za-z0-9\.\/#\$%&=_]+" title="Invalid input" /></div>
                             </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#MQTT_JSON}</div>
+                                <div class="col-12 col-sm-9"><input type="checkbox" name="mqttJson" /></div>
+                            </div>
                             <p class="des">{#MQTT_NOTE}</p>
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-3 my-2">{#INTERVAL}</div>
@@ -242,6 +255,10 @@
                                     <input type="button" name="mqttDiscovery" id="mqttDiscovery" class="btn" value="{#BTN_SEND}" onclick="sendDiscoveryConfig()"/>
                                     <span id="apiResultMqtt"></span>
                                 </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#RETAIN}</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="retain"/></div>
                             </div>
                         </fieldset>
                     </div>
@@ -279,7 +296,7 @@
                             <div id="screenSaver"></div>
                             <div class="row mb-3" id="luminanceOption">
                                 <div class="col-12 col-sm-3 my-2">{#DISP_LUMINANCE}</div>
-                                <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="0" max="255"></select></div>
+                                <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="0" max="255"></div>
                             </div>
                             <p class="des">{#DISP_PINOUT}</p>
                             <div id="dispPins"></div>
@@ -288,7 +305,7 @@
                                 <p class="des">{#GRAPH_OPTIONS}</p>
                                 <div class="row mb-3">
                                     <div class="col-12 col-sm-3 my-2">{#GRAPH_SHOW_RATIO}</div>
-                                    <div class="col-12 col-sm-9"><input type="number" name="disp_graph_ratio" min="0" max="100"></select></div>
+                                    <div class="col-12 col-sm-9"><input type="number" name="disp_graph_ratio" min="0" max="100"></div>
                                 </div>
                                 <div id="graphSize"></div>
                             </div>
@@ -335,8 +352,8 @@
                             <div class="col-12 col-sm-9">
                                 <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
                                     <div class="row">
-                                        <div class="col-12 col-sm-8 my-2"><input type="file" name="upload"></div>
-                                        <div class="col-12 col-sm-4 my-2"><input type="button" class="btn" value="Import" onclick="hide()"></div>
+                                        <div class="col-12 col-sm-8 my-2"><input type="file" id="importFileInput" name="upload"></div>
+                                        <div class="col-12 col-sm-4 my-2"><input type="button" id="importButton" class="btn" value="Import" onclick="hide()"></div>
                                     </div>
                                 </form>
                             </div>
@@ -627,6 +644,22 @@
                 getAjax("/api/setup", apiCbMqtt, "POST", JSON.stringify(obj));
             }
 
+            document.addEventListener('DOMContentLoaded', () => {
+                const fileInput = document.querySelector('#importFileInput');
+                const button = document.querySelector('#importButton');
+                button.disabled = true;
+                button.title = "Please select a file first";
+                fileInput.addEventListener('change', () => {
+                    if (fileInput.value) {
+                        button.disabled = false;
+                        button.title = "";
+                    } else {
+                        button.disabled = true;
+                        button.title = "Please select a file first";
+                    }
+                });
+            });
+
             function hide() {
                 document.getElementById("form").submit();
                 var e = document.getElementById("content");
@@ -668,16 +701,21 @@
             function ivGlob(obj) {
                 for(var i of [["invInterval", "interval"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
-                for(var i of ["Mid", "ComStop", "NotAvail", "MaxMid"])
+                for(var i of ["Mid", "ComStop", "ComStart", "NotAvail", "MaxMid"])
                     document.getElementsByName("invRst"+i)[0].checked = obj["rst" + i];
                 document.getElementsByName("strtWthtTm")[0].checked = obj["strtWthtTm"];
                 document.getElementsByName("rdGrid")[0].checked = obj["rdGrid"];
             }
 
             function parseSys(obj) {
+                /*IF_ETHERNET*/
+                for(var i of [["device", "device_name"], ["ap_pwd", "ap_pwd"]])
+                    document.getElementsByName(i[0])[0].value = obj[i[1]];
+                /*ELSE*/
                 for(var i of [["device", "device_name"], ["ssid", "ssid"], ["ap_pwd", "ap_pwd"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
                 document.getElementsByName("hidd")[0].checked = obj["hidd"];
+                /*ENDIF_ETHERNET*/
                 document.getElementsByName("darkMode")[0].checked = obj["dark_mode"];
                 document.getElementsByName("schedReboot")[0].checked = obj["sched_reboot"];
                 e = document.getElementsByName("adminpwd")[0];
@@ -702,9 +740,10 @@
             }
 
             function parseGeneric(obj) {
-                parseNav(obj);
-                parseESP(obj);
-                parseRssi(obj);
+                parseNav(obj)
+                parseESP(obj)
+                parseRssi(obj)
+                parseTitle(obj)
 
                 if(0 != obj.cst_lnk.length) {
                     document.getElementsByName("cstLnk")[0].value = obj.cst_lnk
@@ -935,6 +974,8 @@
             function parseMqtt(obj) {
                 for(var i of [["Addr", "broker"], ["Port", "port"], ["ClientId", "clientId"], ["User", "user"], ["Pwd", "pwd"], ["Topic", "topic"], ["Interval", "interval"]])
                     document.getElementsByName("mqtt"+i[0])[0].value = obj[i[1]];
+                document.getElementsByName("mqttJson")[0].checked = obj["json"];
+                document.getElementsByName("retain")[0].checked = obj.retain
             }
 
             function parseNtp(obj) {
@@ -1857,18 +1898,6 @@
 
                     getAjax("/api/inverter/list", parseIv);
                 }
-            }
-
-            function listNetworks(root) {
-                var s = document.getElementById("networks");
-                selDelAllOpt(s);
-                if(root["networks"].length > 0) {
-                    s.appendChild(opt("-1", "{#NETWORK_PLEASE_SELECT}"));
-                    for(i = 0; i < root["networks"].length; i++) {
-                        s.appendChild(opt(root["networks"][i]["ssid"], root["networks"][i]["ssid"] + " (" + root["networks"][i]["rssi"] + " dBm)"));
-                    }
-                } else
-                    s.appendChild(opt("-1", "{#NO_NETWORK_FOUND}"));
             }
 
             getAjax("/api/setup", parse);

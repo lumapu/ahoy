@@ -40,10 +40,11 @@
                     + ("0"+min).substr(-2) + ":"
                     + ("0"+sec).substr(-2);
 
-                parseRssi(obj);
+                parseRssi(obj)
                 if(true == exeOnce) {
-                    parseNav(obj);
-                    parseESP(obj);
+                    parseNav(obj)
+                    parseESP(obj)
+                    parseTitle(obj)
                     window.setInterval("getAjax('/api/generic', parseGeneric)", 5000);
                     exeOnce = false;
                     setTimeOffset();

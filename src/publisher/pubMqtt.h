@@ -63,7 +63,7 @@ class PubMqtt {
             mUptime          = uptime;
             mIntervalTimeout = 1;
 
-            SendIvData.setup(sys, utcTs, &mSendList);
+            SendIvData.setup(app, sys, cfg_mqtt, utcTs, &mSendList);
             SendIvData.setPublishFunc([this](const char *subTopic, const char *payload, bool retained, uint8_t qos) {
                 publish(subTopic, payload, retained, true, qos);
             });
@@ -206,6 +206,9 @@ class PubMqtt {
             else
                 snprintf(mTopic.data(), mTopic.size(), "%s", subTopic);
 
+            if(!mCfgMqtt->enableRetain)
+                retained = false;
+
             mClient.publish(mTopic.data(), qos, retained, payload);
             yield();
             mTxCnt++;
@@ -254,7 +257,8 @@ class PubMqtt {
         void setPowerLimitAck(Inverter<> *iv) {
             if (NULL != iv) {
                 snprintf(mSubTopic.data(), mSubTopic.size(), "%s/%s", iv->config->name, subtopics[MQTT_ACK_PWR_LMT]);
-                publish(mSubTopic.data(), "true", true, true, QOS_2);
+                snprintf(mVal.data(), mVal.size(), "%.1f", iv->powerLimit[0]/10.0);
+                publish(mSubTopic.data(), mVal.data(), true, true, QOS_2);
             }
         }
 
@@ -457,7 +461,8 @@ class PubMqtt {
                     snprintf(topic.data(), topic.size(), "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(), fields[fldTotal[mDiscovery.sub]]);
                 size_t size = measureJson(doc2) + 1;
                 serializeJson(doc2, buf.data(), size);
-                publish(topic.data(), buf.data(), true, false);
+                if(FLD_EVT != rec->assign[mDiscovery.sub].fieldId)
+                    publish(topic.data(), buf.data(), true, false);
 
                 if(++mDiscovery.sub == ((!total) ? (rec->length) : 4)) {
                     mDiscovery.sub = 0;
@@ -577,6 +582,9 @@ class PubMqtt {
         }
 
         void sendData(Inverter<> *iv, uint8_t curInfoCmd) {
+            if (mCfgMqtt->json)
+                return;
+
             record_t<> *rec = iv->getRecordStruct(curInfoCmd);
 
             uint32_t lastTs = iv->getLastTs(rec);
@@ -620,6 +628,10 @@ class PubMqtt {
             mLastAnyAvail = anyAvail;
         }
 
+    private:
+        enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
+
+    private:
         espMqttClient mClient;
         cfgMqtt_t *mCfgMqtt = nullptr;
         IApp *mApp;

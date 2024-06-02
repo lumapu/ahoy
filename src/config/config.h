@@ -28,6 +28,11 @@
 
 // If the next line is uncommented, Ahoy will stay in access point mode all the time
 //#define AP_ONLY
+#if defined(AP_ONLY)
+    #if defined(ENABLE_MQTT)
+        #undef ENABLE_MQTT
+    #endif
+#endif
 
 // timeout for automatic logoff (20 minutes)
 #define LOGOUT_TIMEOUT      (20 * 60)
@@ -145,7 +150,7 @@
     #ifndef DEF_MOTION_SENSOR_PIN
         #define DEF_MOTION_SENSOR_PIN   DEF_PIN_OFF
     #endif
-#else
+#else // ESP8266
     #ifndef DEF_NRF_CS_PIN
         #define DEF_NRF_CS_PIN          15
     #endif

@@ -17,40 +17,36 @@ class AhoyWifi : public AhoyNetwork {
         void begin() override {
             mAp.enable();
 
-            // static IP
-            setupIp([this](IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2) -> bool {
-                return WiFi.config(ip, gateway, mask, dns1, dns2);
-            });
+            if(String(FB_WIFI_SSID) == mConfig->sys.stationSsid)
+                return; // no station wifi defined
 
+            WiFi.disconnect(); // clean up
             WiFi.setHostname(mConfig->sys.deviceName);
             #if !defined(AP_ONLY)
                 WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
                 WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+                setStaticIp();
                 WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd, WIFI_ALL_CHANNEL_SCAN);
+                mWifiConnecting = true;
 
                 DBGPRINT(F("connect to network '"));
                 DBGPRINT(mConfig->sys.stationSsid);
+                DBGPRINTLN(F("'"));
             #endif
         }
 
-        void tickNetworkLoop() override {
-            if(mAp.isEnabled())
-                mAp.tickLoop();
-
-            switch(mStatus) {
-                case NetworkState::DISCONNECTED:
-                    if(mConnected) {
-                        mConnected = false;
-                        mOnNetworkCB(false);
-                        mAp.enable();
-                        MDNS.end();
+        void OnEvent(WiFiEvent_t event) override {
+            switch(event) {
+                case SYSTEM_EVENT_STA_CONNECTED:
+                    if(NetworkState::CONNECTED != mStatus) {
+                        mStatus = NetworkState::CONNECTED;
+                        mWifiConnecting = false;
+                        DPRINTLN(DBG_INFO, F("Network connected"));
                     }
                     break;
 
-                case NetworkState::CONNECTED:
-                    break;
-
-                case NetworkState::GOT_IP:
+                case SYSTEM_EVENT_STA_GOT_IP:
+                    mStatus = NetworkState::GOT_IP;
                     if(mAp.isEnabled())
                         mAp.disable();
 
@@ -58,15 +54,43 @@ class AhoyWifi : public AhoyNetwork {
                         mConnected = true;
                         ah::welcome(WiFi.localIP().toString(), F("Station"));
                         MDNS.begin(mConfig->sys.deviceName);
-                        MDNS.addServiceTxt("http", "tcp", "path", "/");
                         mOnNetworkCB(true);
                     }
+                    break;
+
+                case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+                    [[fallthrough]];
+                case ARDUINO_EVENT_WIFI_STA_STOP:
+                    [[fallthrough]];
+                case SYSTEM_EVENT_STA_DISCONNECTED:
+                    mStatus = NetworkState::DISCONNECTED;
+                    if(mConnected) {
+                        mConnected = false;
+                        mOnNetworkCB(false);
+                        MDNS.end();
+                        begin();
+                    }
+                    break;
+
+                default:
                     break;
             }
         }
 
+        void tickNetworkLoop() override {
+            if(mAp.isEnabled())
+                mAp.tickLoop();
+        }
+
         String getIp(void) override {
             return WiFi.localIP().toString();
+        }
+
+    private:
+        void setStaticIp() override {
+            setupIp([this](IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2) -> bool {
+                return WiFi.config(ip, gateway, mask, dns1, dns2);
+            });
         }
 };
 

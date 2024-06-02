@@ -174,8 +174,6 @@ class Communication : public CommQueue<> {
                                         mFirstTry = false;
                                     mHeu.evalTxChQuality(q->iv, false, 0, 0);
                                     mHeu.getTxCh(q->iv);
-                                    //q->iv->radioStatistics.rxFailNoAnser++;  // should only be one of fail or retransmit.
-                                    //q->iv->radioStatistics.txCnt--;
                                     q->iv->radioStatistics.retransmits++;
                                     q->iv->radio->mRadioWaitTime.stopTimeMonitor();
                                     mState = States::START;
@@ -927,7 +925,7 @@ class Communication : public CommQueue<> {
             uint8_t oldState = rec->record[q->iv->getPosByChFld(0, FLD_EVT, rec)];
             if ( prntsts != oldState ) { // sth.'s changed?
                 stsok = false;
-                if(!oldState) {          // initial zero value? => just write this channel to main state and raise changed flags
+                if( (!oldState) || (!q->iv->alarmCnt) ) {          // initial zero value? => just write this channel to main state and raise changed flags
                     changedStatus = true;
                     q->iv->alarmCnt = 1; // minimum...
                 } else {

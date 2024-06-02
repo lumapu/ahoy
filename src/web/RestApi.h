@@ -41,7 +41,7 @@ class RestApi {
             mApp      = app;
             mSrv      = srv;
             mSys      = sys;
-            mRadioNrf = (HmRadio<>*)mApp->getRadioObj(true);
+            mRadioNrf = (NrfRadio<>*)mApp->getRadioObj(true);
             #if defined(ESP32)
             mRadioCmt = (CmtRadio<>*)mApp->getRadioObj(false);
             #endif
@@ -56,6 +56,9 @@ class RestApi {
             mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
 
             mSrv->on("/get_setup", HTTP_GET,  std::bind(&RestApi::onDwnldSetup, this, std::placeholders::_1));
+            #if defined(ESP32)
+            mSrv->on("/coredump", HTTP_GET,  std::bind(&RestApi::getCoreDump, this, std::placeholders::_1));
+            #endif
         }
 
         uint32_t getTimezoneOffset(void) {
@@ -104,9 +107,10 @@ class RestApi {
             else if(path == "setup/getip")    getIp(root);
             #endif /* !defined(ETHERNET) */
             else if(path == "live")           getLive(request,root);
-            else if (path == "powerHistory")  getPowerHistory(request, root);
-            else if (path == "powerHistoryDay")  getPowerHistoryDay(request, root);
-            else if (path == "yieldDayHistory") getYieldDayHistory(request, root);
+            #if defined(ENABLE_HISTORY)
+            else if (path == "powerHistory")  getPowerHistory(request, root, HistoryStorageType::POWER);
+            else if (path == "powerHistoryDay")  getPowerHistory(request, root, HistoryStorageType::POWER_DAY);
+            #endif /*ENABLE_HISTORY*/
             else {
                 if(path.substring(0, 12) == "inverter/id/")
                     getInverter(root, request->url().substring(17).toInt());
@@ -299,7 +303,6 @@ class RestApi {
             #if defined(ENABLE_HISTORY)
             ep[F("powerHistory")]     = url + F("powerHistory");
             ep[F("powerHistoryDay")]  = url + F("powerHistoryDay");
-            ep[F("yieldDayHistory")]  = url + F("yieldDayHistory");
             #endif
         }
 
@@ -349,6 +352,36 @@ class RestApi {
             fp.close();
         }
 
+        #if defined(ESP32)
+        void getCoreDump(AsyncWebServerRequest *request) {
+            const esp_partition_t *partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_COREDUMP, "coredump");
+            if (partition != NULL) {
+                size_t size = partition->size;
+
+                AsyncWebServerResponse *response = request->beginResponse("application/octet-stream", size, [size, partition](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
+                    if((index + maxLen) > size)
+                        maxLen = size - index;
+
+                    if (ESP_OK != esp_partition_read(partition, index, buffer, maxLen))
+                        DPRINTLN(DBG_ERROR, F("can't read partition"));
+
+                    return maxLen;
+                });
+
+                String filename = ah::getDateTimeStrFile(gTimezone.toLocal(mApp->getTimestamp()));
+                filename += "_v" + String(mApp->getVersion());
+                filename += "_" + String(ENV_NAME);
+
+                response->addHeader("Content-Description", "File Transfer");
+                response->addHeader("Content-Disposition", "attachment; filename=" + filename + "_coredump.bin");
+                request->send(response);
+            } else {
+                AsyncWebServerResponse *response = request->beginResponse(200, F("application/json; charset=utf-8"), "{}");
+                request->send(response);
+            }
+        }
+        #endif
+
         void getGeneric(AsyncWebServerRequest *request, JsonObject obj) {
             mApp->resetLockTimeout();
             #if !defined(ETHERNET)
@@ -360,6 +393,7 @@ class RestApi {
             obj[F("modules")]     = String(mApp->getVersionModules());
             obj[F("build")]       = String(AUTO_GIT_HASH);
             obj[F("env")]         = String(ENV_NAME);
+            obj[F("host")]        = mConfig->sys.deviceName;
             obj[F("menu_prot")]   = mApp->isProtected(request->client()->remoteIP().toString().c_str(), "", true);
             obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
             obj[F("menu_protEn")] = (bool) (mConfig->sys.adminPwd[0] != '\0');
@@ -387,7 +421,6 @@ class RestApi {
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
             obj[F("sched_reboot")] = (bool)mConfig->sys.schedReboot;
 
-            obj[F("hostname")]     = mConfig->sys.deviceName;
             obj[F("pwd_set")]      = (strlen(mConfig->sys.adminPwd) > 0);
             obj[F("prot_mask")]    = mConfig->sys.protectionMask;
 
@@ -436,8 +469,13 @@ class RestApi {
         void getHtmlSystem(AsyncWebServerRequest *request, JsonObject obj) {
             getSysInfo(request, obj.createNestedObject(F("system")));
             getGeneric(request, obj.createNestedObject(F("generic")));
+            #if defined(ESP32)
+            char tmp[300];
+            snprintf(tmp, 300, "<a href=\"/factory\" class=\"btn\">%s</a><br/><br/><a href=\"/reboot\" class=\"btn\">%s</a><br/><br/><a href=\"/coredump\" class=\"btn\">%s</a>", FACTORY_RESET, BTN_REBOOT, BTN_COREDUMP);
+            #else
             char tmp[200];
             snprintf(tmp, 200, "<a href=\"/factory\" class=\"btn\">%s</a><br/><br/><a href=\"/reboot\" class=\"btn\">%s</a>", FACTORY_RESET, BTN_REBOOT);
+            #endif
             obj[F("html")] = String(tmp);
         }
 
@@ -490,7 +528,9 @@ class RestApi {
 
         void getHtmlFactory(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
-            obj[F("html")] = F("Factory reset? <a class=\"btn\" href=\"/factorytrue\">yes</a> <a class=\"btn\" href=\"/\">no</a>");
+            char tmp[200];
+            snprintf(tmp, 200, "%s <a class=\"btn\" href=\"/factorytrue\">%s</a> <a class=\"btn\" href=\"/\">%s</a>", FACTORY_RESET, BTN_YES, BTN_NO);
+            obj[F("html")] = tmp;
         }
 
         void getHtmlFactoryTrue(AsyncWebServerRequest *request, JsonObject obj) {
@@ -573,12 +613,13 @@ class RestApi {
             }
             obj[F("interval")]          = String(mConfig->inst.sendInterval);
             obj[F("max_num_inverters")] = MAX_NUM_INVERTERS;
-            obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
+            obj[F("rstMid")]            = (bool)mConfig->inst.rstValsAtMidNight;
             obj[F("rstNotAvail")]       = (bool)mConfig->inst.rstValsNotAvail;
             obj[F("rstComStop")]        = (bool)mConfig->inst.rstValsCommStop;
+            obj[F("rstComStart")]       = (bool)mConfig->inst.rstValsCommStart;
             obj[F("strtWthtTm")]        = (bool)mConfig->inst.startWithoutTime;
             obj[F("rdGrid")]            = (bool)mConfig->inst.readGrid;
-            obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstMaxValsMidNight;
+            obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstIncludeMaxVals;
         }
 
         void getInverter(JsonObject obj, uint8_t id) {
@@ -603,6 +644,7 @@ class RestApi {
             obj[F("alarm_cnt")]        = iv->alarmCnt;
             obj[F("rssi")]             = iv->rssi;
             obj[F("ts_max_ac_pwr")]    = iv->tsMaxAcPower;
+            obj[F("ts_max_temp")]      = iv->tsMaxTemperature;
 
             JsonArray ch = obj.createNestedArray("ch");
 
@@ -710,7 +752,9 @@ class RestApi {
             obj[F("user")]       = String(mConfig->mqtt.user);
             obj[F("pwd")]        = (strlen(mConfig->mqtt.pwd) > 0) ? F("{PWD}") : String("");
             obj[F("topic")]      = String(mConfig->mqtt.topic);
+            obj[F("json")]       = (bool) mConfig->mqtt.json;
             obj[F("interval")]   = String(mConfig->mqtt.interval);
+            obj[F("retain")]     = (bool)mConfig->mqtt.enableRetain;
         }
 
         void getNtp(JsonObject obj) {
@@ -958,6 +1002,7 @@ class RestApi {
         #if !defined(ETHERNET)
         void getNetworks(JsonObject obj) {
             obj[F("success")] = mApp->getAvailNetworks(obj);
+            obj[F("ip")] = mApp->getIp();
         }
         #endif /* !defined(ETHERNET) */
 
@@ -968,6 +1013,7 @@ class RestApi {
         void getLive(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = mConfig->inst.sendInterval;
+            obj[F("max_total_pwr")] = ah::round3(mApp->getTotalMaxPower());
 
             for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
                 obj[F("ch0_fld_units")][fld] = String(units[fieldUnits[acList[fld]]]);
@@ -988,42 +1034,39 @@ class RestApi {
             }
         }
 
-        void getPowerHistory(AsyncWebServerRequest *request, JsonObject obj) {
+        #if defined(ENABLE_HISTORY)
+        void getPowerHistory(AsyncWebServerRequest *request, JsonObject obj, HistoryStorageType type) {
             getGeneric(request, obj.createNestedObject(F("generic")));
-            #if defined(ENABLE_HISTORY)
-            obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::POWER);
+            obj[F("refresh")] = mApp->getHistoryPeriod(static_cast<uint8_t>(type));
+
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
-                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::POWER, fld);
+                uint16_t value = mApp->getHistoryValue(static_cast<uint8_t>(type), fld);
                 obj[F("value")][fld] = value;
                 if (value > max)
                     max = value;
             }
             obj[F("max")] = max;
-            obj[F("lastValueTs")] = mApp->getHistoryLastValueTs((uint8_t)HistoryStorageType::POWER);
-            #endif /*ENABLE_HISTORY*/
-        }
 
-        void getPowerHistoryDay(AsyncWebServerRequest *request, JsonObject obj){
-            //getGeneric(request, obj.createNestedObject(F("generic")));
-            #if defined(ENABLE_HISTORY)
-            obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::POWER_DAY);
-            uint16_t max = 0;
-            for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
-                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::POWER_DAY, fld);
-                obj[F("value")][fld] = value;
-                if (value > max)
-                    max = value;
+            if(HistoryStorageType::POWER_DAY == type) {
+                float yldDay = 0;
+                for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
+                    Inverter<> *iv = mSys->getInverterByPos(i);
+                    if (iv == NULL)
+                        continue;
+                    record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                    yldDay += iv->getChannelFieldValue(CH0, FLD_YD, rec);
+                }
+                obj[F("yld")] = ah::round3(yldDay / 1000.0);
             }
-            obj[F("max")] = max;
-            obj[F("lastValueTs")] = mApp->getHistoryLastValueTs((uint8_t)HistoryStorageType::POWER_DAY);
-            #endif /*ENABLE_HISTORY*/
+
+            obj[F("lastValueTs")] = mApp->getHistoryLastValueTs(static_cast<uint8_t>(type));
         }
+        #endif /*ENABLE_HISTORY*/
 
 
+        #if defined(ENABLE_HISTORY_YIELD_PER_DAY)
         void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
-            //getGeneric(request, obj.createNestedObject(F("generic")));
-            #if defined(ENABLE_HISTORY) && defined(ENABLE_HISTORY_YIELD_PER_DAY)
             obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::YIELD);
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
@@ -1033,8 +1076,8 @@ class RestApi {
                     max = value;
             }
             obj[F("max")] = max;
-            #endif /*ENABLE_HISTORY*/
         }
+        #endif /*ENABLE_HISTORY_YIELD_PER_DAY*/
 
         bool setCtrl(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
             if(jsonIn.containsKey(F("auth"))) {
@@ -1076,8 +1119,6 @@ class RestApi {
                     iv->powerLimit[1] = AbsolutNonPersistent;
 
                 accepted = iv->setDevControlRequest(ActivePowerContr);
-                if(accepted)
-                    mApp->triggerTickSend(iv->id);
             } else if(F("dev") == jsonIn[F("cmd")]) {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
                 iv->setDevCommand(jsonIn[F("val")].as<int>());
@@ -1223,15 +1264,15 @@ class RestApi {
 
     private:
         constexpr static uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT,
-            FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
+            FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP, FLD_MT};
         constexpr static uint8_t acListHmt[] = {FLD_UAC_1N, FLD_IAC_1, FLD_PAC, FLD_F, FLD_PF, FLD_T,
-            FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
+            FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP, FLD_MT};
         constexpr static uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR, FLD_MP};
 
     private:
         IApp *mApp = nullptr;
         HMSYSTEM *mSys = nullptr;
-        HmRadio<> *mRadioNrf = nullptr;
+        NrfRadio<> *mRadioNrf = nullptr;
         #if defined(ESP32)
         CmtRadio<> *mRadioCmt = nullptr;
         #endif

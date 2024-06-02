@@ -72,4 +72,28 @@
     #define BTN_REBOOT "Reboot"
 #endif
 
+#ifdef LANG_DE
+    #define BTN_REBOOT "Ahoy neustarten"
+#else /*LANG_EN*/
+    #define BTN_REBOOT "Reboot"
+#endif
+
+#ifdef LANG_DE
+    #define BTN_YES "ja"
+#else /*LANG_EN*/
+    #define BTN_YES "yes"
+#endif
+
+#ifdef LANG_DE
+    #define BTN_NO "nein"
+#else /*LANG_EN*/
+    #define BTN_NO "no"
+#endif
+
+#ifdef LANG_DE
+    #define BTN_COREDUMP "CoreDump herunterladen"
+#else /*LANG_EN*/
+    #define BTN_COREDUMP "download CoreDump"
+#endif
+
 #endif /*__LANG_H__*/

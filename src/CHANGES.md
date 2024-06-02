@@ -1,5 +1,107 @@
 # Development Changes
 
+## 0.8.123 - 2024-05-30
+* fix ESP8266, ESP32 static IP #1643 #1608
+* update MqTT library which enhances stability #1646
+* merge PR: MQTT JSON Payload pro Kanal und total, auswählbar #1541
+* add option to publish mqtt as json
+* publish rssi not on ch0 any more, published on `topic/rssi`
+* add total power to index page (if multiple inverters are configured)
+* show device name in html title #1639
+* update AsyncWebserver library to `3.2.2`
+* add environment name to filename of coredump
+
+## 0.8.122 - 2024-05-23
+* add button for donwloading coredump (ESP32 variants only)
+
+## 0.8.121 - 2024-05-20
+* fix ESP32 factory image generation
+* fix plot of history graph #1635
+
+## 0.8.120 - 2024-05-18
+* fix crash if invalid serial number was set -> inverter will be disabled automatically
+* improved and fixed factory image generation
+* fix HMT-1800-4T number of inputs #1628
+
+## 0.8.119 - 2024-05-17
+* fix reset values at midnight if WiFi isn't available #1620
+* fix typo in English versions
+* add yield day to history graph #1614
+* added script and [instructions](../manual/factory_firmware.md) how to generate factory firmware which includes predefined settings
+* merge PR: Fix MI overnight behaviour #1626
+
+## 0.8.118 - 2024-05-10
+* possible fix reset max values #1609
+* slightly improved WiFi reconnect
+* update AsyncWebserver to `3.2.0`
+
+## 0.8.117 - 2024-05-09
+* fix reboot issue #1607 #1606
+* fix max temperature tooltip if only one inverter is configured #1605
+
+## 0.8.116 - 2024-05-05
+* calculation of max AC power
+* fix counter overflow communication queue
+* added max inverter temperature
+
+## 0.8.115 - 2024-05-03
+* fix inverter communication with manual time sync #1603
+* improved queue, only add new object once they not exist in queue
+* added option to reset values on communication start (sunrise)
+* fixed calculation of max AC power (API, MqTT)
+
+## 0.8.114 - 2024-04-29
+* fix ESP8266 compile
+* fix history graph
+* fix close button color of modal windows in dark mode #1598
+* fix only one total field in `/live` #1579
+
+## 0.8.113 - 2024-04-25
+* code cleanup
+* fix ESP32-C3 compile
+
+## 0.8.112 - 2024-04-24
+* improved wizard
+* converted ePaper and Ethernet to hal-SPI
+* improved network connection
+
+## 0.8.111 - 2024-04-17
+* fix MqTT discovery field `ALARM_MES_ID` #1591
+* fix Wifi reconnect for ESP32 #1589 #1575
+* open link from `index.html` in new tab #1588 #1587
+* merge PR: Disable upload and import buttons when no file is selected #1586 #1519
+
+## 0.8.110 - 2024-04-11
+* revert CMT2300A changes #1553
+* merged PR: fix closing tag #1584
+* add disable retain flag #1582
+* fix German translation #1569
+* improved `Wizard`
+
+## 0.8.109 - 2024-04-09
+* fix hal patch
+
+## 0.8.108 - 2024-04-09
+* point to git SHA for `NRF24` library
+
+## 0.8.107 - 2024-04-08
+* fix boot loop on `reboot on midnight` feature #1542, #1599, #1566, #1571
+* fix German translation #1569
+* improved `Wizard`
+
+## 0.8.106 - 2024-04-05
+* fix bootloop with CMT and NRF on ESP32 #1566 #1562
+* possible fix of #1553
+* change MqTT return value of power limit acknowledge from `boolean` to `float`. The value returned is the same as it was set to confirm reception (not the read back value)
+
+## 0.8.105 - 2024-04-05
+* cleanup of `defines.h`
+* fix compile of esp32-minimal
+
+## 0.8.104 - 2024-04-04
+* fix reboot on inverter save (ESP32) #1559
+* fix NRF and Ethernet #1506
+
 ## 0.8.103 - 2024-04-02
 * merge PR: fix: get refresh property from object #1552
 * merge PR: fix typos and spelling in Github Issue template #1550
