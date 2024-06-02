@@ -383,15 +383,12 @@ class ZeroExport {
                 break;
         }
 
+        // MQTT - Inverter
+        if (mMqtt->isConnected()) {
+            mqttPublish(String("zero/state/groups/" + String(group) + "/inverter/" + String(inv)).c_str(), mDocLog.as<std::string>().c_str());
+        }
+
         sendLog();
-
-        // MQTT - Powermeter
-/// BUG: 003 Anfang
-//        if (mMqtt->isConnected()) {
-//            mqttPublish(String("zero/state/groups/" + String(group) + "/inverter/" + String(inv)).c_str(), mDocLog.as<std::string>().c_str());
-//        }
-/// BUG: 003 Ende
-
         clearLog();
 
         return;
