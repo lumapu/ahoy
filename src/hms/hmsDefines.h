@@ -33,7 +33,8 @@ const byteAssign_t hms1chAssignment[] = {
     { FLD_YT,  UNIT_KWH,  CH0, CALC_YT_CH0,   0, CMD_CALC },
     { FLD_PDC, UNIT_W,    CH0, CALC_PDC_CH0,  0, CMD_CALC },
     { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0,  0, CMD_CALC },
-    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC }
+    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,  UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
 };
 #define HMS1CH_LIST_LEN      (sizeof(hms1chAssignment) / sizeof(byteAssign_t))
 #define HMS1CH_PAYLOAD_LEN   30
@@ -70,7 +71,8 @@ const byteAssign_t hms2chAssignment[] = {
     { FLD_YT,  UNIT_KWH,  CH0, CALC_YT_CH0,  0, CMD_CALC },
     { FLD_PDC, UNIT_W,    CH0, CALC_PDC_CH0, 0, CMD_CALC },
     { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0, 0, CMD_CALC },
-    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC }
+    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,  UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
 };
 #define HMS2CH_LIST_LEN      (sizeof(hms2chAssignment) / sizeof(byteAssign_t))
 #define HMS2CH_PAYLOAD_LEN   42
@@ -123,10 +125,72 @@ const byteAssign_t hms4chAssignment[] = {
     { FLD_YT,  UNIT_KWH,  CH0, CALC_YT_CH0,   0, CMD_CALC },
     { FLD_PDC, UNIT_W,    CH0, CALC_PDC_CH0,  0, CMD_CALC },
     { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0,  0, CMD_CALC },
-    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC }
+    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,  UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
 };
 #define HMS4CH_LIST_LEN      (sizeof(hms4chAssignment) / sizeof(byteAssign_t))
 #define HMS4CH_PAYLOAD_LEN   66
+
+//-------------------------------------
+// HMT-1600, HMT-1800, HMT-2000
+//-------------------------------------
+const byteAssign_t hmt4chAssignment[] = {
+    { FLD_UDC, UNIT_V,   CH1,  2, 2,   10 },
+    { FLD_IDC, UNIT_A,   CH1,  4, 2,  100 },
+    { FLD_PDC, UNIT_W,   CH1,  8, 2,   10 },
+    { FLD_YT,  UNIT_KWH, CH1, 12, 4, 1000 },
+    { FLD_YD,  UNIT_WH,  CH1, 20, 2,    1 },
+    { FLD_IRR, UNIT_PCT, CH1, CALC_IRR_CH, CH1, CMD_CALC },
+    { FLD_MP,  UNIT_W,   CH1, CALC_MPDC_CH, CH1, CMD_CALC },
+
+    { FLD_UDC, UNIT_V,   CH2, CALC_UDC_CH, CH1, CMD_CALC },
+    { FLD_IDC, UNIT_A,   CH2,  6, 2,  100 },
+    { FLD_PDC, UNIT_W,   CH2, 10, 2,   10 },
+    { FLD_YT,  UNIT_KWH, CH2, 16, 4, 1000 },
+    { FLD_YD,  UNIT_WH,  CH2, 22, 2,    1 },
+    { FLD_IRR, UNIT_PCT, CH2, CALC_IRR_CH, CH2, CMD_CALC },
+    { FLD_MP,  UNIT_W,   CH2, CALC_MPDC_CH, CH2, CMD_CALC },
+
+    { FLD_UDC, UNIT_V,   CH3, 24, 2,   10 },
+    { FLD_IDC, UNIT_A,   CH3, 26, 2,  100 },
+    { FLD_PDC, UNIT_W,   CH3, 30, 2,   10 },
+    { FLD_YT,  UNIT_KWH, CH3, 34, 4, 1000 },
+    { FLD_YD,  UNIT_WH,  CH3, 42, 2,    1 },
+    { FLD_IRR, UNIT_PCT, CH3, CALC_IRR_CH, CH3, CMD_CALC },
+    { FLD_MP,  UNIT_W,   CH3, CALC_MPDC_CH, CH3, CMD_CALC },
+
+    { FLD_UDC, UNIT_V,   CH4, CALC_UDC_CH, CH3, CMD_CALC },
+    { FLD_IDC, UNIT_A,   CH4, 28, 2,  100 },
+    { FLD_PDC, UNIT_W,   CH4, 32, 2,   10 },
+    { FLD_YT,  UNIT_KWH, CH4, 38, 4, 1000 },
+    { FLD_YD,  UNIT_WH,  CH4, 44, 2,    1 },
+    { FLD_IRR, UNIT_PCT, CH4, CALC_IRR_CH, CH4, CMD_CALC },
+    { FLD_MP,  UNIT_W,   CH4, CALC_MPDC_CH, CH4, CMD_CALC },
+
+    { FLD_UAC_1N,   UNIT_V,    CH0, 68, 2,   10 },
+    { FLD_UAC_2N,   UNIT_V,    CH0, 70, 2,   10 },
+    { FLD_UAC_3N,   UNIT_V,    CH0, 72, 2,   10 },
+    { FLD_UAC_12,   UNIT_V,    CH0, 74, 2,   10 },
+    { FLD_UAC_23,   UNIT_V,    CH0, 76, 2,   10 },
+    { FLD_UAC_31,   UNIT_V,    CH0, 78, 2,   10 },
+    { FLD_F,        UNIT_HZ,   CH0, 80, 2,  100 },
+    { FLD_PAC,      UNIT_W,    CH0, 82, 2,   10 },
+    { FLD_Q,        UNIT_VAR,  CH0, 84, 2,   10 },
+    { FLD_IAC_1,    UNIT_A,    CH0, 86, 2,  100 },
+    { FLD_IAC_2,    UNIT_A,    CH0, 88, 2,  100 },
+    { FLD_IAC_3,    UNIT_A,    CH0, 90, 2,  100 },
+    { FLD_PF,       UNIT_NONE, CH0, 92, 2, 1000 },
+    { FLD_T,        UNIT_C,    CH0, 94, 2,   10 },
+    { FLD_EVT,      UNIT_NONE, CH0, 96, 2,    1 },
+    { FLD_YD,       UNIT_WH,   CH0, CALC_YD_CH0,   0, CMD_CALC },
+    { FLD_YT,       UNIT_KWH,  CH0, CALC_YT_CH0,   0, CMD_CALC },
+    { FLD_PDC,      UNIT_W,    CH0, CALC_PDC_CH0,  0, CMD_CALC },
+    { FLD_EFF,      UNIT_PCT,  CH0, CALC_EFF_CH0,  0, CMD_CALC },
+    { FLD_MP,       UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,       UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
+};
+#define HMT4CH_LIST_LEN      (sizeof(hmt4chAssignment) / sizeof(byteAssign_t))
+#define HMT4CH_PAYLOAD_LEN   98
 
 //-------------------------------------
 // HMT-1800, HMT-2250
@@ -199,7 +263,8 @@ const byteAssign_t hmt6chAssignment[] = {
     { FLD_YT,       UNIT_KWH,  CH0, CALC_YT_CH0,   0, CMD_CALC },
     { FLD_PDC,      UNIT_W,    CH0, CALC_PDC_CH0,  0, CMD_CALC },
     { FLD_EFF,      UNIT_PCT,  CH0, CALC_EFF_CH0,  0, CMD_CALC },
-    { FLD_MP,       UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC }
+    { FLD_MP,       UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,       UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
 };
 #define HMT6CH_LIST_LEN      (sizeof(hmt6chAssignment) / sizeof(byteAssign_t))
 #define HMT6CH_PAYLOAD_LEN   98

@@ -23,30 +23,20 @@ class AhoyEthernet : public AhoyNetwork {
 
             mEthSpi.begin(mConfig->sys.eth.pinMiso, mConfig->sys.eth.pinMosi, mConfig->sys.eth.pinSclk, mConfig->sys.eth.pinCs, mConfig->sys.eth.pinIrq, mConfig->sys.eth.pinRst);
             ETH.setHostname(mConfig->sys.deviceName);
-
-            // static IP
-            setupIp([this](IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2) -> bool {
-                return ETH.config(ip, gateway, mask, dns1, dns2);
-            });
         }
 
-        void tickNetworkLoop() override {
-            if(mAp.isEnabled())
-                mAp.tickLoop();
-
-            switch(mStatus) {
-                case NetworkState::DISCONNECTED:
-                    if(mConnected) {
-                        mConnected = false;
-                        mOnNetworkCB(false);
-                        mAp.enable();
+        void OnEvent(WiFiEvent_t event) override {
+            switch(event) {
+                case ARDUINO_EVENT_ETH_CONNECTED:
+                    if(NetworkState::CONNECTED != mStatus) {
+                        mStatus = NetworkState::CONNECTED;
+                        DPRINTLN(DBG_INFO, F("Network connected"));
+                        setStaticIp();
                     }
                     break;
 
-                case NetworkState::CONNECTED:
-                    break;
-
-                case NetworkState::GOT_IP:
+                case ARDUINO_EVENT_ETH_GOT_IP:
+                    mStatus = NetworkState::GOT_IP;
                     if(!mConnected) {
                         mAp.disable();
                         mConnected = true;
@@ -55,11 +45,37 @@ class AhoyEthernet : public AhoyNetwork {
                         mOnNetworkCB(true);
                     }
                     break;
+
+                case ARDUINO_EVENT_ETH_STOP:
+                    [[fallthrough]];
+                case ARDUINO_EVENT_ETH_DISCONNECTED:
+                    mStatus = NetworkState::DISCONNECTED;
+                    if(mConnected) {
+                        mConnected = false;
+                        mOnNetworkCB(false);
+                        mAp.enable();
+                    }
+                    break;
+
+                default:
+                    break;
             }
+        }
+
+        void tickNetworkLoop() override {
+            if(mAp.isEnabled())
+                mAp.tickLoop();
         }
 
         String getIp(void) override {
             return ETH.localIP().toString();
+        }
+
+    private:
+        void setStaticIp() override {
+            setupIp([this](IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2) -> bool {
+                return ETH.config(ip, gateway, mask, dns1, dns2);
+            });
         }
 
     private:

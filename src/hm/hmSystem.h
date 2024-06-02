@@ -16,8 +16,9 @@ class HmSystem {
         HmSystem() {}
 
         void setup(uint32_t *timestamp, cfgInst_t *config, IApp *app) {
-            INVERTERTYPE::timestamp = timestamp;
-            INVERTERTYPE::generalConfig = config;
+            INVERTERTYPE::Timestamp = timestamp;
+            INVERTERTYPE::GeneralConfig = config;
+            INVERTERTYPE::App = app;
             //mInverter[0].app           = app;
         }
 
@@ -25,7 +26,7 @@ class HmSystem {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:addInverter"));
             INVERTERTYPE *iv = &mInverter[id];
             iv->id         = id;
-            iv->config     = &mInverter[0].generalConfig->iv[id];
+            iv->config     = &INVERTERTYPE::GeneralConfig->iv[id];
             DPRINT(DBG_VERBOSE, "SERIAL: " + String(iv->config->serial.b[5], HEX));
             DPRINTLN(DBG_VERBOSE, " " + String(iv->config->serial.b[4], HEX));
             if((iv->config->serial.b[5] == 0x11) || (iv->config->serial.b[5] == 0x10)) {
@@ -68,11 +69,16 @@ class HmSystem {
                     iv->ivRadioType = INV_RADIO_TYPE_NRF;
                 }
             } else if(iv->config->serial.b[5] == 0x13) {
-                    iv->ivGen = IV_HMT;
+                iv->ivGen = IV_HMT;
+                if(iv->config->serial.b[4] == 0x61)
+                    iv->type = INV_TYPE_4CH;
+                else
                     iv->type = INV_TYPE_6CH;
-                    iv->ivRadioType = INV_RADIO_TYPE_CMT;
+
+                iv->ivRadioType = INV_RADIO_TYPE_CMT;
             } else if(iv->config->serial.u64 != 0ULL) {
                 DPRINTLN(DBG_ERROR, F("inverter type can't be detected!"));
+                iv->config->enabled = false;
                 return;
             } else
                 iv->ivGen = IV_UNKNOWN;
@@ -114,6 +120,8 @@ class HmSystem {
         INVERTERTYPE *getInverterByPos(uint8_t pos, bool check = true) {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:getInverterByPos"));
             if(pos >= MAX_INVERTER)
+                return nullptr;
+            else if(nullptr == mInverter[pos].config)
                 return nullptr;
             else if((mInverter[pos].config->serial.u64 != 0ULL) || (false == check))
                 return &mInverter[pos];

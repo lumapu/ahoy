@@ -28,7 +28,6 @@ class AhoyNetwork {
 
             if('\0' == mConfig->sys.deviceName[0])
                 snprintf(mConfig->sys.deviceName, DEVNAME_LEN, "%s", DEF_DEVICE_NAME);
-            WiFi.hostname(mConfig->sys.deviceName);
 
             mAp.setup(&mConfig->sys);
 
@@ -90,14 +89,9 @@ class AhoyNetwork {
         }
 
         #if !defined(ETHERNET)
-        bool getAvailNetworks(JsonObject obj) {
-            JsonArray nets = obj.createNestedArray(F("networks"));
-
+        bool getAvailNetworks(JsonObject obj, IApp *app) {
             if(!mScanActive) {
-                mScanActive = true;
-                if(NetworkState::GOT_IP != mStatus)
-                    WiFi.disconnect();
-                WiFi.scanNetworks(true, true);
+                app->addOnce([this]() {scan();}, 1, "scan");
                 return false;
             }
 
@@ -106,6 +100,7 @@ class AhoyNetwork {
                 return false;
 
             if(n > 0) {
+                JsonArray nets = obj.createNestedArray(F("networks"));
                 int sort[n];
                 sortRSSI(&sort[0], n);
                 for (int i = 0; i < n; ++i) {
@@ -118,9 +113,20 @@ class AhoyNetwork {
 
             return true;
         }
+
+        void scan(void) {
+            mScanActive = true;
+            if(mWifiConnecting) {
+                mWifiConnecting = false;
+                WiFi.disconnect();
+            }
+            WiFi.scanNetworks(true, true);
+        }
         #endif
 
     protected:
+        virtual void setStaticIp() = 0;
+
         void setupIp(std::function<bool(IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2)> cb) {
             if(mConfig->sys.ip.ip[0] != 0) {
                 IPAddress ip(mConfig->sys.ip.ip);
@@ -133,7 +139,7 @@ class AhoyNetwork {
             }
         }
 
-        void OnEvent(WiFiEvent_t event) {
+        virtual void OnEvent(WiFiEvent_t event) {
             switch(event) {
                 case SYSTEM_EVENT_STA_CONNECTED:
                     [[fallthrough]];
@@ -228,6 +234,9 @@ class AhoyNetwork {
         uint32_t *mUtcTimestamp = nullptr;
         bool mConnected = false;
         bool mScanActive = false;
+        #if !defined(ETHERNET)
+        bool mWifiConnecting = false;
+        #endif
 
         OnNetworkCB mOnNetworkCB;
         OnTimeCB mOnTimeCB;

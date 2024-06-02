@@ -110,7 +110,7 @@
 
 #if DEBUG_LEVEL >= DBG_ERROR
     #define PERR(str) DBGPRINT(F("E: ")); DBGPRINT(str);
-    #define PERRLN(str) DBGPRINT(F("E: ")); DBGPRINTLN(str);
+    #define PERRLN(str) DBGPRINT(F("E: ")); DBGPRINTLN(str); DSERIAL.flush();
 #else
     #define PERR(str)
     #define PERRLN(str)

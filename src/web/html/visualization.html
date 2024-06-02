@@ -23,6 +23,7 @@
             var mNum = 0;
             var total = Array(6).fill(0);
             var tPwrAck;
+            var totalsRendered = false
 
             function getErrStr(code) {
                 if("ERR_AUTH") return "{#ERR_AUTH}"
@@ -35,10 +36,11 @@
 
             function parseGeneric(obj) {
                 if(true == exeOnce){
-                    parseNav(obj);
-                    parseESP(obj);
+                    parseNav(obj)
+                    parseESP(obj)
+                    parseTitle(obj)
                 }
-                parseRssi(obj);
+                parseRssi(obj)
             }
 
             function numBig(val, unit, des) {
@@ -56,11 +58,11 @@
                 ]);
             }
 
-            function numMid(val, unit, des, opt={class: "fs-6"}) {
+            function numMid(val, unit, des, opt={class: "row"}) {
                 return ml("div", {class: "col-6 col-sm-4 col-md-3 mb-2"}, [
-                    ml("div", {class: "row"},
+                    ml("div", opt,
                         ml("div", {class: "col"}, [
-                            ml("span", opt, String(Math.round(val * 100) / 100)),
+                            ml("span", {class: "fs-6"}, String(Math.round(val * 100) / 100)),
                             ml("span", {class: "fs-8 mx-1"}, unit)
                         ])
                     ),
@@ -76,6 +78,7 @@
                 for(var i = 0; i < 6; i++) {
                     total[i] = Math.round(total[i] * 100) / 100;
                 }
+                totalsRendered = true
 
                 return ml("div", {class: "row mt-3 mb-5"},
                     ml("div", {class: "col"}, [
@@ -106,7 +109,6 @@
                     total[4] += obj.ch[0][8]; // P_DC
                     total[5] += obj.ch[0][10]; // Q_AC
                 }
-                total[3] += obj.ch[0][11]; // MAX P_AC
                 total[1] += obj.ch[0][7]; // YieldDay
                 total[2] += obj.ch[0][6]; // YieldTotal
 
@@ -121,7 +123,8 @@
                         pwrLimit += ", " + (obj.max_pwr * obj.power_limit_read / 100).toFixed(1) + "&nbsp;W";
                 }
 
-                var maxAcPwr = toIsoDateStr(new Date(obj.ts_max_ac_pwr * 1000));
+                var maxAcPwrDate = toIsoDateStr(new Date(obj.ts_max_ac_pwr * 1000))
+                var maxTempDate = toIsoDateStr(new Date(obj.ts_max_temp * 1000))
                 return ml("div", {class: "row mt-2"},
                     ml("div", {class: "col"}, [
                         ml("div", {class: "p-2 " + clh},
@@ -136,7 +139,7 @@
                                 ml("div", {class: "col a-c"}, ml("span", { class: "pointer", onclick: function() {
                                     getAjax("/api/inverter/alarm/" + obj.id, parseIvAlarm);
                                 }}, ("{#ALARMS}: " + obj.alarm_cnt))),
-                                ml("div", {class: "col a-r mx-2 mx-md-1"}, String(obj.ch[0][5].toFixed(1)) + t.innerText)
+                                ml("div", {class: "col a-r mx-2 mx-md-1 tooltip", data: (obj.ch[0][12] + t.innerText + "\n" + maxTempDate)}, String(obj.ch[0][5].toFixed(1)) + t.innerText)
                             ])
                         ),
                         ml("div", {class: "p-2 " + clbg}, [
@@ -147,7 +150,7 @@
                             ]),
                             ml("div", {class: "hr"}),
                             ml("div", {class: "row mt-2"},[
-                                numMid(obj.ch[0][11], "W", "{#MAX_AC_POWER}", {class: "fs-6 tooltip", data: maxAcPwr}),
+                                numMid(obj.ch[0][11], "W", "{#MAX_AC_POWER}", {class: "row tooltip", data: maxAcPwrDate}),
                                 numMid(obj.ch[0][8], "W", "{#DC_POWER}"),
                                 numMid(obj.ch[0][0], "V", "{#AC_VOLTAGE}"),
                                 numMid(obj.ch[0][1], "A", "{#AC_CURRENT}"),
@@ -242,20 +245,18 @@
                     ])
                 );
 
-
-                var last = true;
                 for(var i = obj.id + 1; i < ivEn.length; i++) {
                     if((i != ivEn.length) && ivEn[i]) {
-                        last = false;
                         getAjax("/api/inverter/id/" + i, parseIv);
-                        break;
+                        return
                     }
                 }
-                if(last) {
-                    if(mNum > 1)
+
+                if(mNum > 1) {
+                    if(!totalsRendered)
                         mIvHtml.unshift(totals());
-                    document.getElementById("live").replaceChildren(...mIvHtml);
                 }
+                document.getElementById("live").replaceChildren(...mIvHtml);
             }
 
             function parseIvAlarm(obj) {
@@ -516,7 +517,9 @@
                     ivEn = Object.values(Object.assign({}, obj["iv"]));
                     mIvHtml = [];
                     mNum = 0;
+                    totalsRendered = false
                     total.fill(0);
+                    total[3] = obj.max_total_pwr
                     for(var i = 0; i < obj.iv.length; i++) {
                         if(obj.iv[i]) {
                             getAjax("/api/inverter/id/" + i, parseIv);

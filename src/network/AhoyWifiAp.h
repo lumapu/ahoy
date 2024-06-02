@@ -44,6 +44,7 @@ class AhoyWifiAp {
             WiFi.softAPConfig(mIp, mIp, IPAddress(255, 255, 255, 0));
             WiFi.softAP(WIFI_AP_SSID, mCfg->apPwd);
 
+            mDns.setErrorReplyCode(DNSReplyCode::NoError);
             mDns.start(53, "*", mIp);
 
             mEnabled = true;
@@ -62,6 +63,7 @@ class AhoyWifiAp {
             #if defined(ETHERNET)
             WiFi.mode(WIFI_OFF);
             #else
+            WiFi.scanDelete();
             WiFi.mode(WIFI_STA);
             #endif
 

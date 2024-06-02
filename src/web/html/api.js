@@ -143,7 +143,7 @@ function parseVersion(obj) {
 
 function parseESP(obj) {
     document.getElementById("esp_type").replaceChildren(
-        document.createTextNode("Board: " + obj["esp_type"])
+        document.createTextNode("Board: " + obj.esp_type)
     );
 }
 
@@ -153,7 +153,11 @@ function parseRssi(obj) {
         icon = iconWifi1;
     else if(obj["wifi_rssi"] <= -70)
         icon = iconWifi2;
-    document.getElementById("wifiicon").replaceChildren(svg(icon, 32, 32, "icon-fg2", obj["wifi_rssi"]));
+    document.getElementById("wifiicon").replaceChildren(svg(icon, 32, 32, "icon-fg2", obj.wifi_rssi));
+}
+
+function parseTitle(obj) {
+    document.title = obj.host + " - " + document.title
 }
 
 function toIsoDateStr(d) {

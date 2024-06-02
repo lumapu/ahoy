@@ -79,6 +79,7 @@ class Web {
 
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
             mWeb.on("/wizard",         HTTP_GET,  std::bind(&Web::onWizard,       this, std::placeholders::_1));
+            mWeb.on("/generate_204",   HTTP_GET,  std::bind(&Web::onWizard,       this, std::placeholders::_1));   //Android captive portal
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
@@ -501,12 +502,13 @@ class Web {
 
             if (request->arg("invInterval") != "")
                 mConfig->inst.sendInterval = request->arg("invInterval").toInt();
-            mConfig->inst.rstYieldMidNight = (request->arg("invRstMid") == "on");
+            mConfig->inst.rstValsAtMidNight = (request->arg("invRstMid") == "on");
             mConfig->inst.rstValsCommStop = (request->arg("invRstComStop") == "on");
+            mConfig->inst.rstValsCommStart = (request->arg("invRstComStart") == "on");
             mConfig->inst.rstValsNotAvail = (request->arg("invRstNotAvail") == "on");
             mConfig->inst.startWithoutTime = (request->arg("strtWthtTm") == "on");
             mConfig->inst.readGrid = (request->arg("rdGrid") == "on");
-            mConfig->inst.rstMaxValsMidNight = (request->arg("invRstMaxMid") == "on");
+            mConfig->inst.rstIncludeMaxVals = (request->arg("invRstMaxMid") == "on");
 
 
             // pinout
@@ -584,8 +586,10 @@ class Web {
             if (request->arg("mqttPwd") != "{PWD}")
                 request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
             request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
+            mConfig->mqtt.json = (request->arg("mqttJson") == "on");
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
+            mConfig->mqtt.enableRetain = (request->arg("retain") == "on");
 
             // serial console
             mConfig->serial.debug = (request->arg("serDbg") == "on");
