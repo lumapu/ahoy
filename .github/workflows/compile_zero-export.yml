@@ -23,13 +23,21 @@ jobs:
     strategy:
       matrix:
         variant:
-          - esp32-wroom32
-          - esp32-wroom32-prometheus
-          - esp32-wroom32-ethernet
-          - esp32-s2-mini
-          - esp32-c3-mini
-          - opendtufusion
-          - opendtufusion-ethernet
+          #- opendtufusion
+          #- opendtufusion-ethernet
+          #- esp8266
+          #- esp8266-all
+          #- esp8266-minimal
+          #- esp8266-prometheus
+          #- esp8285
+          #- esp32-wroom32
+          #- esp32-wroom32-minimal
+          #- esp32-wroom32-prometheus
+          #- esp32-wroom32-ethernet
+          #- esp32-s2-mini
+          #- esp32-c3-mini
+          - opendtufusion-zero_export
+          - opendtufusion-ethernet-zero_export
     steps:
     - uses: actions/checkout@v4
     - uses: benjlevesque/short-sha@v3.0
@@ -63,6 +71,11 @@ jobs:
 
     - name: Run PlatformIO
       run:  pio run -d src -e ${{ matrix.variant }}
+
+    - name: Compress .elf
+      uses: edgarrc/action-7z@v1
+      with:
+        args: 7z a -t7z -mx=9 src/.pio/build/${{ matrix.variant }}/firmware.elf.7z ./src/.pio/build/${{ matrix.variant }}/firmware.elf
 
     - name: Rename Firmware
       run: python scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
@@ -81,13 +94,19 @@ jobs:
     strategy:
       matrix:
         variant:
-          - esp32-wroom32-de
-          - esp32-wroom32-prometheus-de
-          - esp32-wroom32-ethernet-de
-          - esp32-s2-mini-de
-          - esp32-c3-mini-de
-          - opendtufusion-de
-          - opendtufusion-ethernet-de
+          #- opendtufusion-de
+          #- opendtufusion-ethernet-de
+          #- esp8266-de
+          #- esp8266-all-de
+          #- esp8266-prometheus-de
+          #- esp8285-de
+          #- esp32-wroom32-de
+          #- esp32-wroom32-prometheus-de
+          #- esp32-wroom32-ethernet-de
+          #- esp32-s2-mini-de
+          #- esp32-c3-mini-de
+          - opendtufusion-zero_export-de
+          - opendtufusion-ethernet-zero_export-de
     steps:
     - uses: actions/checkout@v4
     - uses: benjlevesque/short-sha@v3.0
@@ -122,6 +141,11 @@ jobs:
     - name: Run PlatformIO
       run:  pio run -d src -e ${{ matrix.variant }}
 
+    - name: Compress .elf
+      uses: edgarrc/action-7z@v1
+      with:
+        args: 7z a -t7z -mx=9 src/.pio/build/${{ matrix.variant }}/firmware.elf.7z ./src/.pio/build/${{ matrix.variant }}/firmware.elf
+
     - name: Rename Firmware
       run: python scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
 
@@ -131,8 +155,8 @@ jobs:
         name: zero-${{ matrix.variant }}
         path: firmware/*
 
-  combine:
-    name: Combine Artifacts
+  deploy:
+    name: Update Artifacts / Deploy
     needs: [build-en, build-de]
     runs-on: ubuntu-latest
     continue-on-error: false
@@ -158,6 +182,18 @@ jobs:
       env:
           VERSION: ${{ steps.version_name.outputs.name }}
 
+
+    - name: Create ESP Web Tools Manifest
+      working-directory: src
+      run: python ../scripts/buildManifest.py
+
+    - name: Copy install html
+      run: mv scripts/gh-action-dev-build-flash.html firmware/install.html
+
+    - name: Copy Changes.md
+      run: mv src/CHANGES.md firmware/CHANGES.md
+
+
     - name: Rename firmware directory
       run: mv firmware ${{ steps.version_name.outputs.name }}
 
@@ -166,11 +202,26 @@ jobs:
       with:
         name: zero-*
 
+    - name: Deploy
+      uses: nogsantos/scp-deploy@master
+      with:
+        src: ${{ steps.version_name.outputs.name }}/
+        host: ${{ secrets.FW_SSH_HOST }}
+        remote: ${{ secrets.FW_SSH_DIR }}/zero
+        port: ${{ secrets.FW_SSH_PORT }}
+        user: ${{ secrets.FW_SSH_USER }}
+        key: ${{ secrets.FW_SSH_KEY }}
+
+    - name: Clean elf files (7z compressed) for Artifact
+      run: |
+        rm -f \
+          ${{ steps.version_name.outputs.name }}/*/*.elf.7z
+
     - name: Create Artifact
       uses: actions/upload-artifact@v4
       with:
         name: zero-${{ steps.version_name.outputs.name }}
         path: |
-          ${{ steps.version_name.outputs.name }}
+          ${{ steps.version_name.outputs.name }}/*
           manual/User_Manual.md
           manual/Getting_Started.md
