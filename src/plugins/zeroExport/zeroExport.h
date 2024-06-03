@@ -385,7 +385,7 @@ class ZeroExport {
 
         // MQTT - Inverter
         if (mMqtt->isConnected()) {
-            mqttPublish(String("zero/state/groups/" + String(group) + "/inverter/" + String(inv)).c_str(), mDocLog.as<std::string>().c_str());
+            mqttPublish(String("zero/state/groups/" + String(group) + "/inverter/" + String(inv)).c_str(), _log.toString().c_str());
         }
 
         sendLog();
@@ -915,13 +915,11 @@ class ZeroExport {
         }
 
         // Log over MQTT
-/// BUG: 004 Anfang
-//        if (mCfg->log_over_mqtt) {
-//            if (mMqtt->isConnected()) {
-//                mMqtt->publish("zero/log", mDocLog.as<std::string>().c_str(), false);
-//            }
-//        }
-/// BUG: 004 Ende
+        if (mCfg->log_over_mqtt) {
+            if (mMqtt->isConnected()) {
+                mMqtt->publish("zero/log", _log.toString().c_str(), false);
+            }
+        }
     }
 
     /** clearLog
