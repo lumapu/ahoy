@@ -582,6 +582,7 @@ class Web {
             if (request->arg("mqttPwd") != "{PWD}")
                 request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
             request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
+            mConfig->mqtt.json = (request->arg("mqttJson") == "on");
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
             mConfig->mqtt.enableRetain = (request->arg("retain") == "on");

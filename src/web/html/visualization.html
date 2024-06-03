@@ -34,10 +34,11 @@
 
             function parseGeneric(obj) {
                 if(true == exeOnce){
-                    parseNav(obj);
-                    parseESP(obj);
+                    parseNav(obj)
+                    parseESP(obj)
+                    parseTitle(obj)
                 }
-                parseRssi(obj);
+                parseRssi(obj)
             }
 
             function numBig(val, unit, des) {

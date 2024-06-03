@@ -83,7 +83,7 @@ class RestApi {
             mHeapFrag = ESP.getHeapFragmentation();
             #endif
 
-            AsyncJsonResponse* response = new AsyncJsonResponse(false, 6000);
+            AsyncJsonResponse* response = new AsyncJsonResponse(false, 8000);
             JsonObject root = response->getRoot();
 
             String path = request->url().substring(5);
@@ -369,6 +369,7 @@ class RestApi {
 
                 String filename = ah::getDateTimeStrFile(gTimezone.toLocal(mApp->getTimestamp()));
                 filename += "_v" + String(mApp->getVersion());
+                filename += "_" + String(ENV_NAME);
 
                 response->addHeader("Content-Description", "File Transfer");
                 response->addHeader("Content-Disposition", "attachment; filename=" + filename + "_coredump.bin");
@@ -391,6 +392,7 @@ class RestApi {
             obj[F("modules")]     = String(mApp->getVersionModules());
             obj[F("build")]       = String(AUTO_GIT_HASH);
             obj[F("env")]         = String(ENV_NAME);
+            obj[F("host")]        = mConfig->sys.deviceName;
             obj[F("menu_prot")]   = mApp->isProtected(request->client()->remoteIP().toString().c_str(), "", true);
             obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
             obj[F("menu_protEn")] = (bool) (mConfig->sys.adminPwd[0] != '\0');
@@ -418,7 +420,6 @@ class RestApi {
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
             obj[F("sched_reboot")] = (bool)mConfig->sys.schedReboot;
 
-            obj[F("hostname")]     = mConfig->sys.deviceName;
             obj[F("pwd_set")]      = (strlen(mConfig->sys.adminPwd) > 0);
             obj[F("prot_mask")]    = mConfig->sys.protectionMask;
 
@@ -750,6 +751,7 @@ class RestApi {
             obj[F("user")]       = String(mConfig->mqtt.user);
             obj[F("pwd")]        = (strlen(mConfig->mqtt.pwd) > 0) ? F("{PWD}") : String("");
             obj[F("topic")]      = String(mConfig->mqtt.topic);
+            obj[F("json")]       = (bool) mConfig->mqtt.json;
             obj[F("interval")]   = String(mConfig->mqtt.interval);
             obj[F("retain")]     = (bool)mConfig->mqtt.enableRetain;
         }
