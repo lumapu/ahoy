@@ -14,7 +14,6 @@
 
 #include "AsyncJson.h"
 #include "powermeter.h"
-
 #include "utils/DynamicJsonHandler.h"
 
 template <class HMSYSTEM>
@@ -24,7 +23,7 @@ class ZeroExport {
     /** ZeroExport
      * constructor
      */
-    ZeroExport() { }
+    ZeroExport() {}
 
     /** ~ZeroExport
      * destructor
@@ -51,7 +50,6 @@ class ZeroExport {
 
         mIsInitialized = mPowermeter.setup(mApp, mCfg, mqtt, &_log);
     }
-
 
     /*void printJson() {
         serializeJson(doc, Serial);
@@ -91,19 +89,18 @@ class ZeroExport {
         zeroExportGroup_t *CfgGroup = &mCfg->groups[group];
         zeroExportGroupInverter_t *CfgGroupInv = &CfgGroup->inverters[inv];
         Inverter<> *iv = mSys->getInverterByPos(Queue.id);
-        if(NULL == iv) return;
+        if (NULL == iv) return;
 
-        if(!CfgGroup->battSwitch && !CfgGroup->battSwitchInit)
-        {
-            if(!iv->alarmCnt) return;
+        if (!CfgGroup->battSwitch && !CfgGroup->battSwitchInit) {
+            if (!iv->alarmCnt) return;
             bool stb_flag = false;
 
-            for(int16_t i = 0; i < iv->alarmCnt; i++) {
-                if(iv->lastAlarm[i].code == 124) {
+            for (int16_t i = 0; i < iv->alarmCnt; i++) {
+                if (iv->lastAlarm[i].code == 124) {
                     stb_flag = true;
                     _log.addProperty("alarm1", stb_flag);
-                    _log.addProperty("start", iv->lastAlarm[i].start );
-                    _log.addProperty("end", iv->lastAlarm[i].end );
+                    _log.addProperty("start", iv->lastAlarm[i].start);
+                    _log.addProperty("end", iv->lastAlarm[i].end);
 
                     if (iv->lastAlarm[i].end > iv->lastAlarm[i].start) {
                         stb_flag = false;
@@ -113,7 +110,7 @@ class ZeroExport {
                     clearLog();
                 }
             }
-            if(!stb_flag) CfgGroup->battSwitch = true;
+            if (!stb_flag) CfgGroup->battSwitch = true;
             CfgGroup->battSwitchInit = true;
         }
 
@@ -144,14 +141,13 @@ class ZeroExport {
         uint16_t groupPower = 0;
         uint16_t groupLimit = 0;
         for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
-            groupPower += mCfg->groups[group].inverters[inv].power; // Calc Data->groupPower
-            groupLimit += mCfg->groups[group].inverters[inv].limit; // Calc Data->groupLimit
+            groupPower += mCfg->groups[group].inverters[inv].power;  // Calc Data->groupPower
+            groupLimit += mCfg->groups[group].inverters[inv].limit;  // Calc Data->groupLimit
         }
 
         _log.addProperty("gP", groupPower);
         _log.addProperty("gL", groupLimit);
         // Wird nur zum debuggen benötigt?
-
 
         // Batteryprotection
         _log.addProperty("bEn", (uint8_t)CfgGroup->battCfg);
@@ -172,10 +168,10 @@ class ZeroExport {
                         CfgGroup->battSwitch = true;
                         _log.addProperty("bA", "turn on");
                     }
-                    //if ((CfgGroup->battValue > CfgGroup->battLimitOff) && (CfgGroupInv->power > 0)) {
-                    //    CfgGroup->battSwitch = true;
-                    //    _log.addProperty("bA", "turn on");
-                    //}
+                    // if ((CfgGroup->battValue > CfgGroup->battLimitOff) && (CfgGroupInv->power > 0)) {
+                    //     CfgGroup->battSwitch = true;
+                    //     _log.addProperty("bA", "turn on");
+                    // }
                 } else {
                     if (CfgGroup->battValue < CfgGroup->battLimitOff) {
                         CfgGroup->battSwitch = false;
@@ -649,7 +645,7 @@ class ZeroExport {
 
         mPowermeter.onMqttConnect();
 
-        // "topic":"userdefined battSoCTopic"
+        // "topic":"userdefined battSoCTopic" oder "userdefinedUTopic"
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             if (!mCfg->groups[group].enabled) continue;
 
@@ -673,7 +669,7 @@ class ZeroExport {
 
         String topic = String(obj["topic"]);
 
-        // "topic":"userdefined battSoCTopic"
+        // "topic":"userdefined battSoCTopic" oder "userdefinedUTopic"
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             if (!mCfg->groups[group].enabled) continue;
 
@@ -684,7 +680,6 @@ class ZeroExport {
             if (strcmp(mCfg->groups[group].battTopic, String(topic).c_str())) {
                 mCfg->groups[group].battValue = (bool)obj["val"];
 
-
                 _log.addProperty("k", mCfg->groups[group].battTopic);
                 _log.addProperty("v", mCfg->groups[group].battValue);
             }
@@ -692,7 +687,6 @@ class ZeroExport {
 
         // "topic":"ctrl/zero"
         if (topic.indexOf("ctrl/zero") == -1) return;
-
 
         _log.addProperty("d", obj);
 
@@ -721,8 +715,7 @@ class ZeroExport {
                 mCfg->sleep = (bool)obj["val"];
             }
 
-            else if ((topicGroup >= 0) && (topicGroup < ZEROEXPORT_MAX_GROUPS))
-            {
+            else if ((topicGroup >= 0) && (topicGroup < ZEROEXPORT_MAX_GROUPS)) {
                 String stopicGroup = String(topicGroup);
 
                 // "topic":"ctrl/zero/groups/+/enabled"
@@ -765,8 +758,7 @@ class ZeroExport {
                     mCfg->groups[topicGroup].battSwitch = (bool)obj["val"];
                 }
 
-                else if (topic.indexOf("/advanced/") != -1)
-                {
+                else if (topic.indexOf("/advanced/") != -1) {
                     // "topic":"ctrl/zero/groups/+/advanced/setPoint"
                     if (topic.endsWith("/setPoint")) {
                         _log.addProperty("v", (int16_t)obj["val"]);
@@ -780,15 +772,12 @@ class ZeroExport {
                     }
 
                     // "topic":"ctrl/zero/groups/+/advanced/powerMax"
-                    else if (topic.endsWith("/powerMax"))  {
+                    else if (topic.endsWith("/powerMax")) {
                         _log.addProperty("v", (uint16_t)obj["val"]);
                         mCfg->groups[topicGroup].powerMax = (uint16_t)obj["val"];
                     }
-                }
-                else if (topic.indexOf("/inverter/") != -1)
-                {
-                    if ((topicInverter >= 0) && (topicInverter < ZEROEXPORT_GROUP_MAX_INVERTERS))
-                    {
+                } else if (topic.indexOf("/inverter/") != -1) {
+                    if ((topicInverter >= 0) && (topicInverter < ZEROEXPORT_GROUP_MAX_INVERTERS)) {
                         // "topic":"ctrl/zero/groups/+/inverter/+/enabled"
                         if (topic.endsWith("/enabled")) {
                             _log.addProperty("v", (bool)obj["val"]);
@@ -804,14 +793,11 @@ class ZeroExport {
                         else if (topic.endsWith("/powerMax")) {
                             _log.addProperty("v", (uint16_t)obj["val"]);
                             mCfg->groups[topicGroup].inverters[topicInverter].powerMax = (uint16_t)obj["val"];
-                        }
-                        else
-                        {
+                        } else {
                             _log.addProperty("k", "error");
                         }
                     }
-                }
-                else {
+                } else {
                     _log.addProperty("k", "error");
                 }
             }
