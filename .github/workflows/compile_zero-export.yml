@@ -202,15 +202,15 @@ jobs:
       with:
         name: zero-*
 
-    - name: Deploy
-      uses: nogsantos/scp-deploy@master
-      with:
-        src: ${{ steps.version_name.outputs.name }}/
-        host: ${{ secrets.FW_SSH_HOST }}
-        remote: ${{ secrets.FW_SSH_DIR }}/zero
-        port: ${{ secrets.FW_SSH_PORT }}
-        user: ${{ secrets.FW_SSH_USER }}
-        key: ${{ secrets.FW_SSH_KEY }}
+    #- name: Deploy
+    #  uses: nogsantos/scp-deploy@master
+    #  with:
+    #    src: ${{ steps.version_name.outputs.name }}/
+    #    host: ${{ secrets.FW_SSH_HOST }}
+    #    remote: ${{ secrets.FW_SSH_DIR }}/zero
+    #    port: ${{ secrets.FW_SSH_PORT }}
+    #    user: ${{ secrets.FW_SSH_USER }}
+    #    key: ${{ secrets.FW_SSH_KEY }}
 
     - name: Clean elf files (7z compressed) for Artifact
       run: |
