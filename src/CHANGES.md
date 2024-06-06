@@ -2,6 +2,8 @@
 
 ## 0.8.124 - 2024-06-06
 * improved MqTT `OnMessage` (threadsafe)
+* support of HERF inverters, serial number is converted in Javascript #1425
+* revert buffer size in `RestAPI` for ESP8266 #1650
 
 ## 0.8.123 - 2024-05-30
 * fix ESP8266, ESP32 static IP #1643 #1608
