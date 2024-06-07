@@ -71,7 +71,10 @@
                             </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3 my-2">{#PASSWORD}</div>
-                                <div class="col-12 col-sm-9"><input type="password" name="pwd" value="{PWD}"/></div>
+                                <div class="col-12 col-sm-9"><input type="password" name="pwd" id="password" value="{PWD}"/>
+                                    <input type="checkbox" onclick="togglepassword()" />Show Password
+                                </div>
+
                             </div>
                             <!--ENDIF_ETHERNET-->
                         </fieldset>
@@ -636,6 +639,17 @@
                     }
                 });
             });
+
+            function togglepassword()
+            {
+                var x = document.getElementById("password");
+                if (x.type === "password") {
+                    x.type = "text";
+                } else {
+                    x.type = "password";
+                }
+
+            }
 
             function hide() {
                 document.getElementById("form").submit();
