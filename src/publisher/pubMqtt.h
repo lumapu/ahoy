@@ -11,6 +11,8 @@
 #if defined(ENABLE_MQTT)
 #ifdef ESP8266
     #include <ESP8266WiFi.h>
+    #define xSemaphoreTake(a, b) { while(a) { yield(); } a = true; }
+    #define xSemaphoreGive(a) { a = false; }
 #elif defined(ESP32)
     #include <WiFi.h>
 #endif
@@ -39,8 +41,12 @@ template<class HMSYSTEM>
 class PubMqtt {
     public:
         PubMqtt() : SendIvData() {
-            mutex = xSemaphoreCreateBinaryStatic(&mutexBuffer);
-            xSemaphoreGive(mutex);
+            #if defined(ESP32)
+                mutex = xSemaphoreCreateBinaryStatic(&mutexBuffer);
+                xSemaphoreGive(mutex);
+            #else
+                mutex = false;
+            #endif
 
             mLastIvState.fill(InverterStatus::OFF);
             mIvLastRTRpub.fill(0);
@@ -54,7 +60,9 @@ class PubMqtt {
         }
 
         ~PubMqtt() {
+            #if defined(ESP32)
             vSemaphoreDelete(mutex);
+            #endif
         }
 
         void setup(IApp *app, cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs, uint32_t *uptime) {
@@ -667,9 +675,11 @@ class PubMqtt {
         IApp *mApp;
         #if defined(ESP8266)
         WiFiEventHandler mHWifiCon, mHWifiDiscon;
-        #endif
+        volatile bool mutex;
+        #else
         SemaphoreHandle_t mutex;
         StaticSemaphore_t mutexBuffer;
+        #endif
 
         HMSYSTEM *mSys = nullptr;
         PubMqttIvData<HMSYSTEM> SendIvData;
