@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.125 - 2024-06-09
+* fix ESP8266 compilation
+* merge PR: active_PowerLimit #1663
+
 ## 0.8.124 - 2024-06-06
 * improved MqTT `OnMessage` (threadsafe)
 * support of HERF inverters, serial number is converted in Javascript #1425
