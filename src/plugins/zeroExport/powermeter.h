@@ -220,13 +220,13 @@ class powermeter {
             float power = 0.0;
 
             DynamicJsonDocument datajson(512);
-            if (!deserializeJson(datajson, obj["val"]))
+            if (!deserializeJson(datajson, String(obj["val"])))
             {
                 switch (mCfg->groups[group].pm_target) {
-                    case 0: power = datajson["a_act_power"]; break;
-                    case 1: power = datajson["b_act_power"]; break;
-                    case 2: power = datajson["c_act_power"]; break;
-                    case 3: power = datajson["total_act_power"]; break;
+                    case 0: power = (float)datajson["total_act_power"]; break;
+                    case 1: power = (float)datajson["a_act_power"]; break;
+                    case 2: power = (float)datajson["b_act_power"]; break;
+                    case 3: power = (float)datajson["c_act_power"]; break;
                 }
             } else {
                 power = (float)obj["val"];
@@ -236,6 +236,7 @@ class powermeter {
             mCfg->groups[group].power = power; // TODO: join two sites together (PM & MQTT)
 
             // MQTT - Powermeter
+DPRINTLN(DBG_INFO, String("ze: mqtt powermeter") + String(power));
 /// BUG: 001 Anfang - Dieser Teil ist deaktiviert weil er zu abstürzen der DTU führt
 //            if (mCfg->debug) {
 //                if (mMqtt->isConnected()) {
