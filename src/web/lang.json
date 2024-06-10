@@ -254,6 +254,11 @@
                     "de": "AP Passwort (min. L&auml;nge: 8 Zeichen)"
                 },
                 {
+                    "token": "SHOW_PWD",
+                    "en": "show password",
+                    "de": "Passwort anzeigen"
+                },
+                {
                     "token": "SEARCH_NETWORKS",
                     "en": "Search Networks",
                     "de": "Netzwerke suchen"
