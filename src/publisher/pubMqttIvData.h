@@ -197,13 +197,20 @@ class PubMqttIvData {
                         if (!mCfg->json) {
                             snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
                             snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mIv->getValue(mPos, rec)));
+                        } else {
+                            if (FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId) {
+                                uint8_t qos = (FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId) ? QOS_2 : QOS_0;
+                                snprintf(mSubTopic.data(), mSubTopic.size(), "%s/%s", mIv->config->name, fields[rec->assign[mPos].fieldId]);
+                                snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mIv->getValue(mPos, rec)));
+                                mPublish(mSubTopic.data(), mVal.data(), retained, qos);
+                            }
                         }
                     }
 
-                    if ((InverterDevInform_All == mCmd) || (InverterDevInform_Simple == mCmd) || !mCfg->json) {
+                    if ((InverterDevInform_All == mCmd) || (InverterDevInform_Simple == mCmd) || !mCfg->json)
+                    {
                         uint8_t qos = (FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId) ? QOS_2 : QOS_0;
-                        if((FLD_EVT != rec->assign[mPos].fieldId)
-                            && (FLD_LAST_ALARM_CODE != rec->assign[mPos].fieldId))
+                        if((FLD_EVT != rec->assign[mPos].fieldId) && (FLD_LAST_ALARM_CODE != rec->assign[mPos].fieldId))
                             mPublish(mSubTopic.data(), mVal.data(), retained, qos);
                     }
                 }

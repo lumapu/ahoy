@@ -116,6 +116,8 @@
                 var p = div(["none"]);
                 var total = 0;
                 var count = 0;
+                var mobile = window.screen.width < 470;
+
                 for(var i of obj) {
                     var icon = iconSuccess;
                     var cl = "icon-success";
@@ -131,7 +133,8 @@
                     } else if(0 == i["ts_last_success"]) {
                         avail = "{#AVAIL_NO_DATA}";
                     } else {
-                        avail = "{#AVAIL} ";
+                        if (!mobile)
+                            avail = "{#AVAIL} ";
                         if(false == i["is_producing"])
                             avail += "{#NOT_PRODUCING}";
                         else {
@@ -142,11 +145,16 @@
                         }
                     }
 
+                    var text;
+                        if (mobile)
+                            text = "#";
+                        else
+                            text = "{#INVERTER} #";
                     p.append(
-                        svg(icon, 30, 30, "icon " + cl),
-                        span("{#INVERTER} #" + i["id"] + ": " + i["name"] + " {#IS} " + avail),
-                        br()
-                    );
+                            svg(icon, 30, 30, "icon " + cl),
+                            span(text + i["id"] + ": " + i["name"] + " {#IS} " + avail),
+                            br()
+                        );
 
                     if(false == i["is_avail"]) {
                         if(i["ts_last_success"] > 0) {

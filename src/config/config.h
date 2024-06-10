@@ -16,9 +16,8 @@
 //-------------------------------------
 
 // Fallback WiFi Info
-#define FB_WIFI_SSID    "YOUR_WIFI_SSID"
-#define FB_WIFI_PWD     "YOUR_WIFI_PWD"
-
+#define FB_WIFI_SSID    ""
+#define FB_WIFI_PWD     ""
 
 // Access Point Info
 // In case there is no WiFi Network or Ahoy can not connect to it, it will act as an Access Point

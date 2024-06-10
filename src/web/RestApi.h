@@ -84,7 +84,11 @@ class RestApi {
             mHeapFrag = ESP.getHeapFragmentation();
             #endif
 
+            #if defined(ESP32)
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 10000);
+            #else
+            AsyncJsonResponse* response = new AsyncJsonResponse(false, 6000);
+            #endif
             JsonObject root = response->getRoot();
 
             String path = request->url().substring(5);

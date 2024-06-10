@@ -217,10 +217,25 @@ jobs:
         rm -f \
           ${{ steps.version_name.outputs.name }}/*/*.elf.7z
 
+#    - name: Deploy
+#      uses: nogsantos/scp-deploy@master
+#      with:
+#        src: ${{ steps.version_name.outputs.name }}/
+#        host: ${{ secrets.FW_SSH_HOST }}
+#        remote: ${{ secrets.FW_SSH_DIR }}/dev
+#        port: ${{ secrets.FW_SSH_PORT }}
+#        user: ${{ secrets.FW_SSH_USER }}
+#        key: ${{ secrets.FW_SSH_KEY }}
+
+    - name: Clean elf files (7z compressed) for Artifact
+      run: |
+        rm -f \
+          ${{ steps.version_name.outputs.name }}/*/*.elf.7z
+
     - name: Create Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: zero-${{ steps.version_name.outputs.name }}
+        name: dev-${{ steps.version_name.outputs.name }}
         path: |
           ${{ steps.version_name.outputs.name }}/*
           manual/User_Manual.md
