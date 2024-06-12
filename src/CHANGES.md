@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.126 - 2024-06-12
+* merge PR: Update pubMqtt.h - Bugfix #1673 #1674
+
 ## 0.8.125 - 2024-06-09
 * fix ESP8266 compilation
 * merge PR: active_PowerLimit #1663
