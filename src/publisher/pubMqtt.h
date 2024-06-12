@@ -111,7 +111,7 @@ class PubMqtt {
         void loop() {
             std::queue<message_s> queue;
             xSemaphoreTake(mutex, portMAX_DELAY);
-            std::swap(queue, mReceiveQueue);
+            queue.swap(mReceiveQueue);
             xSemaphoreGive(mutex);
 
             while (!queue.empty()) {
@@ -645,28 +645,59 @@ class PubMqtt {
     private:
         enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
 
-        struct message_s {
-            char* topic;
-            uint8_t* payload;
+        struct message_s
+        {
+            char *topic;
+            uint8_t *payload;
             size_t len;
             size_t index;
             size_t total;
 
-            message_s(const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total) {
-                this->topic = new char[strlen(topic) + 1];
+            message_s() : topic { nullptr },  payload { nullptr },  len { 0 }, index { 0 }, total { 0 } {}
+
+            message_s(const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total)
+            {
+                uint8_t topic_len = strlen(topic) + 1;
+                this->topic = new char[topic_len];
                 this->payload = new uint8_t[len];
 
-                memcpy(this->topic, topic, strlen(topic));
+                memcpy(this->topic, topic, topic_len);
                 memcpy(this->payload, payload, len);
                 this->len = len;
                 this->index = index;
                 this->total = total;
             }
 
-            ~message_s() {
+            message_s(const message_s &) = delete;
+
+            message_s(message_s && other) : message_s {}
+            {
+                this->swap( other );
+            }
+
+            ~message_s()
+            {
                 delete[] this->topic;
                 delete[] this->payload;
             }
+
+            message_s  &operator = (const message_s &) = delete;
+
+            message_s  &operator = (message_s &&other)
+            {
+                this->swap(other);
+                return *this;
+            }
+
+            void swap(message_s &other)
+            {
+                std::swap(this->topic, other.topic);
+                std::swap(this->payload, other.payload);
+                std::swap(this->len, other.len);
+                std::swap(this->index, other.index);
+                std::swap(this->total, other.total);
+            }
+
         };
 
     private:
