@@ -2,6 +2,7 @@
 
 ## 0.8.127 - 2024-06-21
 * add grid file #1677
+* merge PR: Bugfix Inv delete not working with password protection #1678
 
 ## 0.8.126 - 2024-06-12
 * merge PR: Update pubMqtt.h - Bugfix #1673 #1674
