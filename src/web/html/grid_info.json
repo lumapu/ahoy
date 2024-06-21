@@ -10,6 +10,7 @@
         {"0x0908": "France_VFR2014"},
         {"0x0a00": "DE NF_EN_50549-1:2019"},
         {"0x0c00": "AT_TOR_Erzeuger_default"},
+        {"0x0c03": "AT_TOR_Erzeuger_cosphi=1"},
         {"0x0c04": "AT_TOR_Erzeuger_default"},
         {"0x0d00": "FR_VFR2019"},
         {"0x0d04": "NF_EN_50549-1:2019"},
