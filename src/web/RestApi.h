@@ -445,6 +445,7 @@ class RestApi {
             obj[F("chip_model")]    = ESP.getChipModel();
             obj[F("chip_cores")]    = ESP.getChipCores();
             obj[F("heap_total")]    = ESP.getHeapSize();
+            obj[F("temp_sensor_c")] = ah::readTemperature();
             //obj[F("core_version")]  = F("n/a");
             //obj[F("flash_size")]    = F("n/a");
             //obj[F("heap_frag")]     = F("n/a");

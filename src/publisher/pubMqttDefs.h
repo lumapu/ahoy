@@ -56,7 +56,8 @@ enum {
     MQTT_STATUS,
     MQTT_LWT_ONLINE,
     MQTT_LWT_OFFLINE,
-    MQTT_ACK_PWR_LMT
+    MQTT_ACK_PWR_LMT,
+    MQTT_TEMP_SENS_C
 };
 
 const char* const subtopics[] PROGMEM = {
@@ -76,7 +77,8 @@ const char* const subtopics[] PROGMEM = {
     "status",
     "connected",
     "not_connected",
-    "ack_pwr_limit"
+    "ack_pwr_limit",
+    "temp_sensor_c"
 };
 
 enum {
