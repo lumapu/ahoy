@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.128 - 2024-07-02
+* add environments for 16MB flash size ESP32-S3 aka opendtufusion
+
 ## 0.8.127 - 2024-06-21
 * add grid file #1677
 * merge PR: Bugfix Inv delete not working with password protection #1678

@@ -25,6 +25,8 @@ jobs:
         variant:
           - opendtufusion
           - opendtufusion-ethernet
+          - opendtufusion-16MB
+          - opendtufusion-ethernet-16MB
           - esp8266
           - esp8266-all
           - esp8266-minimal
@@ -94,6 +96,8 @@ jobs:
         variant:
           - opendtufusion-de
           - opendtufusion-ethernet-de
+          - opendtufusion-16MB-de
+          - opendtufusion-ethernet-16MB-de
           - esp8266-de
           - esp8266-all-de
           - esp8266-prometheus-de
