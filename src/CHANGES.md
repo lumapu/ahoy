@@ -1,7 +1,8 @@
 # Development Changes
 
-## 0.8.128 - 2024-07-02
+## 0.8.128 - 2024-07-10
 * add environments for 16MB flash size ESP32-S3 aka opendtufusion
+* prevent duplicate alarms, update end time once it is received
 
 ## 0.8.127 - 2024-06-21
 * add grid file #1677

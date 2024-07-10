@@ -670,7 +670,6 @@ class Inverter {
             DPRINTLN(DBG_DEBUG, "Alarm #" + String(pyld[startOff+1]) + " '" + String(getAlarmStr(pyld[startOff+1])) + "' start: " + ah::getTimeStr(start) + ", end: " + ah::getTimeStr(endTime));
             addAlarm(pyld[startOff+1], start, endTime);
 
-            alarmCnt++;
             alarmLastId = alarmMesIndex;
 
             return pyld[startOff+1];
@@ -818,6 +817,26 @@ class Inverter {
 
     private:
         inline void addAlarm(uint16_t code, uint32_t start, uint32_t end) {
+            bool found = false;
+            uint8_t i = 0;
+
+            if(start > end)
+                end = 0;
+
+            for(; i < 10; i++) {
+                mAlarmNxtWrPos = (++mAlarmNxtWrPos) % 10;
+
+                if(lastAlarm[mAlarmNxtWrPos].code == code && lastAlarm[mAlarmNxtWrPos].start == start) {
+                    // replace with same or update end time
+                    if(lastAlarm[mAlarmNxtWrPos].end == 0 || lastAlarm[mAlarmNxtWrPos].end == end) {
+                        break;
+                    }
+                }
+            }
+
+            if(alarmCnt < 10 && alarmCnt < mAlarmNxtWrPos)
+                alarmCnt = mAlarmNxtWrPos + 1;
+
             lastAlarm[mAlarmNxtWrPos] = alarm_t(code, start, end);
             if(++mAlarmNxtWrPos >= 10) // rolling buffer
                 mAlarmNxtWrPos = 0;
