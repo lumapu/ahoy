@@ -622,6 +622,7 @@ class PubMqtt {
 
     private:
         enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
+
         struct message_s
         {
             char *topic;
@@ -630,7 +631,13 @@ class PubMqtt {
             size_t index;
             size_t total;
 
-            message_s() : topic { nullptr },  payload { nullptr },  len { 0 }, index { 0}, total { 0 } {}
+            message_s()
+            : topic { nullptr }
+            , payload { nullptr }
+            , len { 0 }
+            , index { 0 }
+            , total { 0 }
+            {}
 
             message_s(const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total)
             {

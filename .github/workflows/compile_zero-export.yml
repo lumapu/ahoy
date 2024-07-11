@@ -25,6 +25,8 @@ jobs:
         variant:
           #- opendtufusion
           #- opendtufusion-ethernet
+          #- opendtufusion-16MB
+          #- opendtufusion-ethernet-16MB
           #- esp8266
           #- esp8266-all
           #- esp8266-minimal
@@ -38,6 +40,9 @@ jobs:
           #- esp32-c3-mini
           - opendtufusion-zero_export
           - opendtufusion-ethernet-zero_export
+          - opendtufusion-16MB-zero_export
+          - opendtufusion-ethernet-16MB-zero_export
+
     steps:
     - uses: actions/checkout@v4
     - uses: benjlevesque/short-sha@v3.0
@@ -96,6 +101,8 @@ jobs:
         variant:
           #- opendtufusion-de
           #- opendtufusion-ethernet-de
+          #- opendtufusion-16MB-de
+          #- opendtufusion-ethernet-16MB-de          
           #- esp8266-de
           #- esp8266-all-de
           #- esp8266-prometheus-de
@@ -107,6 +114,9 @@ jobs:
           #- esp32-c3-mini-de
           - opendtufusion-zero_export-de
           - opendtufusion-ethernet-zero_export-de
+          - opendtufusion-16MB-zero_export-de
+          - opendtufusion-ethernet-16MB-zero_export-de  
+
     steps:
     - uses: actions/checkout@v4
     - uses: benjlevesque/short-sha@v3.0
