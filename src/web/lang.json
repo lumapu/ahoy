@@ -844,6 +844,21 @@
                     "de": "Status:"
                 },
                 {
+                    "token": "ZE_GROUP_MODE",
+                    "en": "Mode:",
+                    "de": "Modus:"
+                },
+                {
+                    "token": "ZE_MODE_SLEEP",
+                    "en": "sleep",
+                    "de": "Standby"
+                },
+                {
+                    "token": "ZE_MODE_NORMAL",
+                    "en": "normal",
+                    "de": "Normal"
+                },
+                {
                     "token": "ZE_GROUP_ID",
                     "en": "Group:",
                     "de": "Gruppe:"

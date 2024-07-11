@@ -15,6 +15,9 @@
 #include "AsyncJson.h"
 #include "powermeter.h"
 #include "utils/DynamicJsonHandler.h"
+#include "utils/mqttHelper.h"
+
+using namespace mqttHelper;
 
 template <class HMSYSTEM>
 
@@ -48,14 +51,8 @@ class ZeroExport {
         mApi = api;
         mMqtt = mqtt;
 
-        mIsInitialized = mPowermeter.setup(mApp, mCfg, mqtt, &_log);
+        mIsInitialized = mPowermeter.setup(mApp, mCfg, mConfig, mMqtt, &_log);
     }
-
-    /*void printJson() {
-        serializeJson(doc, Serial);
-        Serial.println();
-        serializeJsonPretty(doc, Serial);
-    }*/
 
     /** loop
      * Arbeitsschleife
@@ -75,13 +72,17 @@ class ZeroExport {
         if (mLastRun > (Tsp - 1000)) return;
         mLastRun = Tsp;
 
-        if (mCfg->debug) DBGPRINTLN(F("Takt:"));
+        #ifdef ZEROEXPORT_DEBUG
+            if (mCfg->debug) DBGPRINTLN(F("Takt:"));
+        #endif /*ZEROEXPORT_DEBUG*/
 
         // Exit if Queue is empty
         zeroExportQueue_t Queue;
         if (!getQueue(&Queue)) return;
 
-        if (mCfg->debug) DBGPRINTLN(F("Queue:"));
+        #ifdef ZEROEXPORT_DEBUG
+            if (mCfg->debug) DBGPRINTLN(F("Queue:"));
+        #endif /*ZEROEXPORT_DEBUG*/
 
         // Load Data from Queue
         uint8_t group = Queue.group;
@@ -641,6 +642,8 @@ class ZeroExport {
      * @returns void
      */
     void onMqttConnect(void) {
+        mMqtt->subscribe("zero/ctrl/#", QOS_2);
+
         if (!mCfg->enabled) return;
 
         mPowermeter.onMqttConnect();
@@ -662,150 +665,31 @@ class ZeroExport {
      * @param
      * @returns void
      */
-    void onMqttMessage(JsonObject obj) {
-        if (!mIsInitialized) return;
+    bool onMqttMessage(const char* topic, const uint8_t* payload, size_t len)
+    {
+        // Check if ZE is init, when not, directly out of here!
+        if (!mIsInitialized) return false;
 
-        mPowermeter.onMqttMessage(obj);
+        bool result = true;
 
-        String topic = String(obj["topic"]);
-
-        // "topic":"userdefined battSoCTopic" oder "userdefinedUTopic"
-        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-            if (!mCfg->groups[group].enabled) continue;
-
-            if ((!mCfg->groups[group].battCfg == zeroExportBatteryCfg::mqttU) && (!mCfg->groups[group].battCfg == zeroExportBatteryCfg::mqttSoC)) continue;
-
-            if (!strcmp(mCfg->groups[group].battTopic, "")) continue;
-
-            if (strcmp(mCfg->groups[group].battTopic, String(topic).c_str())) {
-                mCfg->groups[group].battValue = (bool)obj["val"];
-
-                _log.addProperty("k", mCfg->groups[group].battTopic);
-                _log.addProperty("v", mCfg->groups[group].battValue);
-            }
-        }
-
-        // "topic":"ctrl/zero"
-        if (topic.indexOf("ctrl/zero") == -1) return;
-
-        _log.addProperty("d", obj);
-
-        if (obj["path"] == "ctrl" && obj["cmd"] == "zero") {
-            int8_t topicGroup = getGroupFromTopic(topic.c_str());
-            int8_t topicInverter = getInverterFromTopic(topic.c_str());
-
-            if (topicGroup != -1) {
-                _log.addProperty("g", topicGroup);
-            }
-            if (topicInverter == -1) {
-                _log.addProperty("i", topicInverter);
-            }
-
-            _log.addProperty("k", topic);
-
-            // "topic":"ctrl/zero/enabled"
-            if (topic.indexOf("ctrl/zero/enabled") != -1) {
-                _log.addProperty("v", (bool)obj["val"]);
-                mCfg->enabled = (bool)obj["val"];
-            }
-
-            // "topic":"ctrl/zero/sleep"
-            else if (topic.indexOf("ctrl/zero/sleep") != -1) {
-                _log.addProperty("v", (bool)obj["val"]);
-                mCfg->sleep = (bool)obj["val"];
-            }
-
-            else if ((topicGroup >= 0) && (topicGroup < ZEROEXPORT_MAX_GROUPS)) {
-                String stopicGroup = String(topicGroup);
-
-                // "topic":"ctrl/zero/groups/+/enabled"
-                if (topic.endsWith("/enabled")) {
-                    _log.addProperty("v", (bool)obj["val"]);
-                    mCfg->groups[topicGroup].enabled = (bool)obj["val"];
-                }
-
-                // "topic":"ctrl/zero/groups/+/sleep"
-                else if (topic.endsWith("/sleep")) {
-                    _log.addProperty("v", (bool)obj["val"]);
-                    mCfg->groups[topicGroup].sleep = (bool)obj["val"];
-                }
-
-                // Auf Eis gelegt, dafür 2 Gruppen mehr
-                // 0.8.103008.2
-                //                // "topic":"ctrl/zero/groups/+/pm_ip"
-                //                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/pm_ip") != -1) {
-                //                    snprintf(mCfg->groups[topicGroup].pm_src, ZEROEXPORT_GROUP_MAX_LEN_PM_SRC, "%s", obj[F("val")].as<const char *>());
-                /// TODO:
-                //                    snprintf(mCfg->groups[topicGroup].pm_src, ZEROEXPORT_GROUP_MAX_LEN_PM_SRC, "%s", obj[F("val")].as<const char *>());
-                //                    strncpy(mCfg->groups[topicGroup].pm_src, obj[F("val")], ZEROEXPORT_GROUP_MAX_LEN_PM_SRC);
-                //                    strncpy(mCfg->groups[topicGroup].pm_src, String(obj[F("val")]).c_str(), ZEROEXPORT_GROUP_MAX_LEN_PM_SRC);
-                //                    snprintf(mCfg->groups[topicGroup].pm_src, ZEROEXPORT_GROUP_MAX_LEN_PM_SRC, "%s", String(obj[F("val")]).c_str());
-                //                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/pm_ip";
-                //                    mLog["v"] = mCfg->groups[topicGroup].pm_src;
-                //                }
-                //
-                //                // "topic":"ctrl/zero/groups/+/pm_jsonPath"
-                //                if (topic.indexOf("ctrl/zero/groups/" + String(topicGroup) + "/pm_jsonPath") != -1) {
-                /// TODO:
-                //                    snprintf(mCfg->groups[topicGroup].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH, "%s", obj[F("val")].as<const char *>());
-                //                    mLog["k"] = "ctrl/zero/groups/" + String(topicGroup) + "/pm_jsonPath";
-                //                    mLog["v"] =  mCfg->groups[topicGroup].pm_jsonPath;
-                //                }
-
-                // "topic":"ctrl/zero/groups/+/battery/switch"
-                else if (topic.endsWith("/battery/switch")) {
-                    _log.addProperty("v", (bool)obj["val"]);
-                    mCfg->groups[topicGroup].battSwitch = (bool)obj["val"];
-                }
-
-                else if (topic.indexOf("/advanced/") != -1) {
-                    // "topic":"ctrl/zero/groups/+/advanced/setPoint"
-                    if (topic.endsWith("/setPoint")) {
-                        _log.addProperty("v", (int16_t)obj["val"]);
-                        mCfg->groups[topicGroup].setPoint = (int16_t)obj["val"];
-                    }
-
-                    // "topic":"ctrl/zero/groups/+/advanced/powerTolerance"
-                    else if (topic.endsWith("/powerTolerance")) {
-                        _log.addProperty("v", (uint8_t)obj["val"]);
-                        mCfg->groups[topicGroup].powerTolerance = (uint8_t)obj["val"];
-                    }
-
-                    // "topic":"ctrl/zero/groups/+/advanced/powerMax"
-                    else if (topic.endsWith("/powerMax")) {
-                        _log.addProperty("v", (uint16_t)obj["val"]);
-                        mCfg->groups[topicGroup].powerMax = (uint16_t)obj["val"];
-                    }
-                } else if (topic.indexOf("/inverter/") != -1) {
-                    if ((topicInverter >= 0) && (topicInverter < ZEROEXPORT_GROUP_MAX_INVERTERS)) {
-                        // "topic":"ctrl/zero/groups/+/inverter/+/enabled"
-                        if (topic.endsWith("/enabled")) {
-                            _log.addProperty("v", (bool)obj["val"]);
-                            mCfg->groups[topicGroup].inverters[topicInverter].enabled = (bool)obj["val"];
-                        }
-
-                        // "topic":"ctrl/zero/groups/+/inverter/+/powerMin"
-                        else if (topic.endsWith("/powerMin")) {
-                            _log.addProperty("v", (uint16_t)obj["val"]);
-                            mCfg->groups[topicGroup].inverters[topicInverter].powerMin = (uint16_t)obj["val"];
-                        }
-                        // "topic":"ctrl/zero/groups/+/inverter/+/powerMax"
-                        else if (topic.endsWith("/powerMax")) {
-                            _log.addProperty("v", (uint16_t)obj["val"]);
-                            mCfg->groups[topicGroup].inverters[topicInverter].powerMax = (uint16_t)obj["val"];
-                        } else {
-                            _log.addProperty("k", "error");
-                        }
-                    }
-                } else {
-                    _log.addProperty("k", "error");
+        // FremdTopic "topic":"userdefined power" ist für ZeroExport->Powermeter
+        if (!mPowermeter.onMqttMessage(topic, payload, len))
+        {
+            // FremdTopic "topic":"userdefined battSoCTopic" oder "userdefinedUTopic" ist für ZeroExport(Batterie)
+            if (!onMqttMessageBattery(topic, payload, len))
+            {
+                // LokalerTopic "topic": ???/zero ist für ZeroExport
+                if (!onMqttMessageZeroExport(topic, payload, len))
+                {
+                    result = false;
                 }
             }
         }
 
         sendLog();
         clearLog();
-        return;
+
+        return result;
     }
 
    private:
@@ -833,42 +717,6 @@ class ZeroExport {
         return true;
     }
 
-    /** getGroupFromTopic
-     * Extahiert die Gruppe aus dem mqttTopic.
-     * @param *topic
-     * @returns group
-     */
-    int8_t getGroupFromTopic(const char *topic) {
-        const char *pGroupSection = strstr(topic, "groups/");
-        if (pGroupSection == NULL) return -1;
-        pGroupSection += 7;
-        char strGroup[3];
-        uint8_t digitsCopied = 0;
-        while (*pGroupSection != '/' && digitsCopied < 2) strGroup[digitsCopied++] = *pGroupSection++;
-        strGroup[digitsCopied] = '\0';
-        int8_t group = atoi(strGroup);
-
-        _log.addProperty("getGroupFromTopic", "group");
-        return group;
-    }
-
-    /** getInverterFromTopic
-     * Extrahiert dden Inverter aus dem mqttTopic
-     * @param *topic
-     * @returns inv
-     */
-    int8_t getInverterFromTopic(const char *topic) {
-        const char *pInverterSection = strstr(topic, "inverters/");
-        if (pInverterSection == NULL) return -1;
-        pInverterSection += 10;
-        char strInverter[3];
-        uint8_t digitsCopied = 0;
-        while (*pInverterSection != '/' && digitsCopied < 2) strInverter[digitsCopied++] = *pInverterSection++;
-        strInverter[digitsCopied] = '\0';
-        int8_t inverter = atoi(strInverter);
-        return inverter;
-    }
-
     /** mqttSubscribe
      * when a MQTT Msg is needed to subscribe, then a publish is leading
      * @param gr
@@ -889,6 +737,154 @@ class ZeroExport {
      */
     void mqttPublish(String gr, String payload, bool retain = false) {
         mMqtt->publish(gr.c_str(), payload.c_str(), retain);
+    }
+
+    /** onMqttMessageBattery
+     * Subscribe section
+     * @param
+     * @returns void
+     */
+    bool onMqttMessageBattery(const char* topic, const uint8_t* payload, size_t len) {
+        // check if topic is Fremdtopic
+        String baseTopic = String(mConfig->mqtt.topic);
+
+        if (strncmp(topic, baseTopic.c_str(), baseTopic.length()) != 0)
+        {
+
+            for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+                if (!mCfg->groups[group].enabled) continue;
+
+                if ((!mCfg->groups[group].battCfg == zeroExportBatteryCfg::mqttU) && (!mCfg->groups[group].battCfg == zeroExportBatteryCfg::mqttSoC)) continue;
+
+                if (!strcmp(mCfg->groups[group].battTopic, "")) continue;
+
+                if (checkIntegerProperty(topic, mCfg->groups[group].battTopic, payload, len, &mCfg->groups[group].battValue, &_log)) return true;
+
+            }
+
+        }
+
+        return false;
+    }
+
+    /** onMqttMessageZeroExport
+     * Subscribe section
+     * @param
+     * @returns true when topic is for this class specified or false when its not fit in here.
+     */
+    bool onMqttMessageZeroExport(const char* topic, const uint8_t* payload, size_t len)
+    {
+        // check if topic is for zeroExport
+        String baseTopic = String(mConfig->mqtt.topic) + String("/zero/ctrl");
+
+        if (strncmp(topic, baseTopic.c_str(), baseTopic.length()) == 0)
+        {
+            _log.addProperty("k", topic);
+
+            const char* p = topic + strlen(baseTopic.c_str());
+
+            // "topic":"???/zero/ctrl/enabled"
+            if (checkBoolProperty(p, "/enabled", payload, len, &mCfg->enabled, &_log)) return true;
+// reconnect
+            // "topic":"???/zero/ctrl/sleep"
+            if (checkBoolProperty(p, "/sleep", payload, len, &mCfg->sleep, &_log)) return true;
+
+            // "topic":"???/zero/ctrl/groups"
+            if (strncmp(p, "/groups", strlen("/groups")) == 0) {
+
+                baseTopic += String("/groups"); // add '/groups'
+                p = topic + strlen(baseTopic.c_str());
+
+                // extract number from topic
+                int topicGroup = -1;
+                while (*p) {
+                    if (isdigit(*p)) {
+                        topicGroup = atoi(p);
+                        break;
+                    }
+                    p++;
+                }
+
+                // reset to pointer with offset
+                p = topic + strlen(baseTopic.c_str());
+
+                #ifdef ZEROEXPORT_DEBUG
+                    DBGPRINT(String("groups "));
+                    DBGPRINTLN(String(topicGroup));
+                #endif /*ZEROEXPORT_DEBUG*/
+
+                baseTopic += String("/") + String(topicGroup); // add '/+'
+                p = topic + strlen(baseTopic.c_str());
+
+                // "topic":"???/zero/ctrl/groups/+/enabled"
+                if (checkBoolProperty(p, "/enabled", payload, len, &mCfg->groups[topicGroup].enabled, &_log)) return true;
+// Reconnect
+                // "topic":"???/zero/ctrl/groups/+/sleep"
+                if (checkBoolProperty(p, "/sleep", payload, len, &mCfg->groups[topicGroup].sleep, &_log)) return true;
+
+                // "topic":"???/zero/ctrl/groups/+/pm_ip"
+                if (checkCharProperty(p, "/pm_ip", payload, len, mCfg->groups[topicGroup].pm_src, ZEROEXPORT_GROUP_MAX_LEN_PM_SRC, &_log)) return true;
+// Reconnect
+
+                // "topic":"???/zero/ctrl/groups/+/pm_jsonPath"
+                if (checkCharProperty(p, "/pm_jsonPath", payload, len, mCfg->groups[topicGroup].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH, &_log)) return true;
+// Reconnect
+
+                // "topic":"???/zero/ctrl/groups/+/battery/switch"
+                if (checkBoolProperty(p, "/battery/switch", payload, len, &mCfg->groups[topicGroup].battSwitch, &_log)) return true;
+
+                // "topic":"???/zero/ctrl/groups/+/advanced/setPoint"
+                if (checkIntegerProperty(p, "/advanced/setPoint", payload, len, &mCfg->groups[topicGroup].setPoint, &_log)) return true;
+
+                // "topic":"???/zero/ctrl/groups/+/advanced/powerTolerance"
+                if (checkIntegerProperty(p, "/advanced/powerTolerance", payload, len, &mCfg->groups[topicGroup].powerTolerance, &_log)) return true;
+
+                // "topic":"???/zero/ctrl/groups/+/advanced/powerMax"
+                if (checkIntegerProperty(p, "/advanced/powerMax", payload, len, &mCfg->groups[topicGroup].powerMax, &_log)) return true;
+
+                // "topic":"???/zero/ctrl/groups/+/inverter"
+                if (strncmp(p, "/inverter", strlen("/inverter")) == 0) {
+
+                    baseTopic += String("/inverter"); // add '/inverter'
+                    p = topic + strlen(baseTopic.c_str());
+
+                    // extract number from topic
+                    int topicInverter = -1;
+                    while (*p) {
+                        if (isdigit(*p)) {
+                            topicInverter = atoi(p);
+                            break;
+                        }
+                        p++;
+                    }
+
+                    // reset to pointer with offset
+                    p = topic + strlen(baseTopic.c_str());
+
+                    #ifdef ZEROEXPORT_DEBUG
+                        DBGPRINT(String("inverter "));
+                        DBGPRINTLN(String(topicInverter));
+                    #endif /*ZEROEXPORT_DEBUG*/
+
+                    baseTopic += String("/") + String(topicInverter); // add '/+'
+                    p = topic + strlen(baseTopic.c_str());
+
+                    // "topic":"???/zero/ctrl/groups/+/inverter/+/enabled"
+                    if (checkBoolProperty(p, "/enabled", payload, len, &mCfg->groups[topicGroup].inverters[topicInverter].enabled, &_log)) return true;
+
+                    // "topic":"???/zero/ctrl/groups/+/inverter/+/powerMin"
+                    if (checkIntegerProperty(p, "/powerMin", payload, len, &mCfg->groups[topicGroup].inverters[topicInverter].powerMin, &_log)) return true;
+
+                    // "topic":"???/zero/ctrl/groups/+/inverter/+/powerMax"
+                    if (checkIntegerProperty(p, "/powerMax", payload, len, &mCfg->groups[topicGroup].inverters[topicInverter].powerMax, &_log)) return true;
+
+                }
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** sendLog
@@ -914,6 +910,9 @@ class ZeroExport {
     void clearLog(void) {
         _log.clear();
     }
+
+
+
 
     // private member variables
     bool mIsInitialized = false;

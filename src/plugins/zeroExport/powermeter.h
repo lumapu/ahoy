@@ -20,6 +20,7 @@
 
 #include "plugins/zeroExport/lib/sml.h"
 #include "utils/DynamicJsonHandler.h"
+
 typedef struct {
     const unsigned char OBIS[6];
     void (*Fn)(double &);
@@ -46,9 +47,10 @@ class powermeter {
      * @param *log
      * @returns void
      */
-    bool setup(IApp *app, zeroExport_t *cfg, PubMqttType *mqtt, DynamicJsonHandler *log) {
+    bool setup(IApp *app, zeroExport_t *cfg, settings_t *config, PubMqttType *mqtt, DynamicJsonHandler *log) {
         mApp = app;
         mCfg = cfg;
+        mConfig = config;
         mMqtt = mqtt;
         mLog = log;
 
@@ -65,7 +67,9 @@ class powermeter {
         if (millis() - mPreviousTsp <= 1000) return;  // skip when it is to fast
         mPreviousTsp = millis();
 
-        if (mCfg->debug) DBGPRINTLN(F("pm Takt:"));
+        #ifdef ZEROEXPORT_DEBUG
+            if (mCfg->debug) DBGPRINTLN(F("pm Takt:"));
+        #endif /*ZEROEXPORT_DEBUG*/
 
         bool result = false;
         float power = 0.0;
@@ -76,7 +80,9 @@ class powermeter {
             if ((millis() - mCfg->groups[group].pm_peviousTsp) < ((uint16_t)mCfg->groups[group].pm_refresh * 1000)) continue;
             mCfg->groups[group].pm_peviousTsp = millis();
 
-            if (mCfg->debug) DBGPRINTLN(F("pm Do:"));
+            #ifdef ZEROEXPORT_DEBUG
+                if (mCfg->debug) DBGPRINTLN(F("pm Do:"));
+            #endif /*ZEROEXPORT_DEBUG*/
 
             result = false;
             power = 0.0;
@@ -120,11 +126,9 @@ class powermeter {
                 mCfg->groups[group].power = power;
 
                 // MQTT - Powermeter
-/// BUG: 002 Anfang - Muss dieser Teil raus? Führt er zu abstürzen wie BUG 001?
                 if (mMqtt->isConnected()) {
                     mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
                 }
-/// BUG: 002 Ende
             }
         }
     }
@@ -203,50 +207,63 @@ class powermeter {
     /** onMqttMessage
      * This function is needed for all mqtt connections between ahoy and other devices.
      */
-    void onMqttMessage(JsonObject obj) {
-        String topic = String(obj["topic"]);
+    bool onMqttMessage(const char* topic, const uint8_t* payload, size_t len)
+    {
+        bool result = false;
 
-#if defined(ZEROEXPORT_POWERMETER_MQTT)
-
-        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-            if (!mCfg->groups[group].enabled) continue;
-
-            if (!mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) continue;
-
-            if (!strcmp(mCfg->groups[group].pm_src, "")) continue;
-
-            if (strcmp(mCfg->groups[group].pm_src, String(topic).c_str())) continue;
-
-            float power = 0.0;
-
-            DynamicJsonDocument datajson(512);
-            if (!deserializeJson(datajson, String(obj["val"])))
+        #if defined(ZEROEXPORT_POWERMETER_MQTT)
+            for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++)
             {
-                switch (mCfg->groups[group].pm_target) {
-                    case 0: power = (float)datajson["total_act_power"]; break;
-                    case 1: power = (float)datajson["a_act_power"]; break;
-                    case 2: power = (float)datajson["b_act_power"]; break;
-                    case 3: power = (float)datajson["c_act_power"]; break;
+                if (!mCfg->groups[group].enabled) continue;
+                if (!mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) continue;
+                if (!strcmp(mCfg->groups[group].pm_src, "")) continue;
+                if (strcmp(mCfg->groups[group].pm_src, topic) != 0) continue;    // strcmp liefert 0 wenn gleich
+
+                float power = 0.0;
+                String sPayload = String((const char*)payload).substring(0, len);
+
+                if (sPayload.startsWith("{") && sPayload.endsWith("}") || sPayload.startsWith("[") && sPayload.endsWith("]"))
+                {
+                    #ifdef ZEROEXPORT_DEBUG
+                        DPRINTLN(DBG_INFO, String("ze: mqtt powermeter val: ") + sPayload);
+                    #endif /*ZEROEXPORT_DEBUG*/
+
+                    DynamicJsonDocument datajson(2048); // TODO: JSON größe dynamisch machen?
+                    if(!deserializeJson(datajson, sPayload.c_str()))
+                    {
+                        #ifdef ZEROEXPORT_DEBUG
+                            DPRINTLN(DBG_INFO, String("ze: mqtt powermeter deserialize ok"));
+                            DPRINTLN(DBG_INFO, String(datajson.as<String>()));
+                        #endif /*ZEROEXPORT_DEBUG*/
+                        power = extractJsonKey(datajson, mCfg->groups[group].pm_jsonPath);
+                    }
+
                 }
-            } else {
-                power = (float)obj["val"];
+                else
+                {
+                    #ifdef ZEROEXPORT_DEBUG
+                        DPRINTLN(DBG_INFO, String("ze: mqtt powermeter kein json"));
+                    #endif /*ZEROEXPORT_DEBUG*/
+                    power = sPayload.toFloat();
+                }
+
+                bufferWrite(power, group);
+                mCfg->groups[group].power = power;
+
+                // MQTT - Powermeter
+                DPRINTLN(DBG_INFO, String("ze: mqtt powermeter ") + String(power));
+                if (mCfg->debug) {
+                    if (mMqtt->isConnected()) {
+                        mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
+                    }
+                }
+
+                result = true;
             }
 
-            bufferWrite(power, group);
-            mCfg->groups[group].power = power; // TODO: join two sites together (PM & MQTT)
+        #endif /*defined(ZEROEXPORT_POWERMETER_MQTT)*/
 
-            // MQTT - Powermeter
-DPRINTLN(DBG_INFO, String("ze: mqtt powermeter") + String(power));
-/// BUG: 001 Anfang - Dieser Teil ist deaktiviert weil er zu abstürzen der DTU führt
-//            if (mCfg->debug) {
-//                if (mMqtt->isConnected()) {
-//                    mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
-//                }
-//            }
-/// BUG: 001 Ende
-        }
-
-#endif /*defined(ZEROEXPORT_POWERMETER_MQTT)*/
+        return result;
     }
 
    private:
@@ -260,6 +277,11 @@ DPRINTLN(DBG_INFO, String("ze: mqtt powermeter") + String(power));
         //        mqttPublish(gr, payload);
         mMqtt->subscribe(gr.c_str(), QOS_2);
     }
+
+    /*uint16_t mqttUnsubscribe(const char *subTopic,)
+    { TODO: hier weiter?
+        return mMqtt->unsubscribe(topic);  // add as many topics as you like
+    }*/
 
     /** mqttPublish
      * when a MQTT Msg is needed to Publish, but not to subscribe.
@@ -275,8 +297,9 @@ DPRINTLN(DBG_INFO, String("ze: mqtt powermeter") + String(power));
     HTTPClient http;
 
     zeroExport_t *mCfg;
+    settings_t *mConfig = nullptr;
     PubMqttType *mMqtt = nullptr;
-    DynamicJsonHandler* mLog;
+    DynamicJsonHandler *mLog;
     IApp *mApp = nullptr;
 
     unsigned long mPreviousTsp = millis();
@@ -292,8 +315,8 @@ DPRINTLN(DBG_INFO, String("ze: mqtt powermeter") + String(power));
      */
     void setHeader(HTTPClient *h, String auth = "", u8_t realm = 0) {
         h->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-///        h->setUserAgent("Ahoy-Agent");
-///        // TODO: Ahoy-0.8.850024-zero
+        ///        h->setUserAgent("Ahoy-Agent");
+        ///        // TODO: Ahoy-0.8.850024-zero
         h->setUserAgent(mApp->getVersion());
         h->setConnectTimeout(500);
         h->setTimeout(1000);
@@ -322,7 +345,6 @@ DPRINTLN(DBG_INFO, String("ze: mqtt powermeter") + String(power));
 
         */
 
-
         /*if (auth != NULL && realm) http.addHeader("WWW-Authenticate", "Digest qop=\"auth\", realm=\"" + shellypro4pm-f008d1d8b8b8 + "\", nonce=\"60dc59c6\", algorithm=SHA-256");
         else if (auth != NULL) http.addHeader("Authorization", "Basic " + auth);*/
         /*
@@ -336,6 +358,20 @@ DPRINTLN(DBG_INFO, String("ze: mqtt powermeter") + String(power));
                 ha2: string, "dummy_method:dummy_uri" encoded in SHA256
             algorithm: string, SHA-256.
         */
+    }
+
+    /**
+     *
+     *
+     */
+    float extractJsonKey(DynamicJsonDocument data, const char* key)
+    {
+        if (data.containsKey(key))
+            return (float)data[key];
+        else {
+            DPRINTLN(DBG_INFO, String("ze: mqtt powermeter deserialize no key ") + String(key));
+            return 0.0F;
+        }
     }
 
 #if defined(ZEROEXPORT_POWERMETER_SHELLY)
@@ -578,6 +614,7 @@ DPRINTLN(DBG_INFO, String("ze: mqtt powermeter") + String(power));
                 switch (smlCurrentState) {
                     case SML_FINAL:
                         *power = _powerMeterTotal;
+// TODO: pm_taget auswerten und damit eine Regelung auf Sum, L1, L2, L3 ermöglichen (setup.html nicht vergessen)
                         result = true;
                         break;
                     case SML_LISTEND:
