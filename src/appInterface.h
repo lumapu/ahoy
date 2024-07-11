@@ -73,6 +73,9 @@ class IApp {
         virtual void addValueToHistory(uint8_t historyType, uint8_t valueType, uint32_t value) = 0;
         #endif
         virtual void* getRadioObj(bool nrf) = 0;
+
+        virtual void subscribe(const char *subTopic, uint8_t qos) = 0;
+        virtual void unsubscribe(const char *subTopic) = 0;
 };
 
 #endif /*__IAPP_H__*/

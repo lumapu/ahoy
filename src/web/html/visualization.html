@@ -278,7 +278,7 @@
                                 ml("div", {class: "col mt-3"}, String(a.str)),
                                 ml("div", {class: "col mt-3"}, String(a.code)),
                                 ml("div", {class: "col mt-3"}, String(toIsoTimeStr(new Date((a.start + offs) * 1000)))),
-                                ml("div", {class: "col mt-3"}, String(toIsoTimeStr(new Date((a.end + offs) * 1000))))
+                                ml("div", {class: "col mt-3"}, (a.end == 0) ? "-" : String(toIsoTimeStr(new Date((a.end + offs) * 1000))))
                             ])
                         );
                     }

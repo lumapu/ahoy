@@ -221,6 +221,7 @@ typedef struct {
 // Plugin ZeroExport
 #if defined(PLUGIN_ZEROEXPORT)
 
+//#define ZEROEXPORT_DEBUG
 #define ZEROEXPORT_MAX_QUEUE_ENTRIES               64
 #define ZEROEXPORT_MAX_GROUPS                       8
 #define ZEROEXPORT_GROUP_MAX_LEN_NAME              25

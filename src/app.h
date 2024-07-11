@@ -360,6 +360,9 @@ class app : public IApp, public ah::Scheduler {
         }
         #endif
 
+        void subscribe(const char *subTopic, uint8_t qos = QOS_0);
+        void unsubscribe(const char *subTopic);
+
     private:
         #define CHECK_AVAIL     true
         #define SKIP_YIELD_DAY  true
@@ -381,7 +384,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void mqttConnectCb(void);
-        void mqttSubRxCb(JsonObject obj);
+        void mqttSubRxCb(const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total);
 
         void setupLed();
         void updateLed();

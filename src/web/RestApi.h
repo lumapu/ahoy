@@ -46,6 +46,7 @@ class RestApi {
             mRadioCmt = (CmtRadio<>*)mApp->getRadioObj(false);
             #endif
             mConfig   = config;
+
             #if defined(ENABLE_HISTORY_LOAD_DATA)
             mSrv->on("/api/addYDHist",
                              HTTP_POST, std::bind(&RestApi::onApiPost, this, std::placeholders::_1),
@@ -65,14 +66,14 @@ class RestApi {
             return mTimezoneOffset;
         }
 
-        void ctrlRequest(JsonObject obj) {
-            DynamicJsonDocument json(128);
-            JsonObject dummy = json.as<JsonObject>();
-            if(obj[F("path")] == "ctrl")
-                setCtrl(obj, dummy, "*");
-            else if(obj[F("path")] == "setup")
-                setSetup(obj, dummy, "*");
-        }
+//        void ctrlRequest(const char* topic, const uint8_t* payload, size_t len) {
+//            DynamicJsonDocument json(128);
+//            JsonObject dummy = json.as<JsonObject>();
+//            if(obj[F("path")] == "ctrl")
+//                setCtrl(obj, dummy, "*");
+//            else if(obj[F("path")] == "setup")
+//                setSetup(obj, dummy, "*");
+//        }
 
     private:
         void onApi(AsyncWebServerRequest *request) {
@@ -84,7 +85,11 @@ class RestApi {
             mHeapFrag = ESP.getHeapFragmentation();
             #endif
 
+            #if defined(ESP32)
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 10000);
+            #else
+            AsyncJsonResponse* response = new AsyncJsonResponse(false, 6000);
+            #endif
             JsonObject root = response->getRoot();
 
             String path = request->url().substring(5);
@@ -880,6 +885,7 @@ class RestApi {
                 // General
                 objGroup[F("id")]  = (uint8_t)group;
                 objGroup[F("enabled")]  = (bool)mConfig->plugin.zeroExport.groups[group].enabled;
+                objGroup[F("sleep")]  = (bool)mConfig->plugin.zeroExport.groups[group].sleep;
                 objGroup[F("name")]  = String(mConfig->plugin.zeroExport.groups[group].name);
                 // Powermeter
                 objGroup[F("pm_refresh")] = (uint8_t)mConfig->plugin.zeroExport.groups[group].pm_refresh;
@@ -1198,7 +1204,25 @@ class RestApi {
                 // Powermeter
                 mConfig->plugin.zeroExport.groups[group].pm_refresh = jsonIn[F("pm_refresh")];
                 mConfig->plugin.zeroExport.groups[group].pm_type = jsonIn[F("pm_type")];
-                snprintf(mConfig->plugin.zeroExport.groups[group].pm_src, ZEROEXPORT_GROUP_MAX_LEN_PM_SRC, "%s", jsonIn[F("pm_src")].as<const char*>());
+
+                // pm_src
+                const char *neu = jsonIn[F("pm_src")].as<const char*>();
+                if (strncmp(mConfig->plugin.zeroExport.groups[group].pm_src, neu, strlen(neu)) != 0) {
+                    // unsubscribe
+                    if(mConfig->plugin.zeroExport.groups[group].pm_type == zeroExportPowermeterType_t::Mqtt)
+                    {
+                        mApp->unsubscribe(mConfig->plugin.zeroExport.groups[group].pm_src);
+
+                    }
+                    // save
+                    snprintf(mConfig->plugin.zeroExport.groups[group].pm_src, ZEROEXPORT_GROUP_MAX_LEN_PM_SRC, "%s", jsonIn[F("pm_src")].as<const char*>());
+                    // subsrcribe
+                    if(mConfig->plugin.zeroExport.groups[group].pm_type == zeroExportPowermeterType_t::Mqtt)
+                    {
+                        mApp->subscribe(mConfig->plugin.zeroExport.groups[group].pm_src, QOS_2);
+                    }
+                }
+
                 snprintf(mConfig->plugin.zeroExport.groups[group].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH, "%s", jsonIn[F("pm_jsonPath")].as<const char*>());
 
 
@@ -1220,7 +1244,27 @@ class RestApi {
                 }
                 // Battery
                 mConfig->plugin.zeroExport.groups[group].battCfg = jsonIn[F("battCfg")];
-                snprintf(mConfig->plugin.zeroExport.groups[group].battTopic, ZEROEXPORT_GROUP_MAX_LEN_BATT_TOPIC, "%s", jsonIn[F("battTopic")].as<const char*>());
+
+                // battTopic
+                const char *battneu = jsonIn[F("battTopic")].as<const char*>();
+                if (strncmp(mConfig->plugin.zeroExport.groups[group].battTopic, battneu, strlen(battneu)) != 0) {
+                    // unsubscribe
+                    if(mConfig->plugin.zeroExport.groups[group].pm_type == zeroExportBatteryCfg::mqttSoC ||
+                        mConfig->plugin.zeroExport.groups[group].pm_type == zeroExportBatteryCfg::mqttU )
+                    {
+                        mApp->unsubscribe(mConfig->plugin.zeroExport.groups[group].battTopic);
+
+                    }
+                    // save
+                    snprintf(mConfig->plugin.zeroExport.groups[group].battTopic, ZEROEXPORT_GROUP_MAX_LEN_BATT_TOPIC, "%s", jsonIn[F("battTopic")].as<const char*>());
+                    // subsrcribe
+                    if(mConfig->plugin.zeroExport.groups[group].pm_type == zeroExportBatteryCfg::mqttSoC ||
+                        mConfig->plugin.zeroExport.groups[group].pm_type == zeroExportBatteryCfg::mqttU)
+                    {
+                        mApp->subscribe(mConfig->plugin.zeroExport.groups[group].battTopic, QOS_2);
+                    }
+                }
+
                 mConfig->plugin.zeroExport.groups[group].battLimitOn = jsonIn[F("battLimitOn")];
                 mConfig->plugin.zeroExport.groups[group].battLimitOff = jsonIn[F("battLimitOff")];
                 // Advanced

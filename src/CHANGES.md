@@ -1,10 +1,30 @@
 # Development Changes
 
+## 0.8.128 - 2024-07-10
+* add environments for 16MB flash size ESP32-S3 aka opendtufusion
+* prevent duplicate alarms, update end time once it is received
+
+## 0.8.127 - 2024-06-21
+* add grid file #1677
+* merge PR: Bugfix Inv delete not working with password protection #1678
+
+## 0.8.126 - 2024-06-12
+* merge PR: Update pubMqtt.h - Bugfix #1673 #1674
+
+## 0.8.125 - 2024-06-09
+* fix ESP8266 compilation
+* merge PR: active_PowerLimit #1663
+
+## 0.8.124 - 2024-06-06
+* improved MqTT `OnMessage` (threadsafe)
+* support of HERF inverters, serial number is converted in Javascript #1425
+* revert buffer size in `RestAPI` for ESP8266 #1650
+
 ## 0.8.123 - 2024-05-30
 * fix ESP8266, ESP32 static IP #1643 #1608
 * update MqTT library which enhances stability #1646
-* merge PR: MQTT JSON Payload pro Kanal und total, auswählbar #1541
-* add option to publish mqtt as json
+* merge PR: MqTT JSON Payload pro Kanal und total, auswählbar #1541
+* add option to publish MqTT as json
 * publish rssi not on ch0 any more, published on `topic/rssi`
 * add total power to index page (if multiple inverters are configured)
 * show device name in html title #1639

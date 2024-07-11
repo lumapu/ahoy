@@ -11,6 +11,8 @@
 #if defined(ENABLE_MQTT)
 #ifdef ESP8266
     #include <ESP8266WiFi.h>
+    #define xSemaphoreTake(a, b) { while(a) { yield(); } a = true; }
+    #define xSemaphoreGive(a) { a = false; }
 #elif defined(ESP32)
     #include <WiFi.h>
 #endif
@@ -26,7 +28,7 @@
 #include "pubMqttDefs.h"
 #include "pubMqttIvData.h"
 
-typedef std::function<void(JsonObject)> subscriptionCb;
+typedef std::function<void(const char*, const uint8_t*, size_t, size_t, size_t)> subscriptionCb;
 typedef std::function<void(void)> connectionCb;
 
 typedef struct {
@@ -40,6 +42,13 @@ template<class HMSYSTEM>
 class PubMqtt {
     public:
         PubMqtt() : SendIvData() {
+            #if defined(ESP32)
+                mutex = xSemaphoreCreateBinaryStatic(&mutexBuffer);
+                xSemaphoreGive(mutex);
+            #else
+                mutex = false;
+            #endif
+
             mLastIvState.fill(InverterStatus::OFF);
             mIvLastRTRpub.fill(0);
 
@@ -51,7 +60,11 @@ class PubMqtt {
             mSendAlarm.fill(false);
         }
 
-        ~PubMqtt() { }
+        ~PubMqtt() {
+            #if defined(ESP32)
+            vSemaphoreDelete(mutex);
+            #endif
+        }
 
         void setup(IApp *app, cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs, uint32_t *uptime) {
             mApp             = app;
@@ -97,6 +110,24 @@ class PubMqtt {
         }
 
         void loop() {
+            std::queue<message_s> queue;
+            xSemaphoreTake(mutex, portMAX_DELAY);
+            queue.swap(mReceiveQueue);
+            xSemaphoreGive(mutex);
+
+            while (!queue.empty())
+            {
+#warning "TODO: sTopic und sPayload hier fällen und dann übergeben?";
+#warning "Ist es wirklich so, dass die Payload eines Topics aus mehreren Nachrichten bestehen kann und erst zusammengesetzt werden muss? Was ist dann mit der Reihenfolge?";
+                message_s *entry = &queue.front();
+                if(NULL != mSubscriptionCb)
+                {
+                    (mSubscriptionCb)(entry->topic, entry->payload, entry->len, entry->index, entry->total);
+                    mRxCnt++;
+                }
+                queue.pop();
+            }
+
             SendIvData.loop();
 
             #if defined(ESP8266)
@@ -220,6 +251,12 @@ class PubMqtt {
             mClient.subscribe(topic, qos);
         }
 
+        // new - need to unsubscribe the topics.
+        void unsubscribe(const char *subTopic)
+        {
+            mClient.unsubscribe(subTopic);  // add as many topics as you like
+        }
+
         void subscribeExtern(const char *subTopic, uint8_t qos = QOS_0) {
             char topic[MQTT_TOPIC_LEN + 20];
             snprintf(topic, (MQTT_TOPIC_LEN + 20), "%s", subTopic);
@@ -272,14 +309,14 @@ class PubMqtt {
             tickerMinute();
             publish(mLwtTopic.data(), mqttStr[MQTT_STR_LWT_CONN], true, false);
 
-//            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-//                snprintf(mVal.data(), mVal.size(), "ctrl/limit/%d", i);
-//                subscribe(mVal.data(), QOS_2);
-//                snprintf(mVal.data(), mVal.size(), "ctrl/restart/%d", i);
-//                subscribe(mVal.data());
-//                snprintf(mVal.data(), mVal.size(), "ctrl/power/%d", i);
-//                subscribe(mVal.data());
-//            }
+           for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                snprintf(mVal.data(), mVal.size(), "ctrl/limit/%d", i);
+                subscribe(mVal.data(), QOS_2);
+                snprintf(mVal.data(), mVal.size(), "ctrl/restart/%d", i);
+                subscribe(mVal.data());
+                snprintf(mVal.data(), mVal.size(), "ctrl/power/%d", i);
+                subscribe(mVal.data());
+            }
             snprintf(mVal.data(), mVal.size(), "ctrl/#");
             subscribe(mVal.data(), QOS_2);
             subscribe(subscr[MQTT_SUBS_SET_TIME]);
@@ -315,69 +352,24 @@ class PubMqtt {
             }
         }
 
-        void onMessage(const espMqttClientTypes::MessageProperties& properties, const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total) {
-            if(len == 0)
+        void onMessage(const espMqttClientTypes::MessageProperties& properties, const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total)
+        {
+#warning "TODO: if aktivieren nach Logprüfung. Was bedeutet index und total?";
+//            if (total != 1) {
+//                DPRINTLN(DBG_ERROR, String("pubMqtt.h: onMessage ERROR: index=") + String(index) + String(" total=") + String(total));
+//                return;
+//            }
+
+            if (len == 0) {
+                DPRINT(DBG_INFO, String("MQTT-topic: "));
+                DPRINT(DBG_INFO, String(topic));
+                DPRINTLN(DBG_INFO, String(" is empty."));
                 return;
-            DPRINT(DBG_INFO, mqttStr[MQTT_STR_GOT_TOPIC]);
-            DBGPRINTLN(String(topic));
-            if(NULL == mSubscriptionCb)
-                return;
-
-            DynamicJsonDocument json(128);
-            JsonObject root = json.to<JsonObject>();
-            root["topic"] = String(topic);
-
-            bool limitAbs = false;
-            if(len > 0) {
-                char *pyld = new char[len + 1];
-                memcpy(pyld, payload, len);
-                pyld[len] = '\0';
-                if(NULL == strstr(topic, "limit"))
-                    root[F("val")] = atoi(pyld);
-                else
-                    root[F("val")] = atof(pyld);
-
-                if(pyld[len-1] == 'W')
-                    limitAbs = true;
-                delete[] pyld;
             }
 
-            const char *p = topic + strlen(mCfgMqtt->topic);
-            uint8_t pos = 0, elm = 0;
-            char tmp[30];
-
-            while(1) {
-                if(('/' == p[pos]) || ('\0' == p[pos])) {
-                    memcpy(tmp, p, pos);
-                    tmp[pos] = '\0';
-                    switch(elm++) {
-                        case 1: root[F("path")] = String(tmp); break;
-                        case 2:
-                            if(strncmp("limit", tmp, 5) == 0) {
-                                if(limitAbs)
-                                    root[F("cmd")] = F("limit_nonpersistent_absolute");
-                                else
-                                    root[F("cmd")] = F("limit_nonpersistent_relative");
-                            } else
-                                root[F("cmd")] = String(tmp);
-                            break;
-                        case 3: root[F("id")] = atoi(tmp);   break;
-                        default: break;
-                    }
-                    if('\0' == p[pos])
-                        break;
-                    p = p + pos + 1;
-                    pos = 0;
-                }
-                pos++;
-            }
-
-            /*char out[128];
-            serializeJson(root, out, 128);
-            DPRINTLN(DBG_INFO, "json: " + String(out));*/
-            (mSubscriptionCb)(root);
-
-            mRxCnt++;
+            xSemaphoreTake(mutex, portMAX_DELAY);
+            mReceiveQueue.push(message_s(topic, payload, len, index, total));
+            xSemaphoreGive(mutex);
         }
 
         void discoveryConfigLoop(void) {
@@ -631,12 +623,77 @@ class PubMqtt {
     private:
         enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
 
+        struct message_s
+        {
+            char *topic;
+            uint8_t *payload;
+            size_t len;
+            size_t index;
+            size_t total;
+
+            message_s()
+            : topic { nullptr }
+            , payload { nullptr }
+            , len { 0 }
+            , index { 0 }
+            , total { 0 }
+            {}
+
+            message_s(const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total)
+            {
+                uint8_t topic_len = strlen(topic) + 1;
+                this->topic = new char[topic_len];
+                this->payload = new uint8_t[len];
+
+                memcpy(this->topic, topic, topic_len);
+                memcpy(this->payload, payload, len);
+                this->len = len;
+                this->index = index;
+                this->total = total;
+            }
+
+            message_s(const message_s &) = delete;
+
+            message_s(message_s && other) : message_s {}
+            {
+                this->swap( other );
+            }
+
+            ~message_s()
+            {
+                delete[] this->topic;
+                delete[] this->payload;
+            }
+
+            message_s  &operator = (const message_s &) = delete;
+
+            message_s  &operator = (message_s &&other)
+            {
+                this->swap(other);
+                return *this;
+            }
+
+            void swap(message_s &other)
+            {
+                std::swap(this->topic, other.topic);
+                std::swap(this->payload, other.payload);
+                std::swap(this->len, other.len);
+                std::swap(this->index, other.index);
+                std::swap(this->total, other.total);
+            }
+
+        };
+
     private:
         espMqttClient mClient;
         cfgMqtt_t *mCfgMqtt = nullptr;
         IApp *mApp;
         #if defined(ESP8266)
         WiFiEventHandler mHWifiCon, mHWifiDiscon;
+        volatile bool mutex;
+        #else
+        SemaphoreHandle_t mutex;
+        StaticSemaphore_t mutexBuffer;
         #endif
 
         HMSYSTEM *mSys = nullptr;
@@ -652,6 +709,8 @@ class PubMqtt {
         std::array<InverterStatus, MAX_NUM_INVERTERS> mLastIvState;
         std::array<uint32_t, MAX_NUM_INVERTERS> mIvLastRTRpub;
         uint16_t mIntervalTimeout = 0;
+
+        std::queue<message_s> mReceiveQueue;
 
         // last will topic and payload must be available through lifetime of 'espMqttClient'
         std::array<char, (MQTT_TOPIC_LEN + 5)> mLwtTopic;

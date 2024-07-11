@@ -50,7 +50,7 @@ class MaxPower {
                 if((mValues[i].first + mMaxDiff) >= *mTs)
                     val += mValues[i].second;
                 else if(mValues[i].first > 0)
-                    return mLast; // old data
+                    break; // old data
             }
             if(val > mLast)
                 mLast = val;
