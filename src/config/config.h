@@ -6,6 +6,9 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+// set EMC_ALLOW_NOT_CONNECTED_PUBLISH flag to 0 
+// (https://www.emelis.net/espMqttClient/#compile-time-configuration) to avoid the memory exhaustion when disconnected. 
+#define EMC_ALLOW_NOT_CONNECTED_PUBLISH 0
 
 // globally used
 #define DEF_PIN_OFF         255
