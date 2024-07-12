@@ -74,8 +74,8 @@ class IApp {
         #endif
         virtual void* getRadioObj(bool nrf) = 0;
 
-        virtual void subscribe(const char *subTopic, uint8_t qos) = 0;
-        virtual void unsubscribe(const char *subTopic) = 0;
+        virtual void subscribeExtern(const char *subTopic, uint8_t qos) = 0;
+        virtual void unsubscribeExtern(const char *subTopic) = 0;
 };
 
 #endif /*__IAPP_H__*/
