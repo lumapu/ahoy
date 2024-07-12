@@ -409,13 +409,11 @@ class settings {
             // restore temp settings
             if(keepWifi)
                 memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
-            #if !defined(ETHERNET)
             else {
                 snprintf(mCfg.sys.stationSsid, SSID_LEN, FB_WIFI_SSID);
                 snprintf(mCfg.sys.stationPwd,  PWD_LEN,  FB_WIFI_PWD);
                 mCfg.sys.isHidden = false;
             }
-            #endif
             snprintf(mCfg.sys.apPwd,       PWD_LEN,  WIFI_AP_PWD);
 
             #if defined(ETHERNET)
@@ -570,12 +568,10 @@ class settings {
         void jsonNetwork(JsonObject obj, bool set = false) {
             if(set) {
                 char buf[16];
-                #if !defined(ETHERNET)
                 obj[F("ssid")] = mCfg.sys.stationSsid;
                 obj[F("pwd")]  = mCfg.sys.stationPwd;
                 obj[F("ap_pwd")]  = mCfg.sys.apPwd;
                 obj[F("hidd")] = (bool) mCfg.sys.isHidden;
-                #endif /* !defined(ETHERNET) */
                 obj[F("dev")]  = mCfg.sys.deviceName;
                 obj[F("adm")]  = mCfg.sys.adminPwd;
                 obj[F("prot_mask")] = mCfg.sys.protectionMask;
@@ -599,12 +595,10 @@ class settings {
                 obj[F("rst")]  = mCfg.sys.eth.pinRst;
                 #endif
             } else {
-                #if !defined(ETHERNET)
                 getChar(obj, F("ssid"), mCfg.sys.stationSsid, SSID_LEN);
                 getChar(obj, F("pwd"), mCfg.sys.stationPwd, PWD_LEN);
                 getChar(obj, F("ap_pwd"), mCfg.sys.apPwd, PWD_LEN);
                 getVal<bool>(obj, F("hidd"), &mCfg.sys.isHidden);
-                #endif /* !defined(ETHERNET) */
                 getChar(obj, F("dev"), mCfg.sys.deviceName, DEVNAME_LEN);
                 getChar(obj, F("adm"), mCfg.sys.adminPwd, PWD_LEN);
                 getVal<uint16_t>(obj, F("prot_mask"), &mCfg.sys.protectionMask);

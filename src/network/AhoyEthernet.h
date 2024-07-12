@@ -25,14 +25,13 @@ class AhoyEthernet : public AhoyWifi {
         void begin() override {
             mMode = Mode::WIRELESS;
             mAp.enable();
+            AhoyWifi::begin();
 
             if(!mConfig->sys.eth.enabled)
                 return;
 
             mEthSpi.begin(mConfig->sys.eth.pinMiso, mConfig->sys.eth.pinMosi, mConfig->sys.eth.pinSclk, mConfig->sys.eth.pinCs, mConfig->sys.eth.pinIrq, mConfig->sys.eth.pinRst);
             ETH.setHostname(mConfig->sys.deviceName);
-
-            AhoyWifi::begin();
         }
 
         void OnEvent(WiFiEvent_t event) {

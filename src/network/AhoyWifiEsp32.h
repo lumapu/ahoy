@@ -20,6 +20,7 @@ class AhoyWifi : public AhoyNetwork {
             if(strlen(mConfig->sys.stationSsid) == 0)
                 return; // no station wifi defined
 
+
             WiFi.disconnect(); // clean up
             WiFi.setHostname(mConfig->sys.deviceName);
             #if !defined(AP_ONLY)
