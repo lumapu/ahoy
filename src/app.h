@@ -360,8 +360,8 @@ class app : public IApp, public ah::Scheduler {
         }
         #endif
 
-        void subscribe(const char *subTopic, uint8_t qos = QOS_0);
-        void unsubscribe(const char *subTopic);
+        void subscribeExtern(const char *subTopic, uint8_t qos = QOS_0);
+        void unsubscribeExtern(const char *subTopic);
 
     private:
         #define CHECK_AVAIL     true

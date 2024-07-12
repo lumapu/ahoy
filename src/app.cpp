@@ -831,10 +831,10 @@ void app::updateLed(void) {
 
 
 
-void app::subscribe(const char *subTopic, uint8_t qos) {
-    mMqtt.subscribe(subTopic, qos);
+void app::subscribeExtern(const char *subTopic, uint8_t qos) {
+    mMqtt.subscribeExtern(subTopic, qos);
 }
 
-void app::unsubscribe(const char *subTopic) {
-    mMqtt.unsubscribe(subTopic);
+void app::unsubscribeExtern(const char *subTopic) {
+    mMqtt.unsubscribeExtern(subTopic);
 }

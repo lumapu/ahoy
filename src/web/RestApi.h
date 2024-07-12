@@ -1207,19 +1207,18 @@ class RestApi {
 
                 // pm_src
                 const char *neu = jsonIn[F("pm_src")].as<const char*>();
-                if (strncmp(mConfig->plugin.zeroExport.groups[group].pm_src, neu, strlen(neu)) != 0) {
+                if (strcmp(mConfig->plugin.zeroExport.groups[group].pm_src, neu) != 0) {
                     // unsubscribe
                     if(mConfig->plugin.zeroExport.groups[group].pm_type == zeroExportPowermeterType_t::Mqtt)
                     {
-                        mApp->unsubscribe(mConfig->plugin.zeroExport.groups[group].pm_src);
-
+                        mApp->unsubscribeExtern(mConfig->plugin.zeroExport.groups[group].pm_src);
                     }
                     // save
                     snprintf(mConfig->plugin.zeroExport.groups[group].pm_src, ZEROEXPORT_GROUP_MAX_LEN_PM_SRC, "%s", jsonIn[F("pm_src")].as<const char*>());
                     // subsrcribe
                     if(mConfig->plugin.zeroExport.groups[group].pm_type == zeroExportPowermeterType_t::Mqtt)
                     {
-                        mApp->subscribe(mConfig->plugin.zeroExport.groups[group].pm_src, QOS_2);
+                        mApp->subscribeExtern(mConfig->plugin.zeroExport.groups[group].pm_src, QOS_2);
                     }
                 }
 
@@ -1252,7 +1251,7 @@ class RestApi {
                     if(mConfig->plugin.zeroExport.groups[group].pm_type == zeroExportBatteryCfg::mqttSoC ||
                         mConfig->plugin.zeroExport.groups[group].pm_type == zeroExportBatteryCfg::mqttU )
                     {
-                        mApp->unsubscribe(mConfig->plugin.zeroExport.groups[group].battTopic);
+                        mApp->unsubscribeExtern(mConfig->plugin.zeroExport.groups[group].battTopic);
 
                     }
                     // save
@@ -1261,7 +1260,7 @@ class RestApi {
                     if(mConfig->plugin.zeroExport.groups[group].pm_type == zeroExportBatteryCfg::mqttSoC ||
                         mConfig->plugin.zeroExport.groups[group].pm_type == zeroExportBatteryCfg::mqttU)
                     {
-                        mApp->subscribe(mConfig->plugin.zeroExport.groups[group].battTopic, QOS_2);
+                        mApp->subscribeExtern(mConfig->plugin.zeroExport.groups[group].battTopic, QOS_2);
                     }
                 }
 

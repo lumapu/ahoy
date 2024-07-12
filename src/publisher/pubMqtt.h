@@ -251,16 +251,16 @@ class PubMqtt {
             mClient.subscribe(topic, qos);
         }
 
-        // new - need to unsubscribe the topics.
-        void unsubscribe(const char *subTopic)
-        {
-            mClient.unsubscribe(subTopic);  // add as many topics as you like
-        }
-
         void subscribeExtern(const char *subTopic, uint8_t qos = QOS_0) {
             char topic[MQTT_TOPIC_LEN + 20];
             snprintf(topic, (MQTT_TOPIC_LEN + 20), "%s", subTopic);
             mClient.subscribe(topic, qos);
+        }
+
+        // new - need to unsubscribe the topics.
+        void unsubscribeExtern(const char *subTopic)
+        {
+            mClient.unsubscribe(subTopic);  // add as many topics as you like
         }
 
         void setConnectionCb(connectionCb cb) {
