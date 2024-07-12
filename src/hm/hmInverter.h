@@ -834,7 +834,7 @@ class Inverter {
                 }
             }
 
-            if(alarmCnt < 10 && alarmCnt < mAlarmNxtWrPos)
+            if(alarmCnt < 10 && alarmCnt <= mAlarmNxtWrPos)
                 alarmCnt = mAlarmNxtWrPos + 1;
 
             lastAlarm[mAlarmNxtWrPos] = alarm_t(code, start, end);
