@@ -17,7 +17,7 @@ class AhoyWifi : public AhoyNetwork {
         virtual void begin() override {
             mAp.enable();
 
-            if(String(FB_WIFI_SSID) == mConfig->sys.stationSsid)
+            if(strlen(mConfig->sys.stationSsid) == 0)
                 return; // no station wifi defined
 
             WiFi.disconnect(); // clean up

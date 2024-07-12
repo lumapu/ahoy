@@ -11,6 +11,8 @@
 #if defined(ENABLE_MQTT)
 #ifdef ESP8266
     #include <ESP8266WiFi.h>
+    #define xSemaphoreTake(a, b) { while(a) { yield(); } a = true; }
+    #define xSemaphoreGive(a) { a = false; }
 #elif defined(ESP32)
     #include <WiFi.h>
 #endif
@@ -39,6 +41,13 @@ template<class HMSYSTEM>
 class PubMqtt {
     public:
         PubMqtt() : SendIvData() {
+            #if defined(ESP32)
+                mutex = xSemaphoreCreateBinaryStatic(&mutexBuffer);
+                xSemaphoreGive(mutex);
+            #else
+                mutex = false;
+            #endif
+
             mLastIvState.fill(InverterStatus::OFF);
             mIvLastRTRpub.fill(0);
 
@@ -50,7 +59,11 @@ class PubMqtt {
             mSendAlarm.fill(false);
         }
 
-        ~PubMqtt() { }
+        ~PubMqtt() {
+            #if defined(ESP32)
+            vSemaphoreDelete(mutex);
+            #endif
+        }
 
         void setup(IApp *app, cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs, uint32_t *uptime) {
             mApp             = app;
@@ -96,6 +109,17 @@ class PubMqtt {
         }
 
         void loop() {
+            std::queue<message_s> queue;
+            xSemaphoreTake(mutex, portMAX_DELAY);
+            queue.swap(mReceiveQueue);
+            xSemaphoreGive(mutex);
+
+            while (!queue.empty()) {
+                message_s *entry = &queue.front();
+                handleMessage(entry->topic, entry->payload, entry->len, entry->index, entry->total);
+                queue.pop();
+            }
+
             SendIvData.loop();
 
             #if defined(ESP8266)
@@ -301,6 +325,14 @@ class PubMqtt {
         void onMessage(const espMqttClientTypes::MessageProperties& properties, const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total) {
             if(len == 0)
                 return;
+
+            xSemaphoreTake(mutex, portMAX_DELAY);
+            mReceiveQueue.push(message_s(topic, payload, len, index, total));
+            xSemaphoreGive(mutex);
+
+        }
+
+        inline void handleMessage(const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total) {
             DPRINT(DBG_INFO, mqttStr[MQTT_STR_GOT_TOPIC]);
             DBGPRINTLN(String(topic));
             if(NULL == mSubscriptionCb)
@@ -613,12 +645,77 @@ class PubMqtt {
     private:
         enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
 
+        struct message_s
+        {
+            char *topic;
+            uint8_t *payload;
+            size_t len;
+            size_t index;
+            size_t total;
+
+            message_s() 
+            : topic { nullptr }
+            , payload { nullptr }
+            , len { 0 }
+            , index { 0 }
+            , total { 0 }
+            {}
+
+            message_s(const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total)
+            {
+                uint8_t topic_len = strlen(topic) + 1;
+                this->topic = new char[topic_len];
+                this->payload = new uint8_t[len];
+
+                memcpy(this->topic, topic, topic_len);
+                memcpy(this->payload, payload, len);
+                this->len = len;
+                this->index = index;
+                this->total = total;
+            }
+
+            message_s(const message_s &) = delete;
+
+            message_s(message_s && other) : message_s {}
+            {
+                this->swap( other );
+            }
+
+            ~message_s()
+            {
+                delete[] this->topic;
+                delete[] this->payload;
+            }
+
+            message_s  &operator = (const message_s &) = delete;
+
+            message_s  &operator = (message_s &&other)
+            {
+                this->swap(other);
+                return *this;
+            }
+
+            void swap(message_s &other)
+            {
+                std::swap(this->topic, other.topic);
+                std::swap(this->payload, other.payload);
+                std::swap(this->len, other.len);
+                std::swap(this->index, other.index);
+                std::swap(this->total, other.total);
+            }
+
+        };
+
     private:
         espMqttClient mClient;
         cfgMqtt_t *mCfgMqtt = nullptr;
         IApp *mApp;
         #if defined(ESP8266)
         WiFiEventHandler mHWifiCon, mHWifiDiscon;
+        volatile bool mutex;
+        #else
+        SemaphoreHandle_t mutex;
+        StaticSemaphore_t mutexBuffer;
         #endif
 
         HMSYSTEM *mSys = nullptr;
@@ -633,6 +730,8 @@ class PubMqtt {
         std::array<InverterStatus, MAX_NUM_INVERTERS> mLastIvState;
         std::array<uint32_t, MAX_NUM_INVERTERS> mIvLastRTRpub;
         uint16_t mIntervalTimeout = 0;
+
+        std::queue<message_s> mReceiveQueue;
 
         // last will topic and payload must be available through lifetime of 'espMqttClient'
         std::array<char, (MQTT_TOPIC_LEN + 5)> mLwtTopic;

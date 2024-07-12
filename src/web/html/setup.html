@@ -873,11 +873,16 @@
                 ser.dispatchEvent(new Event('change'));
 
                 function ivSave() {
-                    var o = new Object();
+                    var o = {}
                     o.cmd  = "save_iv"
                     o.token = "*"
                     o.id   = obj.id
-                    o.ser  = parseInt(document.getElementsByName("ser")[0].value, 16);
+
+                    let sn = document.getElementsByName("ser")[0].value
+                    if(sn[0] == 'A')
+                        sn = convHerf(sn)
+                    o.ser  = parseInt(sn, 16)
+
                     o.name = document.getElementsByName("name")[0].value;
                     o.en   = document.getElementsByName("enable")[0].checked;
                     o.ch = [];
@@ -895,6 +900,30 @@
                     o.freq = document.getElementsByName("freq")[0].value;
                     o.disnightcom = document.getElementsByName("disnightcom")[0].checked;
                     getAjax("/api/setup", cb, "POST", JSON.stringify(o));
+                }
+
+                function convHerf(sn) {
+                    let sn_int = 0n;
+                    const CHARS = "0123456789ABCDEFGHJKLMNPRSTUVWXY";
+
+                    for (let i = 0; i < 9; ++i) {
+                        const pos = CHARS.indexOf(sn[i])
+                        const shift = 42 - 5 * i - (i <= 2 ? 0 : 2)
+                        sn_int |= BigInt(pos) << BigInt(shift)
+                    }
+
+                    let first4Hex = (sn_int >> 32n) & 0xFFFFn
+
+                    if (first4Hex === 0x2841n)
+                        first4Hex = 0x1121n
+                    else if (first4Hex === 0x2821n)
+                        first4Hex = 0x1141n
+                    else if (first4Hex === 0x2801n)
+                        first4Hex = 0x1161n
+
+                    sn_int = (sn_int & ~(0xFFFFn << 32n)) | (first4Hex << 32n);
+
+                    return sn_int.toString(16)
                 }
 
                 function cb(obj2) {
@@ -918,6 +947,7 @@
                 function del() {
                     var o = new Object();
                     o.cmd  = "save_iv";
+                    o.token = "*"
                     o.id   = obj.id;
                     o.ser  = 0;
                     o.name = "";

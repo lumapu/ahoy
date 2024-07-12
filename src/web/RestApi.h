@@ -83,7 +83,11 @@ class RestApi {
             mHeapFrag = ESP.getHeapFragmentation();
             #endif
 
+            #if defined(ESP32)
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 8000);
+            #else
+            AsyncJsonResponse* response = new AsyncJsonResponse(false, 6000);
+            #endif
             JsonObject root = response->getRoot();
 
             String path = request->url().substring(5);
@@ -692,11 +696,23 @@ class RestApi {
             obj[F("last_id")] = iv->getChannelFieldValue(CH0, FLD_EVT, rec);
 
             JsonArray alarm = obj.createNestedArray(F("alarm"));
+
+            // find oldest alarm
+            uint8_t offset = 0;
+            uint32_t oldestStart = 0xffffffff;
             for(uint8_t i = 0; i < 10; i++) {
-                alarm[i][F("code")]  = iv->lastAlarm[i].code;
-                alarm[i][F("str")]   = iv->getAlarmStr(iv->lastAlarm[i].code);
-                alarm[i][F("start")] = iv->lastAlarm[i].start;
-                alarm[i][F("end")]   = iv->lastAlarm[i].end;
+                if((iv->lastAlarm[i].start != 0) && (iv->lastAlarm[i].start < oldestStart)) {
+                    offset = i;
+                    oldestStart = iv->lastAlarm[i].start;
+                }
+            }
+
+            for(uint8_t i = 0; i < 10; i++) {
+                uint8_t pos = (i + offset) % 10;
+                alarm[pos][F("code")]  = iv->lastAlarm[pos].code;
+                alarm[pos][F("str")]   = iv->getAlarmStr(iv->lastAlarm[pos].code);
+                alarm[pos][F("start")] = iv->lastAlarm[pos].start;
+                alarm[pos][F("end")]   = iv->lastAlarm[pos].end;
             }
         }
 
@@ -1086,7 +1102,19 @@ class RestApi {
                 mApp->saveSettings(true);
             }
             else if(F("save_iv") == jsonIn[F("cmd")]) {
-                Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")], false);
+                Inverter<> *iv;
+
+                for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                    iv = mSys->getInverterByPos(jsonIn[F("id")], true);
+                    if(nullptr != iv) {
+                        if((i != jsonIn[F("id")]) && (iv->config->serial.u64 == jsonIn[F("ser")])) {
+                            jsonOut[F("error")] = F("ERR_DUPLICATE_INVERTER");
+                            return false;
+                        }
+                    }
+                }
+
+                iv = mSys->getInverterByPos(jsonIn[F("id")], false);
                 iv->config->enabled = jsonIn[F("en")];
                 iv->config->serial.u64 = jsonIn[F("ser")];
                 snprintf(iv->config->name, MAX_NAME_LENGTH, "%s", jsonIn[F("name")].as<const char*>());
