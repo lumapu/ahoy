@@ -79,16 +79,25 @@ class Display {
         void tickerSecond() {
             bool request_refresh = false;
 
-            if (mMono != NULL)
+            if (mMono != NULL) {
+                // maintain LCD and OLED displays with pixel shift screensavers, at least every 5 seconds
                 request_refresh = mMono->loop(motionSensorActive());
-
-            if (mNewPayload || (((++mLoopCnt) % 5) == 0) || request_refresh) {
-                DataScreen();
-                mNewPayload = false;
-                mLoopCnt = 0;
+                if (mNewPayload || (((++mLoopCnt) % 5) == 0) || request_refresh) {
+                    DataScreen();
+                    mNewPayload = false;
+                    mLoopCnt = 0;
+                }
             }
             #if defined(ESP32) && !defined(ETHERNET)
+            else if (DISP_TYPE_T10_EPAPER == mCfg->type) {
+                // maintain ePaper at least every 15 seconds
+                if (mNewPayload || (((++mLoopCnt) % 15) == 0)) {
+                    DataScreen();
+                    mNewPayload = false;
+                    mLoopCnt = 0;
+                }
                 mEpaper.tickerSecond();
+            }
             #endif
         }
 
@@ -180,12 +189,14 @@ class Display {
             else if (DISP_TYPE_T10_EPAPER == mCfg->type) {
                 mEpaper.loop((totalPower), totalYieldDay, totalYieldTotal, nrprod);
                 mRefreshCycle++;
+
+                if (mRefreshCycle > 480) {
+                    mEpaper.fullRefresh();
+                    mRefreshCycle = 0;
+                }
+
             }
 
-            if (mRefreshCycle > 480) {
-                mEpaper.fullRefresh();
-                mRefreshCycle = 0;
-            }
     #endif
         }
 
