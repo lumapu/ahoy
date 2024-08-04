@@ -1072,6 +1072,8 @@ class RestApi {
             } else if(F("dev") == jsonIn[F("cmd")]) {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
                 iv->setDevCommand(jsonIn[F("val")].as<int>());
+            } else if(F("restart_ahoy") == jsonIn[F("cmd")]) {
+                mApp->setRebootFlag();
             } else {
                 jsonOut[F("error")] = F("ERR_UNKNOWN_CMD");
                 return false;
