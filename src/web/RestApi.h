@@ -1120,7 +1120,7 @@ class RestApi {
                 Inverter<> *iv;
 
                 for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                    iv = mSys->getInverterByPos(jsonIn[F("id")], true);
+                    iv = mSys->getInverterByPos(i, true);
                     if(nullptr != iv) {
                         if((i != jsonIn[F("id")]) && (iv->config->serial.u64 == jsonIn[F("ser")])) {
                             jsonOut[F("error")] = F("ERR_DUPLICATE_INVERTER");

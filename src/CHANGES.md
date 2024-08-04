@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.130 - 2024-08-04
+* fix message `ERR_DUPLICATE_INVERTER` #1705, #1700
+
 ## 0.8.129 - 2024-07-11
 * sort alarms ascending #1471
 * fix alarm counter for first alarm
