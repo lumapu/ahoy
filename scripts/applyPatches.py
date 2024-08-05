@@ -26,7 +26,7 @@ def applyPatch(libName, patchFile):
 
 
 # list of patches to apply (relative to /src)
-applyPatch("ESPAsyncWebServer-esphome", "../patches/AsyncWeb_Prometheus.patch")
+applyPatch("ESPAsyncWebServer", "../patches/AsyncWeb_Prometheus.patch")
 
 if (env['PIOENV'][:5] == "esp32") or (env['PIOENV'][:13] == "opendtufusion"):
     applyPatch("GxEPD2", "../patches/GxEPD2_HAL.patch")

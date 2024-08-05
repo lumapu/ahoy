@@ -817,7 +817,6 @@ class Inverter {
 
     private:
         inline void addAlarm(uint16_t code, uint32_t start, uint32_t end) {
-            bool found = false;
             uint8_t i = 0;
 
             if(start > end)
