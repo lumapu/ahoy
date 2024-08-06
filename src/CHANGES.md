@@ -1,5 +1,13 @@
 # Development Changes
 
+## 0.8.130 - 2024-08-04
+* fix message `ERR_DUPLICATE_INVERTER` #1705, #1700
+* merge PR: Power limit command accelerated #1704
+* merge PR: reduce update cycle of ePaper from 5 to 10 seconds #1706
+* merge PR: small fixes in different files #1711
+* add timestamp to JSON output #1707
+* restart Ahoy using MqTT #1667
+
 ## 0.8.129 - 2024-07-11
 * sort alarms ascending #1471
 * fix alarm counter for first alarm

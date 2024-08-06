@@ -817,14 +817,14 @@ class Inverter {
 
     private:
         inline void addAlarm(uint16_t code, uint32_t start, uint32_t end) {
-            bool found = false;
             uint8_t i = 0;
 
             if(start > end)
                 end = 0;
 
             for(; i < 10; i++) {
-                mAlarmNxtWrPos = (++mAlarmNxtWrPos) % 10;
+                ++mAlarmNxtWrPos;
+                mAlarmNxtWrPos = mAlarmNxtWrPos % 10;
 
                 if(lastAlarm[mAlarmNxtWrPos].code == code && lastAlarm[mAlarmNxtWrPos].start == start) {
                     // replace with same or update end time

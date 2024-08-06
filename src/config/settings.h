@@ -410,8 +410,8 @@ class settings {
             if(keepWifi)
                 memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
             else {
-                snprintf(mCfg.sys.stationSsid, SSID_LEN, FB_WIFI_SSID);
-                snprintf(mCfg.sys.stationPwd,  PWD_LEN,  FB_WIFI_PWD);
+                mCfg.sys.stationSsid[0] = '\0';
+                mCfg.sys.stationPwd[0] = '\0';
                 mCfg.sys.isHidden = false;
             }
             snprintf(mCfg.sys.apPwd,       PWD_LEN,  WIFI_AP_PWD);

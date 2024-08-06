@@ -1060,6 +1060,8 @@ class RestApi {
             } else if(F("dev") == jsonIn[F("cmd")]) {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
                 iv->setDevCommand(jsonIn[F("val")].as<int>());
+            } else if(F("restart_ahoy") == jsonIn[F("cmd")]) {
+                mApp->setRebootFlag();
             } else {
                 jsonOut[F("error")] = F("ERR_UNKNOWN_CMD");
                 return false;
@@ -1105,7 +1107,7 @@ class RestApi {
                 Inverter<> *iv;
 
                 for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                    iv = mSys->getInverterByPos(jsonIn[F("id")], true);
+                    iv = mSys->getInverterByPos(i, true);
                     if(nullptr != iv) {
                         if((i != jsonIn[F("id")]) && (iv->config->serial.u64 == jsonIn[F("ser")])) {
                             jsonOut[F("error")] = F("ERR_DUPLICATE_INVERTER");

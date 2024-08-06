@@ -285,6 +285,9 @@ class PubMqtt {
             tickerMinute();
             publish(mLwtTopic.data(), mqttStr[MQTT_STR_LWT_CONN], true, false);
 
+            snprintf(mVal.data(), mVal.size(), "ctrl/restart_ahoy");
+            subscribe(mVal.data());
+
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 snprintf(mVal.data(), mVal.size(), "ctrl/limit/%d", i);
                 subscribe(mVal.data(), QOS_2);
@@ -386,9 +389,9 @@ class PubMqtt {
                 pos++;
             }
 
-            /*char out[128];
+            char out[128];
             serializeJson(root, out, 128);
-            DPRINTLN(DBG_INFO, "json: " + String(out));*/
+            DPRINTLN(DBG_INFO, "json: " + String(out));
             (mSubscriptionCb)(root);
 
             mRxCnt++;
