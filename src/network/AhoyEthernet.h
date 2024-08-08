@@ -37,6 +37,8 @@ class AhoyEthernet : public AhoyWifi {
         void OnEvent(WiFiEvent_t event) {
             switch(event) {
                 case SYSTEM_EVENT_STA_CONNECTED:
+                    mWifiConnecting = false;
+                    [[fallthrough]];
                 case ARDUINO_EVENT_ETH_CONNECTED:
                     if(NetworkState::CONNECTED != mStatus) {
                         mStatus = NetworkState::CONNECTED;
