@@ -1093,6 +1093,7 @@ class RestApi {
                 mApp->saveSettings(false); // without reboot
                 mApp->setupStation();
             }
+            #if defined(ETHERNET)
             else if(F("save_eth") == jsonIn[F("cmd")]) {
                 mConfig->sys.eth.enabled = jsonIn[F("en")].as<bool>();
                 mConfig->sys.eth.pinCs = jsonIn[F("cs")].as<uint8_t>();
@@ -1103,6 +1104,7 @@ class RestApi {
                 mConfig->sys.eth.pinRst = jsonIn[F("reset")].as<uint8_t>();
                 mApp->saveSettings(true);
             }
+            #endif
             else if(F("save_iv") == jsonIn[F("cmd")]) {
                 Inverter<> *iv;
 
