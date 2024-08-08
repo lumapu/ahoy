@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.131 - 2024-08-08
+* improved refresh routine of ePaper, full refresh each 12h #1107 #1706
+
 ## 0.8.130 - 2024-08-04
 * fix message `ERR_DUPLICATE_INVERTER` #1705, #1700
 * merge PR: Power limit command accelerated #1704

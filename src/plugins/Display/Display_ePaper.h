@@ -50,7 +50,8 @@ class DisplayEPaper {
             WHITE,
             WAIT,
             PARTITIALS,
-            LOGO
+            LOGO,
+            LOGO_WAIT
         };
 
         uint8_t mDisplayRotation;
@@ -64,6 +65,7 @@ class DisplayEPaper {
         const char* _version;
         RefreshStatus mRefreshState, mNextRefreshState;
         uint8_t mSecondCnt;
+        bool mLogoDisplayed;
         #if defined(SPI_HAL)
         epdHal hal;
         #endif

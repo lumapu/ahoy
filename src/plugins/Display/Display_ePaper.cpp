@@ -26,23 +26,22 @@ void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, u
 
     mRefreshState = RefreshStatus::LOGO;
     mSecondCnt = 0;
+    mLogoDisplayed = false;
 
     if (DISP_TYPE_T10_EPAPER == type) {
-        Serial.begin(115200);
-
-#if defined(SPI_HAL)
-        hal.init(_MOSI, _DC, _SCK, _CS, _RST, _BUSY);
-        _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(&hal));
-#else
-    _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY));
-    #if defined(USE_HSPI_FOR_EPD)
+        #if defined(SPI_HAL)
+            hal.init(_MOSI, _DC, _SCK, _CS, _RST, _BUSY);
+            _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(&hal));
+        #else
+            _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY));
+            #if defined(USE_HSPI_FOR_EPD)
             hspi.begin(_SCK, _BUSY, _MOSI, _CS);
             _display->epd2.selectSPI(hspi, SPISettings(spiClk, MSBFIRST, SPI_MODE0));
-    #elif defined(PLUGIN_DISPLAY)
+            #elif defined(PLUGIN_DISPLAY)
             _display->epd2.init(_SCK, _MOSI, 115200, true, 20, false);
-    #endif
-#endif
-        _display->init(115200, true, 20, false);
+            #endif
+        #endif
+        _display->init(0, true, 20, false);
         _display->setRotation(mDisplayRotation);
         _display->setFullWindow();
         _version = version;
@@ -58,7 +57,8 @@ void DisplayEPaper::config(uint8_t rotation, bool enPowerSave) {
 void DisplayEPaper::fullRefresh() {
     if(RefreshStatus::DONE != mRefreshState)
         return;
-    mSecondCnt = 2;
+    if(mLogoDisplayed)
+        return; // no refresh during logo display
     mRefreshState = RefreshStatus::BLACK;
 }
 
@@ -67,22 +67,29 @@ void DisplayEPaper::refreshLoop() {
     switch(mRefreshState) {
         case RefreshStatus::LOGO:
             _display->fillScreen(GxEPD_BLACK);
+            _display->firstPage();
             _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
-            mSecondCnt = 2;
-            mNextRefreshState = RefreshStatus::PARTITIALS;
+            mSecondCnt = 4;
+            mNextRefreshState = RefreshStatus::LOGO_WAIT;
             mRefreshState = RefreshStatus::WAIT;
+            break;
+
+        case RefreshStatus::LOGO_WAIT:
+            if(0 != mSecondCnt)
+                break;
+            mRefreshState = RefreshStatus::BLACK;
             break;
 
         case RefreshStatus::BLACK:
             _display->fillScreen(GxEPD_BLACK);
+            _display->firstPage();
             mNextRefreshState = RefreshStatus::WHITE;
             mRefreshState = RefreshStatus::WAIT;
             break;
 
         case RefreshStatus::WHITE:
-            if(0 != mSecondCnt)
-                break;
             _display->fillScreen(GxEPD_WHITE);
+            _display->firstPage();
             mNextRefreshState = RefreshStatus::PARTITIALS;
             mRefreshState = RefreshStatus::WAIT;
             break;
@@ -93,11 +100,8 @@ void DisplayEPaper::refreshLoop() {
             break;
 
         case RefreshStatus::PARTITIALS:
-            if(0 != mSecondCnt)
-                break;
             headlineIP();
             versionFooter();
-            mSecondCnt = 4; // display Logo time during boot up
             mNextRefreshState = RefreshStatus::DONE;
             mRefreshState = RefreshStatus::WAIT;
             break;
@@ -219,7 +223,12 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
         if ((totalPower == 0) && (mEnPowerSave)) {
             _display->fillRect(0, mHeadFootPadding, 200, 200, GxEPD_BLACK);
             _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
+            mLogoDisplayed = true;
         } else {
+            if(mLogoDisplayed) {
+                mLogoDisplayed = false;
+                fullRefresh();
+            }
             _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
             x = ((_display->width() - tbw) / 2) - tbx;
             _display->setCursor(x, mHeadFootPadding + tbh + 10);
@@ -306,8 +315,7 @@ void DisplayEPaper::loop(float totalPower, float totalYieldDay, float totalYield
 
 //***************************************************************************
 void DisplayEPaper::tickerSecond() {
-    if(mSecondCnt != 0)
+    if(mSecondCnt > 0)
         mSecondCnt--;
-    refreshLoop();
 }
 #endif  // ESP32

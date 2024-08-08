@@ -142,6 +142,10 @@ void app::loop(void) {
     if (mMqttEnabled && mNetworkConnected)
         mMqtt.loop();
     #endif
+
+    #if defined(PLUGIN_DISPLAY)
+    mDisplay.loop();
+    #endif
     yield();
 }
 
