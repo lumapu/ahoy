@@ -72,6 +72,14 @@ class Display {
 
         }
 
+        void loop() {
+            #if defined(ESP32) && !defined(ETHERNET)
+            if ((nullptr != mCfg) && (DISP_TYPE_T10_EPAPER == mCfg->type)) {
+                mEpaper.refreshLoop();
+            }
+            #endif
+        }
+
         void payloadEventListener(uint8_t cmd) {
             mNewPayload = true;
         }
@@ -190,7 +198,7 @@ class Display {
                 mEpaper.loop((totalPower), totalYieldDay, totalYieldTotal, nrprod);
                 mRefreshCycle++;
 
-                if (mRefreshCycle > 480) {
+                if (mRefreshCycle > 2880) { // 15 * 2280 = 44300s = 12h
                     mEpaper.fullRefresh();
                     mRefreshCycle = 0;
                 }
