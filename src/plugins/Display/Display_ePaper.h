@@ -48,7 +48,6 @@ class DisplayEPaper {
             DONE,
             BLACK,
             WHITE,
-            WAIT,
             PARTITIALS,
             LOGO,
             LOGO_WAIT
@@ -63,7 +62,8 @@ class DisplayEPaper {
         uint32_t* mUtcTs;
         bool mEnPowerSave;
         const char* _version;
-        RefreshStatus mRefreshState, mNextRefreshState;
+        RefreshStatus mRefreshState;
+
         uint8_t mSecondCnt;
         bool mLogoDisplayed;
         #if defined(SPI_HAL)

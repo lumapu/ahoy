@@ -44,6 +44,8 @@ void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, u
         _display->init(0, true, 20, false);
         _display->setRotation(mDisplayRotation);
         _display->setFullWindow();
+        _display->setTextColor(GxEPD_BLACK);
+        _display->firstPage();
         _version = version;
     }
 }
@@ -66,44 +68,42 @@ void DisplayEPaper::fullRefresh() {
 void DisplayEPaper::refreshLoop() {
     switch(mRefreshState) {
         case RefreshStatus::LOGO:
-            _display->fillScreen(GxEPD_BLACK);
-            _display->firstPage();
-            _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
-            mSecondCnt = 4;
-            mNextRefreshState = RefreshStatus::LOGO_WAIT;
-            mRefreshState = RefreshStatus::WAIT;
+            _display->fillScreen(GxEPD_WHITE);
+            _display->drawInvertedBitmap(0, 0, logo, 200, 200, GxEPD_BLACK);
+            if(_display->nextPage())
+                break;
+            mSecondCnt = 10;
+            _display->powerOff();
+            mRefreshState = RefreshStatus::LOGO_WAIT;
             break;
 
         case RefreshStatus::LOGO_WAIT:
             if(0 != mSecondCnt)
                 break;
-            mRefreshState = RefreshStatus::BLACK;
+            mRefreshState = RefreshStatus::WHITE;
+            _display->firstPage();
             break;
 
         case RefreshStatus::BLACK:
             _display->fillScreen(GxEPD_BLACK);
+            if(_display->nextPage())
+                break;
+            mRefreshState = RefreshStatus::WHITE;
             _display->firstPage();
-            mNextRefreshState = RefreshStatus::WHITE;
-            mRefreshState = RefreshStatus::WAIT;
             break;
 
         case RefreshStatus::WHITE:
             _display->fillScreen(GxEPD_WHITE);
+            if(_display->nextPage())
+                break;
+            mRefreshState = RefreshStatus::PARTITIALS;
             _display->firstPage();
-            mNextRefreshState = RefreshStatus::PARTITIALS;
-            mRefreshState = RefreshStatus::WAIT;
-            break;
-
-        case RefreshStatus::WAIT:
-            if(!_display->nextPage())
-                mRefreshState = mNextRefreshState;
             break;
 
         case RefreshStatus::PARTITIALS:
             headlineIP();
             versionFooter();
-            mNextRefreshState = RefreshStatus::DONE;
-            mRefreshState = RefreshStatus::WAIT;
+            mRefreshState = RefreshStatus::DONE;
             break;
 
         default: // RefreshStatus::DONE
@@ -315,7 +315,9 @@ void DisplayEPaper::loop(float totalPower, float totalYieldDay, float totalYield
 
 //***************************************************************************
 void DisplayEPaper::tickerSecond() {
-    if(mSecondCnt > 0)
-        mSecondCnt--;
+    if(RefreshStatus::LOGO_WAIT == mRefreshState) {
+        if(mSecondCnt > 0)
+            mSecondCnt--;
+    }
 }
 #endif  // ESP32
