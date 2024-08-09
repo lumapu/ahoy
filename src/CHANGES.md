@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.132 - 2024-08-09
+* fix boot loop once no ePaper is connected #1713, #1714
+
 ## 0.8.131 - 2024-08-08
 * improved refresh routine of ePaper, full refresh each 12h #1107 #1706
 

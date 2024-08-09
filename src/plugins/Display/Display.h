@@ -74,7 +74,7 @@ class Display {
 
         void loop() {
             #if defined(ESP32) && !defined(ETHERNET)
-            if (DISP_TYPE_T10_EPAPER == mCfg->type) {
+            if ((nullptr != mCfg) && (DISP_TYPE_T10_EPAPER == mCfg->type)) {
                 mEpaper.refreshLoop();
             }
             #endif
