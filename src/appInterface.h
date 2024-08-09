@@ -57,6 +57,10 @@ class IApp {
         virtual uint32_t getMqttRxCnt() = 0;
         virtual uint32_t getMqttTxCnt() = 0;
 
+        #if defined(ETHERNET)
+        virtual bool isWiredConnection() = 0;
+        #endif
+
         virtual void lock(bool fromWeb) = 0;
         virtual char *unlock(const char *clientIp, bool loginFromWeb) = 0;
         virtual void resetLockTimeout(void) = 0;

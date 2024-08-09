@@ -432,6 +432,10 @@ class RestApi {
             #endif
             getMqttInfo(obj.createNestedObject(F("mqtt")));
 
+            #if defined(ETHERNET)
+            getEthernetInfo(obj.createNestedObject(F("eth")));
+            #endif
+
         #if defined(ESP32)
             obj[F("chip_revision")] = ESP.getChipRevision();
             obj[F("chip_model")]    = ESP.getChipModel();
@@ -823,6 +827,10 @@ class RestApi {
             obj[F("mosi")]         = mConfig->sys.eth.pinMosi;
             obj[F("irq")]          = mConfig->sys.eth.pinIrq;
             obj[F("reset")]        = mConfig->sys.eth.pinRst;
+        }
+
+        void getEthernetInfo(JsonObject obj) {
+            obj[F("wired")] = (bool)mApp->isWiredConnection();
         }
         #endif
 

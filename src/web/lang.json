@@ -907,6 +907,26 @@
                     "token": "COMMUNICATING",
                     "en": "communicating",
                     "de": "aktiv"
+                },
+                {
+                    "token": "NETWORK",
+                    "en": "Network",
+                    "de": "Netzwerk"
+                },
+                {
+                    "token": "CONNECTION_TYPE",
+                    "en": "connection",
+                    "de": "Verbindung"
+                },
+                {
+                    "token": "WIRED",
+                    "en": "ethernet cable",
+                    "de": "Netzwerkkabel"
+                },
+                {
+                    "token": "WIFI",
+                    "en": "WiFi",
+                    "de": "WiFi"
                 }
             ]
         },

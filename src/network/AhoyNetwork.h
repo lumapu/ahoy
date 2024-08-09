@@ -84,6 +84,10 @@ class AhoyNetwork {
             return false;
         }
 
+        virtual bool isWiredConnection() {
+            return false;
+        }
+
         bool isApActive() {
             return mAp.isEnabled();
         }

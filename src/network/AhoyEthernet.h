@@ -34,6 +34,18 @@ class AhoyEthernet : public AhoyWifi {
             ETH.setHostname(mConfig->sys.deviceName);
         }
 
+        String getIp(void) {
+            if(Mode::WIRELESS == mMode)
+                return AhoyWifi::getIp();
+            else
+                return ETH.localIP().toString();
+        }
+
+        bool isWiredConnection() {
+            return (Mode::WIRED == mMode);
+        }
+
+    private:
         void OnEvent(WiFiEvent_t event) {
             switch(event) {
                 case SYSTEM_EVENT_STA_CONNECTED:
@@ -41,6 +53,9 @@ class AhoyEthernet : public AhoyWifi {
                     [[fallthrough]];
                 case ARDUINO_EVENT_ETH_CONNECTED:
                     if(NetworkState::CONNECTED != mStatus) {
+                        if(ARDUINO_EVENT_ETH_CONNECTED == event)
+                            WiFi.disconnect();
+
                         mStatus = NetworkState::CONNECTED;
                         DPRINTLN(DBG_INFO, F("Network connected"));
                         setStaticIp();
@@ -106,14 +121,6 @@ class AhoyEthernet : public AhoyWifi {
             }
         }
 
-        String getIp(void) {
-            if(Mode::WIRELESS == mMode)
-                return AhoyWifi::getIp();
-            else
-                return ETH.localIP().toString();
-        }
-
-    private:
         void setStaticIp() override {
             setupIp([this](IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2) -> bool {
                 if(Mode::WIRELESS == mMode)

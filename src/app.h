@@ -253,6 +253,12 @@ class app : public IApp, public ah::Scheduler {
             #endif
         }
 
+        #if defined(ETHERNET)
+        bool isWiredConnection() override {
+            return mNetwork->isWiredConnection();
+        }
+        #endif
+
         void lock(bool fromWeb) override {
             mProtection->lock(fromWeb);
         }

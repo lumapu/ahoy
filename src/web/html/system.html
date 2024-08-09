@@ -25,7 +25,7 @@
                 const data = ["sdk", "cpu_freq", "chip_revision", "device_name",
                     "chip_model", "chip_cores", "esp_type", "mac", "wifi_rssi", "wifi_channel", "ts_uptime",
                     "flash_size", "sketch_used", "heap_total", "heap_free", "heap_frag",
-                    "max_free_blk", "version", "modules", "env", "core_version", "reboot_reason"];
+                    "max_free_blk", "version", "modules", "env", "core_version", "reboot_reason", "is_eth_con"];
 
                 lines = [];
                 for (const [key, value] of Object.entries(obj)) {
@@ -111,6 +111,19 @@
                 );
             }
 
+            /*IF_ETHERNET*/
+            function parseEthernet(obj) {
+                lines = tr("{#CONNECTION_TYPE}", ((obj.wired) ? "{#WIRED}" : "{#WIFI}"));
+
+                document.getElementById("info").append(
+                    headline("{#NETWORK}"),
+                    ml("table", {class: "table"},
+                        ml("tbody", {}, lines)
+                    )
+                );
+            }
+            /*ENDIF_ETHERNET*/
+
             function parseIndex(obj) {
                 if(obj.ts_sunrise > 0) {
                     document.getElementById("info").append(
@@ -138,10 +151,13 @@
                         meta.content = obj.refresh + "; URL=" + obj.refresh_url;
                         document.getElementsByTagName('head')[0].appendChild(meta);
                     } else if(null != obj.system) {
-                        parseRadio(obj.system);
-                        parseMqtt(obj.system.mqtt);
-                        parseSysInfo(obj.system);
-                        getAjax('/api/index', parseIndex);
+                        parseRadio(obj.system)
+                        parseMqtt(obj.system.mqtt)
+                        /*IF_ETHERNET*/
+                        parseEthernet(obj.system.eth)
+                        /*ENDIF_ETHERNET*/
+                        parseSysInfo(obj.system)
+                        getAjax('/api/index', parseIndex)
                     }
                     document.getElementById("html").innerHTML = obj.html;
                 }
