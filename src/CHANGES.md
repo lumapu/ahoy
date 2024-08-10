@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.133 - 2024-08-10
+* Ethernet variants now support WiFi as fall back / configuration
+
 ## 0.8.132 - 2024-08-09
 * fix boot loop once no ePaper is connected #1713, #1714
 * improved refresh routine of ePeper
