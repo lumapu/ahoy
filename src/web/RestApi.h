@@ -81,6 +81,12 @@ class RestApi {
             #ifndef ESP32
             mHeapFreeBlk = ESP.getMaxFreeBlockSize();
             mHeapFrag = ESP.getHeapFragmentation();
+            #else
+            mHeapFreeBlk = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
+            if(mHeapFree > 0)
+                mHeapFrag = 100 - ((mHeapFreeBlk * 100) / mHeapFree);
+            else
+                mHeapFrag = 0;
             #endif
 
             #if defined(ESP32)
@@ -422,8 +428,6 @@ class RestApi {
             obj[F("sdk")]          = ESP.getSdkVersion();
             obj[F("cpu_freq")]     = ESP.getCpuFreqMHz();
             obj[F("heap_free")]    = mHeapFree;
-            obj[F("sketch_total")] = ESP.getFreeSketchSpace();
-            obj[F("sketch_used")]  = ESP.getSketchSize() / 1024; // in kb
             getGeneric(request, obj);
 
             getRadioNrf(obj.createNestedObject(F("radioNrf")));
@@ -436,29 +440,82 @@ class RestApi {
             getEthernetInfo(obj.createNestedObject(F("eth")));
             #endif
 
+            obj[F("heap_frag")]     = mHeapFrag;
+            obj[F("max_free_blk")]  = mHeapFreeBlk;
+
         #if defined(ESP32)
             obj[F("chip_revision")] = ESP.getChipRevision();
             obj[F("chip_model")]    = ESP.getChipModel();
             obj[F("chip_cores")]    = ESP.getChipCores();
             obj[F("heap_total")]    = ESP.getHeapSize();
             //obj[F("core_version")]  = F("n/a");
-            //obj[F("flash_size")]    = F("n/a");
-            //obj[F("heap_frag")]     = F("n/a");
-            //obj[F("max_free_blk")]  = F("n/a");
-            //obj[F("reboot_reason")] = F("n/a");
+
+            esp_reset_reason_t reason = esp_reset_reason();
+
+            // Reboot-Grund ausgeben
+            switch (reason) {
+                default:
+                    [[fallthrough]];
+                case ESP_RST_UNKNOWN:
+                    obj[F("reboot_reason")] = F("Unknown");
+                    break;
+                case ESP_RST_POWERON:
+                    obj[F("reboot_reason")] = F("Power on");
+                    break;
+                case ESP_RST_EXT:
+                    obj[F("reboot_reason")] = F("External");
+                    break;
+                case ESP_RST_SW:
+                    obj[F("reboot_reason")] = F("Software");
+                    break;
+                case ESP_RST_PANIC:
+                    obj[F("reboot_reason")] = F("Panic");
+                    break;
+                case ESP_RST_INT_WDT:
+                    obj[F("reboot_reason")] = F("Interrupt Watchdog");
+                    break;
+                case ESP_RST_TASK_WDT:
+                    obj[F("reboot_reason")] = F("Task Watchdog");
+                    break;
+                case ESP_RST_WDT:
+                    obj[F("reboot_reason")] = F("Watchdog");
+                    break;
+                case ESP_RST_DEEPSLEEP:
+                    obj[F("reboot_reason")] = F("Deepsleep");
+                    break;
+                case ESP_RST_BROWNOUT:
+                    obj[F("reboot_reason")] = F("Brownout");
+                    break;
+                case ESP_RST_SDIO:
+                    obj[F("reboot_reason")] = F("SDIO");
+                    break;
+            }
+
+            const esp_partition_t *partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_COREDUMP, "coredump");
+            if (partition != NULL)
+                obj[F("flash_size")]    = partition->address + partition->size;
         #else
             //obj[F("heap_total")]    = F("n/a");
             //obj[F("chip_revision")] = F("n/a");
             //obj[F("chip_model")]    = F("n/a");
             //obj[F("chip_cores")]    = F("n/a");
-            obj[F("heap_frag")]     = mHeapFrag;
-            obj[F("max_free_blk")]  = mHeapFreeBlk;
             obj[F("core_version")]  = ESP.getCoreVersion();
             obj[F("flash_size")]    = ESP.getFlashChipRealSize() / 1024; // in kb
             obj[F("reboot_reason")] = ESP.getResetReason();
         #endif
-            //obj[F("littlefs_total")] = LittleFS.totalBytes();
-            //obj[F("littlefs_used")] = LittleFS.usedBytes();
+
+            #if !defined(ESP32)
+                FSInfo info;
+                LittleFS.info(info);
+                obj[F("par_used_spiffs")] = info.usedBytes;
+                obj[F("par_size_spiffs")] = info.totalBytes;
+            #else
+                obj[F("par_size_spiffs")] = LittleFS.totalBytes();
+                obj[F("par_used_spiffs")] = LittleFS.usedBytes();
+            #endif
+
+            obj[F("par_size_app0")] = ESP.getFreeSketchSpace();
+            obj[F("par_used_app0")] = ESP.getSketchSize();
 
             /*uint8_t max;
             mApp->getSchedulerInfo(&max);

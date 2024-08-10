@@ -282,19 +282,7 @@ class settings {
             return mLastSaveSucceed;
         }
 
-        void getInfo(uint32_t *used, uint32_t *size) {
-            #if !defined(ESP32)
-                FSInfo info;
-                LittleFS.info(info);
-                *used = info.usedBytes;
-                *size = info.totalBytes;
 
-                DPRINTLN(DBG_INFO, F("-- FILESYSTEM INFO --"));
-                DPRINTLN(DBG_INFO, String(info.usedBytes) + F(" of ") + String(info.totalBytes)  + F(" used"));
-            #else
-                DPRINTLN(DBG_WARN, F("not supported by ESP32"));
-            #endif
-        }
 
         bool readSettings(const char* path) {
             loadDefaults();

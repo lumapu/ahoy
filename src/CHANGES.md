@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.134 - 2024-08-10
+* combined Ethernet and WiFi variants - Ethernet is now always included, but needs to be enabled if needed
+* improved statistic data in `/system`
+
 ## 0.8.133 - 2024-08-10
 * Ethernet variants now support WiFi as fall back / configuration
 
