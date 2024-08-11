@@ -801,7 +801,7 @@ class RestApi {
         #endif
 
         void getNetworkInfo(JsonObject obj) {
-            #if defined(ESP32)
+            #if defined(ETHERNET)
             bool isWired = mApp->isWiredConnection();
             if(!isWired)
                 obj[F("wifi_channel")] = WiFi.channel();
