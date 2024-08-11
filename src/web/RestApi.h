@@ -805,6 +805,8 @@ class RestApi {
             bool isWired = mApp->isWiredConnection();
             if(!isWired)
                 obj[F("wifi_channel")] = WiFi.channel();
+
+            obj[F("wired")] = isWired;
             #else
                 obj[F("wifi_channel")] = WiFi.channel();
             #endif
@@ -814,10 +816,6 @@ class RestApi {
             obj[F("hidd")]   = mConfig->sys.isHidden;
             obj[F("mac")]    = mApp->getMac();
             obj[F("ip")]     = mApp->getIp();
-
-            #if defined(ESP32)
-            obj[F("wired")] = isWired;
-            #endif
         }
 
         void getChipInfo(JsonObject obj) {
