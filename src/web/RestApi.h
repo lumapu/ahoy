@@ -808,6 +808,7 @@ class RestApi {
 
             obj[F("wired")] = isWired;
             #else
+                obj[F("wired")]        = false;
                 obj[F("wifi_channel")] = WiFi.channel();
             #endif
 

@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.135 - 2024-08-11
+* translated `/system` #1717
+
 ## 0.8.134 - 2024-08-10
 * combined Ethernet and WiFi variants - Ethernet is now always included, but needs to be enabled if needed
 * improved statistic data in `/system`

@@ -72,16 +72,16 @@
 
                 if(obj.radioNrf.en) {
                     lines = [
-                        tr("NRF24L01", badge(obj.radioNrf.isconnected, ((obj.radioNrf.isconnected) ? "" : "not ") + "connected")),
-                        tr("Interrupt Pin working", irqBadge(obj.radioNrf.irqOk)),
-                        tr("NRF24 Data Rate", dr[obj.radioNrf.dataRate] + "bps"),
-                        tr("DTU Radio ID", obj.radioNrf.sn)
+                        tr("NRF24L01", badge(obj.radioNrf.isconnected, ((obj.radioNrf.isconnected) ? "" : "{#NOT} ") + "{#CONNECTED}")),
+                        tr("{#INTR_PIN_WORKING}", irqBadge(obj.radioNrf.irqOk)),
+                        tr("NRF24 {#DATA_RATE}", dr[obj.radioNrf.dataRate] + "bps"),
+                        tr("DTU {#RADIO} ID", obj.radioNrf.sn)
                     ];
                 } else
-                    lines = [tr("NRF24L01", badge(false, "not enabled"))];
+                    lines = [tr("NRF24L01", badge(false, "{#NOT} {#ENABLED}"))];
 
                 document.getElementById("info").append(
-                    headline("Radio NRF24"),
+                    headline("{#RADIO} NRF24"),
                     ml("table", {class: "table"},
                         ml("tbody", {}, lines)
                     )
@@ -90,15 +90,15 @@
                 /*IF_ESP32*/
                 if(obj.radioCmt.en) {
                     cmt = [
-                        tr("CMT2300A", badge(obj.radioCmt.isconnected, ((obj.radioCmt.isconnected) ? "" : "not ") + "connected")),
-                        tr("Interrupt Pin working", irqBadge(obj.radioCmt.irqOk)),
-                        tr("DTU Radio ID", obj.radioCmt.sn)
+                        tr("CMT2300A", badge(obj.radioCmt.isconnected, ((obj.radioCmt.isconnected) ? "" : "{#NOT} ") + "{#CONNECTED}")),
+                        tr("{#INTR_PIN_WORKING}", irqBadge(obj.radioCmt.irqOk)),
+                        tr("DTU {#RADIO} ID", obj.radioCmt.sn)
                     ];
                 } else
-                    cmt = [tr("CMT2300A", badge(false, "not enabled"))];
+                    cmt = [tr("CMT2300A", badge(false, "{#NOT} {#ENABLED}"))];
 
                 document.getElementById("info").append(
-                    headline("Radio CMT"),
+                    headline("{#RADIO} CMT"),
                     ml("table", {class: "table"},
                         ml("tbody", {}, cmt)
                     )
@@ -108,7 +108,7 @@
 
             function parseNetwork(obj, gen) {
                 lines = [
-                    tr("connection", ((obj.wired) ? "{#WIRED}" : "{#WIFI} (SSID: " + obj.ssid + ", RSSI: " + gen.wifi_rssi + ", CH: " + obj.wifi_channel + ")")),
+                    tr("{#CONNECTION}", ((obj.wired) ? "{#WIRED}" : "{#WIFI} (SSID: " + obj.ssid + ", RSSI: " + gen.wifi_rssi + ", CH: " + obj.wifi_channel + ")")),
                     tr("Hostname", gen.host),
                     tr("IP {#ADDRESS}", obj.ip),
                     tr("MAC {#ADDRESS}", obj.mac)
@@ -125,7 +125,7 @@
             function parseMqtt(obj) {
                 if(obj.enabled) {
                     lines = [
-                        tr("connected", badge(obj.connected, ((obj.connected) ? "true" : "false"))),
+                        tr("{#CONNECTED}", badge(obj.connected, ((obj.connected) ? "true" : "false"))),
                         tr("#TX", obj.tx_cnt),
                         tr("#RX", obj.rx_cnt)
                     ]
@@ -143,11 +143,11 @@
 
             function parseMemory(obj) {
                 lines = [
-                    tr("Flash size", obj.flash_size / 1024 / 1024 + "MB"),
+                    tr("{#FLASH_SIZE}", obj.flash_size / 1024 / 1024 + "MB"),
                     tr("{#CONFIG_PARTITION} (" + Math.round(obj.par_used_spiffs / 1024) + "kB of " + obj.par_size_spiffs / 1024 + "kB)", progress(obj.par_used_spiffs / obj.par_size_spiffs * 100)),
                     tr("{#FIRMWARE_PARTITION} (" + Math.round(obj.par_used_app0 / 1024) + "kB of " + obj.par_size_app0 / 1024 + "kB)", progress(obj.par_used_app0 / obj.par_size_app0 * 100)),
                     tr("Heap (" + Math.round(obj.heap_free / 1024) + "kB of " + Math.round(obj.heap_total / 1024) + "kB)", progress(obj.heap_free / obj.heap_total * 100)),
-                    tr("Heap max free block", Math.round(obj.heap_max_free_blk / 1024) + "kB (Fragmentation: " + obj.heap_frag + ")")
+                    tr("Heap {#MAX_FREE_BLOCK}", Math.round(obj.heap_max_free_blk / 1024) + "kB (Fragmentation: " + obj.heap_frag + ")")
                 ]
 
                 document.getElementById("info").append(
@@ -164,11 +164,11 @@
                         headline("Sun"),
                         ml("table", {class: "table"},
                             ml("tbody", {}, [
-                                tr("sunrise", new Date(obj.ts_sunrise * 1000).toLocaleString('de-DE')),
-                                tr("sunset", new Date(obj.ts_sunset * 1000).toLocaleString('de-DE')),
-                                tr("Communication start", new Date((obj.ts_sunrise + obj.ts_offsSr) * 1000).toLocaleString('de-DE')),
-                                tr("Communication stop", new Date((obj.ts_sunset + obj.ts_offsSs) * 1000).toLocaleString('de-DE')),
-                                tr("Night behaviour", badge(obj.disNightComm, ((obj.disNightComm) ? "not" : "") + " communicating", "warning"))
+                                tr("{#SUNRISE}", new Date(obj.ts_sunrise * 1000).toLocaleString('de-DE')),
+                                tr("{#SUNSET}", new Date(obj.ts_sunset * 1000).toLocaleString('de-DE')),
+                                tr("{#COMMUNICATION_START}", new Date((obj.ts_sunrise + obj.ts_offsSr) * 1000).toLocaleString('de-DE')),
+                                tr("{#COMMUNICATION_STOP}", new Date((obj.ts_sunset + obj.ts_offsSs) * 1000).toLocaleString('de-DE')),
+                                tr("{#NIGHT_BEHAVIOR}", badge(obj.disNightComm, ((obj.disNightComm) ? "{#NOT}" : "") + " {#COMMUNICATING}", "warning"))
                             ])
                         )
                     );
