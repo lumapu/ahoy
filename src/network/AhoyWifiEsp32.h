@@ -41,11 +41,11 @@ class AhoyWifi : public AhoyNetwork {
                 mAp.tickLoop();
         }
 
-        String getIp(void) override {
+        virtual String getIp(void) override {
             return WiFi.localIP().toString();
         }
 
-        String getMac(void) override {
+        virtual String getMac(void) override {
             return WiFi.macAddress();
         }
 

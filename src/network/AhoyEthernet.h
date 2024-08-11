@@ -22,7 +22,7 @@ class AhoyEthernet : public AhoyWifi {
         };
 
     public:
-        void begin() override {
+        virtual void begin() override {
             mMode = Mode::WIRELESS;
             mAp.enable();
             AhoyWifi::begin();
@@ -34,31 +34,32 @@ class AhoyEthernet : public AhoyWifi {
             ETH.setHostname(mConfig->sys.deviceName);
         }
 
-        String getIp(void) {
+        virtual String getIp(void) override {
             if(Mode::WIRELESS == mMode)
                 return AhoyWifi::getIp();
             else
                 return ETH.localIP().toString();
         }
 
-        String getMac(void) {
+        virtual String getMac(void) override {
             if(Mode::WIRELESS == mMode)
                 return AhoyWifi::getMac();
             else
-                return ETH.macAddress();
+                return mEthSpi.macAddress();
         }
 
-        bool isWiredConnection() {
+        virtual bool isWiredConnection() override {
             return (Mode::WIRED == mMode);
         }
 
     private:
-        void OnEvent(WiFiEvent_t event) {
+        virtual void OnEvent(WiFiEvent_t event) override {
             switch(event) {
+                case ARDUINO_EVENT_ETH_CONNECTED:
+                    mMode = Mode::WIRED; // needed for static IP
+                    [[fallthrough]];
                 case SYSTEM_EVENT_STA_CONNECTED:
                     mWifiConnecting = false;
-                    [[fallthrough]];
-                case ARDUINO_EVENT_ETH_CONNECTED:
                     if(NetworkState::CONNECTED != mStatus) {
                         if(ARDUINO_EVENT_ETH_CONNECTED == event)
                             WiFi.disconnect();
