@@ -244,6 +244,10 @@ function badge(success, text, second="error") {
     return ml("span", {class: "badge badge-" + ((success) ? "success" : second)}, text);
 }
 
+function progress(val) {
+    return ml("div", {class: "progress"}, ml("div", {class: "progress-bar", style: "width: " + val + "%"}, null))
+}
+
 function tabChange(id) {
     var els = document.getElementsByClassName("nav-link");
     [].forEach.call(els, function(e) {

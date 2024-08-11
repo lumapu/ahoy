@@ -41,6 +41,13 @@ class AhoyEthernet : public AhoyWifi {
                 return ETH.localIP().toString();
         }
 
+        String getMac(void) {
+            if(Mode::WIRELESS == mMode)
+                return AhoyWifi::getMac();
+            else
+                return ETH.macAddress();
+        }
+
         bool isWiredConnection() {
             return (Mode::WIRED == mMode);
         }

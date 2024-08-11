@@ -79,6 +79,7 @@ class AhoyNetwork {
         virtual void begin() = 0;
         virtual void tickNetworkLoop() = 0;
         virtual String getIp(void) = 0;
+        virtual String getMac(void) = 0;
 
         virtual bool getWasInCh12to14() {
             return false;

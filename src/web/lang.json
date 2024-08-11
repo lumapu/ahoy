@@ -927,6 +927,56 @@
                     "token": "WIFI",
                     "en": "WiFi",
                     "de": "WiFi"
+                },
+                {
+                    "token": "DEVICE_NAME",
+                    "en": "Device name",
+                    "de": "Ger&auml;tename"
+                },
+                {
+                    "token": "UPTIME",
+                    "en": "Uptime",
+                    "de": "Laufzeit"
+                },
+                {
+                    "token": "REBOOT_REASON",
+                    "en": "Reboot reason",
+                    "de": "Grund des Neustarts"
+                },
+                {
+                    "token": "ENVIRONMENT",
+                    "en": "Environment",
+                    "de": "Umgebung"
+                },
+                {
+                    "token": "BUILD_OPTIONS",
+                    "en": "build options",
+                    "de": "Module"
+                },
+                {
+                    "token": "ADDRESS",
+                    "en": "Address",
+                    "de": "Adresse"
+                },
+                {
+                    "token": "NETWORK",
+                    "en": "Network",
+                    "de": "Netzwerk"
+                },
+                {
+                    "token": "MEMORY",
+                    "en": "Memory",
+                    "de": "Speicher"
+                },
+                {
+                    "token": "CONFIG_PARTITION",
+                    "en": "Config Partition",
+                    "de": "Konfiguration"
+                },
+                {
+                    "token": "FIRMWARE_PARTITION",
+                    "en": "Firmware Partition",
+                    "de": "Firmware"
                 }
             ]
         },

@@ -413,11 +413,6 @@ class RestApi {
         }
 
         void getSysInfo(AsyncWebServerRequest *request, JsonObject obj) {
-            obj[F("ap_pwd")]       = mConfig->sys.apPwd;
-            obj[F("ssid")]         = mConfig->sys.stationSsid;
-            obj[F("hidd")]         = mConfig->sys.isHidden;
-            obj[F("mac")]          = WiFi.macAddress();
-            obj[F("wifi_channel")] = WiFi.channel();
             obj[F("device_name")]  = mConfig->sys.deviceName;
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
             obj[F("sched_reboot")] = (bool)mConfig->sys.schedReboot;
@@ -425,97 +420,15 @@ class RestApi {
             obj[F("pwd_set")]      = (strlen(mConfig->sys.adminPwd) > 0);
             obj[F("prot_mask")]    = mConfig->sys.protectionMask;
 
-            obj[F("sdk")]          = ESP.getSdkVersion();
-            obj[F("cpu_freq")]     = ESP.getCpuFreqMHz();
-            obj[F("heap_free")]    = mHeapFree;
-            getGeneric(request, obj);
-
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            getChipInfo(obj.createNestedObject(F("chip")));
             getRadioNrf(obj.createNestedObject(F("radioNrf")));
+            getMqttInfo(obj.createNestedObject(F("mqtt")));
+            getNetworkInfo(obj.createNestedObject(F("network")));
+            getMemoryInfo(obj.createNestedObject(F("memory")));
             #if defined(ESP32)
             getRadioCmtInfo(obj.createNestedObject(F("radioCmt")));
             #endif
-            getMqttInfo(obj.createNestedObject(F("mqtt")));
-
-            #if defined(ETHERNET)
-            getEthernetInfo(obj.createNestedObject(F("eth")));
-            #endif
-
-            obj[F("heap_frag")]     = mHeapFrag;
-            obj[F("max_free_blk")]  = mHeapFreeBlk;
-
-        #if defined(ESP32)
-            obj[F("chip_revision")] = ESP.getChipRevision();
-            obj[F("chip_model")]    = ESP.getChipModel();
-            obj[F("chip_cores")]    = ESP.getChipCores();
-            obj[F("heap_total")]    = ESP.getHeapSize();
-            //obj[F("core_version")]  = F("n/a");
-
-            esp_reset_reason_t reason = esp_reset_reason();
-
-            // Reboot-Grund ausgeben
-            switch (reason) {
-                default:
-                    [[fallthrough]];
-                case ESP_RST_UNKNOWN:
-                    obj[F("reboot_reason")] = F("Unknown");
-                    break;
-                case ESP_RST_POWERON:
-                    obj[F("reboot_reason")] = F("Power on");
-                    break;
-                case ESP_RST_EXT:
-                    obj[F("reboot_reason")] = F("External");
-                    break;
-                case ESP_RST_SW:
-                    obj[F("reboot_reason")] = F("Software");
-                    break;
-                case ESP_RST_PANIC:
-                    obj[F("reboot_reason")] = F("Panic");
-                    break;
-                case ESP_RST_INT_WDT:
-                    obj[F("reboot_reason")] = F("Interrupt Watchdog");
-                    break;
-                case ESP_RST_TASK_WDT:
-                    obj[F("reboot_reason")] = F("Task Watchdog");
-                    break;
-                case ESP_RST_WDT:
-                    obj[F("reboot_reason")] = F("Watchdog");
-                    break;
-                case ESP_RST_DEEPSLEEP:
-                    obj[F("reboot_reason")] = F("Deepsleep");
-                    break;
-                case ESP_RST_BROWNOUT:
-                    obj[F("reboot_reason")] = F("Brownout");
-                    break;
-                case ESP_RST_SDIO:
-                    obj[F("reboot_reason")] = F("SDIO");
-                    break;
-            }
-
-            const esp_partition_t *partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_COREDUMP, "coredump");
-            if (partition != NULL)
-                obj[F("flash_size")]    = partition->address + partition->size;
-        #else
-            //obj[F("heap_total")]    = F("n/a");
-            //obj[F("chip_revision")] = F("n/a");
-            //obj[F("chip_model")]    = F("n/a");
-            //obj[F("chip_cores")]    = F("n/a");
-            obj[F("core_version")]  = ESP.getCoreVersion();
-            obj[F("flash_size")]    = ESP.getFlashChipRealSize() / 1024; // in kb
-            obj[F("reboot_reason")] = ESP.getResetReason();
-        #endif
-
-            #if !defined(ESP32)
-                FSInfo info;
-                LittleFS.info(info);
-                obj[F("par_used_spiffs")] = info.usedBytes;
-                obj[F("par_size_spiffs")] = info.totalBytes;
-            #else
-                obj[F("par_size_spiffs")] = LittleFS.totalBytes();
-                obj[F("par_used_spiffs")] = LittleFS.usedBytes();
-            #endif
-
-            obj[F("par_size_app0")] = ESP.getFreeSketchSpace();
-            obj[F("par_used_app0")] = ESP.getSketchSize();
 
             /*uint8_t max;
             mApp->getSchedulerInfo(&max);
@@ -885,11 +798,106 @@ class RestApi {
             obj[F("irq")]          = mConfig->sys.eth.pinIrq;
             obj[F("reset")]        = mConfig->sys.eth.pinRst;
         }
-
-        void getEthernetInfo(JsonObject obj) {
-            obj[F("wired")] = (bool)mApp->isWiredConnection();
-        }
         #endif
+
+        void getNetworkInfo(JsonObject obj) {
+            #if defined(ESP32)
+            bool isWired = mApp->isWiredConnection();
+            if(!isWired)
+                obj[F("wifi_channel")] = WiFi.channel();
+            #else
+                obj[F("wifi_channel")] = WiFi.channel();
+            #endif
+
+            obj[F("ap_pwd")] = mConfig->sys.apPwd;
+            obj[F("ssid")]   = mConfig->sys.stationSsid;
+            obj[F("hidd")]   = mConfig->sys.isHidden;
+            obj[F("mac")]    = mApp->getMac();
+            obj[F("ip")]     = mApp->getIp();
+
+            #if defined(ESP32)
+            obj[F("wired")] = isWired;
+            #endif
+        }
+
+        void getChipInfo(JsonObject obj) {
+            obj[F("cpu_freq")]     = ESP.getCpuFreqMHz();
+            obj[F("sdk")]          = ESP.getSdkVersion();
+            #if defined(ESP32)
+                obj[F("revision")] = ESP.getChipRevision();
+                obj[F("model")]    = ESP.getChipModel();
+                obj[F("cores")]    = ESP.getChipCores();
+
+                switch (esp_reset_reason()) {
+                    default:
+                        [[fallthrough]];
+                    case ESP_RST_UNKNOWN:
+                        obj[F("reboot_reason")] = F("Unknown");
+                        break;
+                    case ESP_RST_POWERON:
+                        obj[F("reboot_reason")] = F("Power on");
+                        break;
+                    case ESP_RST_EXT:
+                        obj[F("reboot_reason")] = F("External");
+                        break;
+                    case ESP_RST_SW:
+                        obj[F("reboot_reason")] = F("Software");
+                        break;
+                    case ESP_RST_PANIC:
+                        obj[F("reboot_reason")] = F("Panic");
+                        break;
+                    case ESP_RST_INT_WDT:
+                        obj[F("reboot_reason")] = F("Interrupt Watchdog");
+                        break;
+                    case ESP_RST_TASK_WDT:
+                        obj[F("reboot_reason")] = F("Task Watchdog");
+                        break;
+                    case ESP_RST_WDT:
+                        obj[F("reboot_reason")] = F("Watchdog");
+                        break;
+                    case ESP_RST_DEEPSLEEP:
+                        obj[F("reboot_reason")] = F("Deepsleep");
+                        break;
+                    case ESP_RST_BROWNOUT:
+                        obj[F("reboot_reason")] = F("Brownout");
+                        break;
+                    case ESP_RST_SDIO:
+                        obj[F("reboot_reason")] = F("SDIO");
+                        break;
+                }
+            #else
+                obj[F("core_version")]  = ESP.getCoreVersion();
+                obj[F("reboot_reason")] = ESP.getResetReason();
+            #endif
+        }
+
+        void getMemoryInfo(JsonObject obj) {
+            obj[F("heap_frag")]         = mHeapFrag;
+            obj[F("heap_max_free_blk")] = mHeapFreeBlk;
+            obj[F("heap_free")]         = mHeapFree;
+
+            obj[F("par_size_app0")] = ESP.getFreeSketchSpace();
+            obj[F("par_used_app0")] = ESP.getSketchSize();
+
+            #if defined(ESP32)
+                obj[F("heap_total")] = ESP.getHeapSize();
+
+                const esp_partition_t *partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_COREDUMP, "coredump");
+                if (partition != NULL)
+                    obj[F("flash_size")] = partition->address + partition->size;
+
+                obj[F("par_size_spiffs")] = LittleFS.totalBytes();
+                obj[F("par_used_spiffs")] = LittleFS.usedBytes();
+            #else
+                obj[F("flash_size")] = ESP.getFlashChipRealSize();
+
+                FSInfo info;
+                LittleFS.info(info);
+                obj[F("par_used_spiffs")] = info.usedBytes;
+                obj[F("par_size_spiffs")] = info.totalBytes;
+                obj[F("heap_total")] = 24*1014; // FIXME: don't know correct value
+            #endif
+        }
 
         void getRadioNrf(JsonObject obj) {
             obj[F("en")] = (bool) mConfig->nrf.enabled;

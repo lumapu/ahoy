@@ -32,6 +32,7 @@ class IApp {
         virtual void setupStation(void) = 0;
         virtual bool getWasInCh12to14(void) const = 0;
         virtual String getIp(void) = 0;
+        virtual String getMac(void) = 0;
         virtual bool isApActive(void) = 0;
 
         virtual uint32_t getUptime() = 0;

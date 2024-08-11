@@ -36,6 +36,20 @@ class AhoyWifi : public AhoyNetwork {
             #endif
         }
 
+        void tickNetworkLoop() override {
+            if(mAp.isEnabled())
+                mAp.tickLoop();
+        }
+
+        String getIp(void) override {
+            return WiFi.localIP().toString();
+        }
+
+        String getMac(void) override {
+            return WiFi.macAddress();
+        }
+
+    private:
         virtual void OnEvent(WiFiEvent_t event) override {
             switch(event) {
                 case SYSTEM_EVENT_STA_CONNECTED:
@@ -78,16 +92,6 @@ class AhoyWifi : public AhoyNetwork {
             }
         }
 
-        void tickNetworkLoop() override {
-            if(mAp.isEnabled())
-                mAp.tickLoop();
-        }
-
-        String getIp(void) override {
-            return WiFi.localIP().toString();
-        }
-
-    private:
         virtual void setStaticIp() override {
             setupIp([this](IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2) -> bool {
                 return WiFi.config(ip, gateway, mask, dns1, dns2);

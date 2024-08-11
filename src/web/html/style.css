@@ -859,3 +859,16 @@ ul {
     height: 100%;
     overflow: auto;
 }
+
+.progress {
+    display: flex;
+    height: 1rem;
+    overflow: hidden;
+    background-color: #e9ecef;
+    border-radius: .25rem;
+}
+
+.progress-bar {
+    display: flex;
+    background-color: var(--primary);
+}

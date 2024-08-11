@@ -187,6 +187,10 @@ class app : public IApp, public ah::Scheduler {
             return mNetwork->getIp();
         }
 
+        String getMac(void) override {
+            return mNetwork->getMac();
+        }
+
         bool isApActive(void) override {
             return mNetwork->isApActive();
         }
