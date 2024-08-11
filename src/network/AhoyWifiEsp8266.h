@@ -111,6 +111,10 @@ class AhoyWifi : public AhoyNetwork {
             return WiFi.localIP().toString();
         }
 
+        String getMac(void) override {
+            return WiFi.macAddress();
+        }
+
         bool getWasInCh12to14() override {
             return mWasInCh12to14;
         }

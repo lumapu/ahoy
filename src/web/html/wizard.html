@@ -210,8 +210,8 @@
                     ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {onclick: () => {redirect()}}, "{#STOP_WIZARD}")))
                 ])
             }
-            /*ELSE*/
-            function step1() {
+            /*ENDIF_ETHERNET*/
+            function step1Wifi() {
                 return ml("div", {}, [
                     ml("div", {class: "row my-5"}, ml("div", {class: "col"}, ml("span", {class: "fs-1"}, "{#WELCOME}"))),
                     ml("div", {class: "row"}, ml("div", {class: "col"}, ml("span", {class: "fs-5"}, "{#NETWORK_SETUP}"))),
@@ -222,7 +222,6 @@
                     ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {onclick: () => {redirect()}}, "{#STOP_WIZARD}")))
                 ])
             }
-            /*ENDIF_ETHERNET*/
 
             function checkWifi() {
                 c.replaceChildren(
@@ -258,19 +257,18 @@
                 }
                 getAjax("/api/setup", ((o) => {}), "POST", JSON.stringify(o));
             }
-            /*ELSE*/
+            /*ENDIF_ETHERNET*/
             function saveWifi() {
                 var ssid = document.getElementById("net").value;
                 if(-1 == ssid)
                     ssid = document.getElementById("man").value;
                 getAjax("/api/setup", ((o) => {if(!o.error) checkWifi()}), "POST", JSON.stringify({cmd: "save_wifi", ssid: ssid, pwd: document.getElementById("pwd").value}));
             }
-            /*ENDIF_ETHERNET*/
 
             function init() {
                 /*IF_ETHERNET*/
                 getAjax("/api/setup", ((o) => c.append(step1(o.eth))));
-                /*ELSE*/
+                /*ENDIF_ETHERNET*/
                 function nets(obj) {
                     clearInterval(v)
                     v = setInterval(() => {getAjax('/api/setup/networks', nets)}, 4000)
@@ -293,9 +291,8 @@
                         redirIp = "http://" + obj.ip + "/index"
                 }
 
-                c.append(step1())
+                c.append(step1Wifi())
                 getAjax('/api/setup/networks', nets)
-                /*ENDIF_ETHERNET*/
             }
 
         </script>

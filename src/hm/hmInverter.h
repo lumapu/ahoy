@@ -823,7 +823,8 @@ class Inverter {
                 end = 0;
 
             for(; i < 10; i++) {
-                mAlarmNxtWrPos = (++mAlarmNxtWrPos) % 10;
+                ++mAlarmNxtWrPos;
+                mAlarmNxtWrPos = mAlarmNxtWrPos % 10;
 
                 if(lastAlarm[mAlarmNxtWrPos].code == code && lastAlarm[mAlarmNxtWrPos].start == start) {
                     // replace with same or update end time

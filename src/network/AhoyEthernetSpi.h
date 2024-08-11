@@ -116,10 +116,14 @@ class AhoyEthernetSpi {
         }
 
         String macAddress() {
-            uint8_t mac_addr[6] = {0, 0, 0, 0, 0, 0};
+            uint8_t mac_addr[6];
             esp_eth_ioctl(eth_handle, ETH_CMD_G_MAC_ADDR, mac_addr);
-            char mac_addr_str[24];
-            snprintf(mac_addr_str, sizeof(mac_addr_str), "%02X:%02X:%02X:%02X:%02X:%02X", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+            char mac_addr_str[19];
+            for(uint8_t i = 0; i < 6; i++) {
+                snprintf(&mac_addr_str[i*3], sizeof(mac_addr_str), "%02X", mac_addr[i]);
+                mac_addr_str[i*3+2] = ':';
+            }
+            mac_addr_str[17] = '\0';
             return String(mac_addr_str);
         }
 

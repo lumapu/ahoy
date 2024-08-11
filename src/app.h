@@ -45,8 +45,8 @@
     #else
         #include "network/AhoyWifiEsp8266.h"
     #endif
-    #include "utils/improv.h"
 #endif /* defined(ETHERNET) */
+#include "utils/improv.h"
 
 #if defined(ENABLE_SIMULATOR)
     #include "hm/simulator.h"
@@ -167,7 +167,6 @@ class app : public IApp, public ah::Scheduler {
             return mSaveReboot;
         }
 
-        #if !defined(ETHERNET)
         bool getAvailNetworks(JsonObject obj) override {
             return mNetwork->getAvailNetworks(obj, this);
         }
@@ -183,10 +182,13 @@ class app : public IApp, public ah::Scheduler {
             return false;
             #endif
         }
-        #endif /* !defined(ETHERNET) */
 
         String getIp(void) override {
             return mNetwork->getIp();
+        }
+
+        String getMac(void) override {
+            return mNetwork->getMac();
         }
 
         bool isApActive(void) override {
@@ -254,6 +256,12 @@ class app : public IApp, public ah::Scheduler {
                 return 0;
             #endif
         }
+
+        #if defined(ETHERNET)
+        bool isWiredConnection() override {
+            return mNetwork->isWiredConnection();
+        }
+        #endif
 
         void lock(bool fromWeb) override {
             mProtection->lock(fromWeb);
@@ -433,9 +441,7 @@ class app : public IApp, public ah::Scheduler {
         #endif
 
         PubSerialType mPubSerial;
-        #if !defined(ETHERNET)
         //Improv mImprov;
-        #endif
         #ifdef ESP32
         CmtRadio<> mCmtRadio;
         #endif

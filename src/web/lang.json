@@ -907,6 +907,151 @@
                     "token": "COMMUNICATING",
                     "en": "communicating",
                     "de": "aktiv"
+                },
+                {
+                    "token": "NETWORK",
+                    "en": "Network",
+                    "de": "Netzwerk"
+                },
+                {
+                    "token": "CONNECTION_TYPE",
+                    "en": "connection",
+                    "de": "Verbindung"
+                },
+                {
+                    "token": "WIRED",
+                    "en": "ethernet cable",
+                    "de": "Netzwerkkabel"
+                },
+                {
+                    "token": "WIFI",
+                    "en": "WiFi",
+                    "de": "WiFi"
+                },
+                {
+                    "token": "DEVICE_NAME",
+                    "en": "Device name",
+                    "de": "Ger&auml;tename"
+                },
+                {
+                    "token": "UPTIME",
+                    "en": "Uptime",
+                    "de": "Laufzeit"
+                },
+                {
+                    "token": "REBOOT_REASON",
+                    "en": "Reboot reason",
+                    "de": "Grund des Neustarts"
+                },
+                {
+                    "token": "ENVIRONMENT",
+                    "en": "Environment",
+                    "de": "Umgebung"
+                },
+                {
+                    "token": "BUILD_OPTIONS",
+                    "en": "build options",
+                    "de": "Module"
+                },
+                {
+                    "token": "ADDRESS",
+                    "en": "Address",
+                    "de": "Adresse"
+                },
+                {
+                    "token": "NETWORK",
+                    "en": "Network",
+                    "de": "Netzwerk"
+                },
+                {
+                    "token": "MEMORY",
+                    "en": "Memory",
+                    "de": "Speicher"
+                },
+                {
+                    "token": "CONFIG_PARTITION",
+                    "en": "Config Partition",
+                    "de": "Konfiguration"
+                },
+                {
+                    "token": "FIRMWARE_PARTITION",
+                    "en": "Firmware Partition",
+                    "de": "Firmware"
+                },
+                {
+                    "token": "INTR_PIN_WORKING",
+                    "en": "Interrupt Pin working",
+                    "de": "Interrupt Pin funktioniert"
+                },
+                {
+                    "token": "DATA_RATE",
+                    "en": "Data Rate",
+                    "de": "Datenrate"
+                },
+                {
+                    "token": "RADIO",
+                    "en": "Radio",
+                    "de": "Funkmodul"
+                },
+                {
+                    "token": "NOT",
+                    "en": "not",
+                    "de": "nicht"
+                },
+                {
+                    "token": "CONNECTED",
+                    "en": "connected",
+                    "de": "verbunden"
+                },
+                {
+                    "token": "ENABLED",
+                    "en": "enabled",
+                    "de": "aktiviert"
+                },
+                {
+                    "token": "CONNECTION",
+                    "en": "connection",
+                    "de": "Verbindung"
+                },
+                {
+                    "token": "FLASH_SIZE",
+                    "en": "Flash size",
+                    "de": "Speichergr&ouml;&szlig;e"
+                },
+                {
+                    "token": "MAX_FREE_BLOCK",
+                    "en": "max free block",
+                    "de": "maximale freie Blockgr&ouml;&szlig;e"
+                },
+                {
+                    "token": "SUNRISE",
+                    "en": "sunrise",
+                    "de": "Sonnenaufgang"
+                },
+                {
+                    "token": "SUNSET",
+                    "en": "sunset",
+                    "de": "Sonnenuntergang"
+                },
+                {
+                    "token": "COMMUNICATION_START",
+                    "en": "Communication start",
+                    "de": "Start der Kommunikation"
+                },
+                {
+                    "token": "COMMUNICATION_STOP",
+                    "en": "Communication stop",
+                    "de": "Ende der Kommunikation"
+                },
+                {
+                    "token": "NIGHT_BEHAVIOR",
+                    "en": "Night behavior",
+                    "de": "Verhalten bei Nacht"
+                },
+                {
+                    "token": "COMMUNICATING",
+                    "en": "communicating",
+                    "de": "kommunizierend"
                 }
             ]
         },

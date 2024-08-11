@@ -46,7 +46,7 @@ The upload should be finished within one minute.
 
 Reboot your ESP an check if all your settings are present.
 
-## Keep updated with 'Mainline'
+## Get updated with 'Mainline'
 
 From time to time a new version of AhoyDTU will be published. To get the changes into your already prepared factory binary generation environment you have to do only a few steps:
 

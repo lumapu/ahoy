@@ -8,7 +8,7 @@
         {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
-                <div id="info" class="col-sm-12 col-md-6 mt-3"></div>
+                <div id="info" class="col-sm-12 col-md-10 mt-3"></div>
                 <div id="html" class="mt-3 mb-3"></div>
             </div>
         </div>
@@ -21,17 +21,31 @@
                 parseTitle(obj)
             }
 
-            function parseSysInfo(obj) {
-                const data = ["sdk", "cpu_freq", "chip_revision", "device_name",
-                    "chip_model", "chip_cores", "esp_type", "mac", "wifi_rssi", "wifi_channel", "ts_uptime",
-                    "flash_size", "sketch_used", "heap_total", "heap_free", "heap_frag",
-                    "max_free_blk", "version", "modules", "env", "core_version", "reboot_reason"];
+            function parseUptime(up) {
+                var days = parseInt(up / 86400) % 365
+                var hrs  = parseInt(up / 3600) % 24
+                var min  = parseInt(up / 60) % 60
+                var sec  = up % 60
+                var str = days + " day"
+                if(1 != days)
+                    str += "s"
+                str += ", " + ("0"+hrs).substr(-2) + ":"
+                   + ("0"+min).substr(-2) + ":"
+                   + ("0"+sec).substr(-2)
 
-                lines = [];
-                for (const [key, value] of Object.entries(obj)) {
-                    if(!data.includes(key) || (typeof value == 'undefined')) continue;
-                    lines.push(tr(key.replace('_', ' '), value));
-                }
+                return  ml("span", {}, str)
+            }
+
+            function parseSysInfo(obj) {
+                lines = [
+                    tr("{#DEVICE_NAME}", obj.device_name),
+                    tr("{#UPTIME}", parseUptime(obj.generic.ts_uptime)),
+                    tr("{#REBOOT_REASON}", obj.chip.reboot_reason),
+                    tr("{#ENVIRONMENT}", obj.generic.env + " ({#BUILD_OPTIONS}: " + obj.generic.modules + ")"),
+                    tr("Version", obj.generic.version + " - " + obj.generic.build),
+                    tr("Chip", "CPU: " + obj.chip.cpu_freq + "MHz, " + obj.chip.cores + " Core(s)"),
+                    tr("Chip Model", obj.chip.model)
+                ]
 
                 document.getElementById("info").append(
                     headline("System Information"),
@@ -47,9 +61,9 @@
 
             function irqBadge(state) {
                 switch(state) {
-                    case 0: return badge(false, "{#UNKNOWN}", "warning"); break;
-                    case 1: return badge(true, "{#TRUE}"); break;
-                    default: return badge(false, "{#FALSE}"); break;
+                    case 0: return badge(false, "unknown", "warning"); break;
+                    case 1: return badge(true, "true"); break;
+                    default: return badge(false, "false"); break;
                 }
             }
 
@@ -59,15 +73,15 @@
                 if(obj.radioNrf.en) {
                     lines = [
                         tr("NRF24L01", badge(obj.radioNrf.isconnected, ((obj.radioNrf.isconnected) ? "" : "{#NOT} ") + "{#CONNECTED}")),
-                        tr("{#IRQ_WORKING}", irqBadge(obj.radioNrf.irqOk)),
-                        tr("{#NRF24_DATA_RATE}", dr[obj.radioNrf.dataRate] + "bps"),
-                        tr("DTU Radio ID", obj.radioNrf.sn)
+                        tr("{#INTR_PIN_WORKING}", irqBadge(obj.radioNrf.irqOk)),
+                        tr("NRF24 {#DATA_RATE}", dr[obj.radioNrf.dataRate] + "bps"),
+                        tr("DTU {#RADIO} ID", obj.radioNrf.sn)
                     ];
                 } else
-                    lines = [tr("NRF24L01", badge(false, "{#NOT_ENABLED}"))];
+                    lines = [tr("NRF24L01", badge(false, "{#NOT} {#ENABLED}"))];
 
                 document.getElementById("info").append(
-                    headline("{#NRF24_RADIO}"),
+                    headline("{#RADIO} NRF24"),
                     ml("table", {class: "table"},
                         ml("tbody", {}, lines)
                     )
@@ -77,14 +91,14 @@
                 if(obj.radioCmt.en) {
                     cmt = [
                         tr("CMT2300A", badge(obj.radioCmt.isconnected, ((obj.radioCmt.isconnected) ? "" : "{#NOT} ") + "{#CONNECTED}")),
-                        tr("{#IRQ_WORKING}", irqBadge(obj.radioCmt.irqOk)),
-                        tr("DTU Radio ID", obj.radioCmt.sn)
+                        tr("{#INTR_PIN_WORKING}", irqBadge(obj.radioCmt.irqOk)),
+                        tr("DTU {#RADIO} ID", obj.radioCmt.sn)
                     ];
                 } else
-                    cmt = [tr("CMT2300A", badge(false, "{#NOT_ENABLED}"))];
+                    cmt = [tr("CMT2300A", badge(false, "{#NOT} {#ENABLED}"))];
 
                 document.getElementById("info").append(
-                    headline("{#CMT_RADIO}"),
+                    headline("{#RADIO} CMT"),
                     ml("table", {class: "table"},
                         ml("tbody", {}, cmt)
                     )
@@ -92,16 +106,32 @@
                 /*ENDIF_ESP32*/
             }
 
+            function parseNetwork(obj, gen) {
+                lines = [
+                    tr("{#CONNECTION}", ((obj.wired) ? "{#WIRED}" : "{#WIFI} (SSID: " + obj.ssid + ", RSSI: " + gen.wifi_rssi + ", CH: " + obj.wifi_channel + ")")),
+                    tr("Hostname", gen.host),
+                    tr("IP {#ADDRESS}", obj.ip),
+                    tr("MAC {#ADDRESS}", obj.mac)
+                ]
+
+                document.getElementById("info").append(
+                    headline("{#NETWORK}"),
+                    ml("table", {class: "table"},
+                        ml("tbody", {}, lines)
+                    )
+                );
+            }
+
             function parseMqtt(obj) {
                 if(obj.enabled) {
                     lines = [
-                        tr("{#CONNECTED}", badge(obj.connected, ((obj.connected) ? "{#TRUE}" : "{#FALSE}"))),
+                        tr("{#CONNECTED}", badge(obj.connected, ((obj.connected) ? "true" : "false"))),
                         tr("#TX", obj.tx_cnt),
                         tr("#RX", obj.rx_cnt)
-                    ];
+                    ]
 
                 } else
-                    lines = tr("{#ENABLED}", badge(false, "{#FALSE}"));
+                    lines = tr("enabled", badge(false, "false"));
 
                 document.getElementById("info").append(
                     headline("MqTT"),
@@ -111,17 +141,34 @@
                 );
             }
 
+            function parseMemory(obj) {
+                lines = [
+                    tr("{#FLASH_SIZE}", obj.flash_size / 1024 / 1024 + "MB"),
+                    tr("{#CONFIG_PARTITION} (" + Math.round(obj.par_used_spiffs / 1024) + "kB of " + obj.par_size_spiffs / 1024 + "kB)", progress(obj.par_used_spiffs / obj.par_size_spiffs * 100)),
+                    tr("{#FIRMWARE_PARTITION} (" + Math.round(obj.par_used_app0 / 1024) + "kB of " + obj.par_size_app0 / 1024 + "kB)", progress(obj.par_used_app0 / obj.par_size_app0 * 100)),
+                    tr("Heap (" + Math.round(obj.heap_free / 1024) + "kB of " + Math.round(obj.heap_total / 1024) + "kB)", progress(obj.heap_free / obj.heap_total * 100)),
+                    tr("Heap {#MAX_FREE_BLOCK}", Math.round(obj.heap_max_free_blk / 1024) + "kB (Fragmentation: " + obj.heap_frag + ")")
+                ]
+
+                document.getElementById("info").append(
+                    headline("{#MEMORY}"),
+                    ml("table", {class: "table"},
+                        ml("tbody", {}, lines)
+                    )
+                );
+            }
+
             function parseIndex(obj) {
                 if(obj.ts_sunrise > 0) {
                     document.getElementById("info").append(
-                        headline("{#SUN}"),
+                        headline("Sun"),
                         ml("table", {class: "table"},
                             ml("tbody", {}, [
                                 tr("{#SUNRISE}", new Date(obj.ts_sunrise * 1000).toLocaleString('de-DE')),
                                 tr("{#SUNSET}", new Date(obj.ts_sunset * 1000).toLocaleString('de-DE')),
                                 tr("{#COMMUNICATION_START}", new Date((obj.ts_sunrise + obj.ts_offsSr) * 1000).toLocaleString('de-DE')),
                                 tr("{#COMMUNICATION_STOP}", new Date((obj.ts_sunset + obj.ts_offsSs) * 1000).toLocaleString('de-DE')),
-                                tr("{#NIGHT_BEHAVE}", badge(obj.disNightComm, ((obj.disNightComm) ? "{#NOT}" : "") + " {#COMMUNICATING}", "warning"))
+                                tr("{#NIGHT_BEHAVIOR}", badge(obj.disNightComm, ((obj.disNightComm) ? "{#NOT}" : "") + " {#COMMUNICATING}", "warning"))
                             ])
                         )
                     );
@@ -138,10 +185,12 @@
                         meta.content = obj.refresh + "; URL=" + obj.refresh_url;
                         document.getElementsByTagName('head')[0].appendChild(meta);
                     } else if(null != obj.system) {
-                        parseRadio(obj.system);
-                        parseMqtt(obj.system.mqtt);
-                        parseSysInfo(obj.system);
-                        getAjax('/api/index', parseIndex);
+                        parseRadio(obj.system)
+                        parseNetwork(obj.system.network, obj.system.generic)
+                        parseMqtt(obj.system.mqtt)
+                        parseMemory(obj.system.memory)
+                        parseSysInfo(obj.system)
+                        getAjax('/api/index', parseIndex)
                     }
                     document.getElementById("html").innerHTML = obj.html;
                 }

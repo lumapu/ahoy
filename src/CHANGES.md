@@ -1,5 +1,27 @@
 # Development Changes
 
+## 0.8.135 - 2024-08-11
+* translated `/system` #1717
+* added default pin seetings for opendtufusion board
+* fixed ethernet static IP
+* fixed ethernet MAC address read back
+
+## 0.8.134 - 2024-08-10
+* combined Ethernet and WiFi variants - Ethernet is now always included, but needs to be enabled if needed
+* improved statistic data in `/system`
+* redesigned `/system`
+
+## 0.8.133 - 2024-08-10
+* Ethernet variants now support WiFi as fall back / configuration
+
+## 0.8.132 - 2024-08-09
+* fix boot loop once no ePaper is connected #1713, #1714
+* improved refresh routine of ePeper
+* added default pin seetings for opendtufusion board
+
+## 0.8.131 - 2024-08-08
+* improved refresh routine of ePaper, full refresh each 12h #1107 #1706
+
 ## 0.8.130 - 2024-08-04
 * fix message `ERR_DUPLICATE_INVERTER` #1705, #1700
 * merge PR: Power limit command accelerated #1704
