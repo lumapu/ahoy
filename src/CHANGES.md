@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.136 - 2024-08-12
+* fix save settings for ESP32 devices #1720
+
 ## 0.8.135 - 2024-08-11
 * translated `/system` #1717
 * added default pin seetings for opendtufusion board
