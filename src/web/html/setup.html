@@ -700,14 +700,6 @@
                     el.push(mlCb("protMask" + i, a[i], chk))
                 }
                 d.append(...el);
-
-                var tz = []
-                for(i = 0; i < 24; i += 0.5)
-                    tz.push([i, ((i-12 > 0) ? "+" : "") + String(i-12)]);
-                document.getElementById("timezone").append(sel("timezone", tz, obj.timezone + 12))
-                var region = [[0, "Europe (860 - 870 MHz)"], [1, "USA, Indonesia (905 - 925 MHz)"], [2, "Brazil (915 - 928 MHz)"]]
-                document.getElementById("region").append(sel("region", region, obj.region))
-
             }
 
             function parseGeneric(obj) {
@@ -723,6 +715,13 @@
 
                 ts = obj.ts_now;
                 window.setInterval("tick()", 1000);
+
+                var tz = []
+                for(i = 0; i < 24; i += 0.5)
+                    tz.push([i, ((i-12 > 0) ? "+" : "") + String(i-12)]);
+                document.getElementById("timezone").append(sel("timezone", tz, obj.timezone + 12))
+                var region = [[0, "Europe (860 - 870 MHz)"], [1, "USA, Indonesia (905 - 925 MHz)"], [2, "Brazil (915 - 928 MHz)"]]
+                document.getElementById("region").append(sel("region", region, obj.region))
             }
 
             function parseStaticIp(obj) {

@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.137 - 2024-08-13
+* fix storage of timezone and region #1723
+
 ## 0.8.136 - 2024-08-12
 * fix save settings for ESP32 devices #1720
 
