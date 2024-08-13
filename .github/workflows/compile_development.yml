@@ -92,7 +92,7 @@ jobs:
       matrix:
         variant:
           - opendtufusion-de
-          - opendtufusion-16MB-de
+          #- opendtufusion-16MB-de #not needed, only the partions.bin is different and can be used from english build
           - esp8266-de
           - esp8266-all-de
           - esp8266-prometheus-de
