@@ -268,8 +268,8 @@ class Web {
             bool reboot = (!Update.hasError());
 
             String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"");
-            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
-                html += F("5");
+            #if defined(ETHERNET)
+                html += (mConfig->sys.eth.enabled) ? F("5") : F("20");
             #else
                 html += F("20");
             #endif

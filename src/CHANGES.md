@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.139 - 2024-08-15
+* fix reload after save for WiFi configurations (5s -> 20s)
+
 ## 0.8.138 - 2024-08-15
 * fix ePaper not functional #1722
 
