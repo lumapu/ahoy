@@ -22,6 +22,9 @@ class AhoyEthernet : public AhoyWifi {
         };
 
     public:
+        AhoyEthernet()
+            : mMode (Mode::WIRELESS) {}
+
         virtual void begin() override {
             mMode = Mode::WIRELESS;
             mAp.enable();

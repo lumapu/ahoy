@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.138 - 2024-08-15
+* fix ePaper not functional #1722
+
 ## 0.8.137 - 2024-08-13
 * fix storage of timezone and region #1723
 
