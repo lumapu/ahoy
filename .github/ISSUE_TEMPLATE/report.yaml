@@ -1,9 +1,6 @@
-name: "AhoyDTU bug"
-description: "File a bug report"
-title: "[Bug]"
-labels: ["bug", "needs-triage"]
-assignees:
-  - lumapu
+name: "issue report"
+description: "issue report"
+labels: ["new", "needs-triage"]
 body:
   - type: markdown
     attributes:

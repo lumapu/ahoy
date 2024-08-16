@@ -5,6 +5,7 @@ on:
     branches: main
     paths-ignore:
     - '**.md' # Do no build on *.md changes
+    - '**.yaml' # e.g. issue report
 
 jobs:
   check:
