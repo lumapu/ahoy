@@ -16,4 +16,4 @@ src/data/*
 src/output.map
 
 /.venv
-/scripts/__pycache__/htmlPreprocessorDefines.cpython-311.pyc
+/scripts/__pycache__/*
