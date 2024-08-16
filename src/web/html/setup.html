@@ -682,31 +682,24 @@
             }
 
             function parseSys(obj) {
-                for(var i of [["device", "device_name"], ["ssid", "ssid"], ["ap_pwd", "ap_pwd"]])
-                    document.getElementsByName(i[0])[0].value = obj[i[1]];
-                document.getElementsByName("hidd")[0].checked = obj["hidd"];
+                document.getElementsByName("device")[0].value = obj.device_name;
+                for(var i of [["ssid", "ssid"], ["ap_pwd", "ap_pwd"]])
+                    document.getElementsByName(i[0])[0].value = obj.network[i[1]];
+                document.getElementsByName("hidd")[0].checked = obj.network.hidd;
 
-                document.getElementsByName("darkMode")[0].checked = obj["dark_mode"];
-                document.getElementsByName("schedReboot")[0].checked = obj["sched_reboot"];
+                document.getElementsByName("darkMode")[0].checked = obj.dark_mode;
+                document.getElementsByName("schedReboot")[0].checked = obj.sched_reboot;
                 e = document.getElementsByName("adminpwd")[0];
-                if(!obj["pwd_set"])
+                if(!obj.pwd_set)
                     e.value = "";
                 var d = document.getElementById("prot_mask");
                 var a = ["Index", "{#NAV_LIVE}", "{#NAV_WEBSERIAL}", "{#NAV_SETTINGS}", "Update", "System", "{#NAV_HISTORY}"];
                 var el = [];
                 for(var i = 0; i < 7; i++) {
-                    var chk = ((obj["prot_mask"] & (1 << i)) == (1 << i));
+                    var chk = ((obj.prot_mask & (1 << i)) == (1 << i));
                     el.push(mlCb("protMask" + i, a[i], chk))
                 }
                 d.append(...el);
-
-                var tz = []
-                for(i = 0; i < 24; i += 0.5)
-                    tz.push([i, ((i-12 > 0) ? "+" : "") + String(i-12)]);
-                document.getElementById("timezone").append(sel("timezone", tz, obj.timezone + 12))
-                var region = [[0, "Europe (860 - 870 MHz)"], [1, "USA, Indonesia (905 - 925 MHz)"], [2, "Brazil (915 - 928 MHz)"]]
-                document.getElementById("region").append(sel("region", region, obj.region))
-
             }
 
             function parseGeneric(obj) {
@@ -720,8 +713,15 @@
                     document.getElementsByName("cstLnkTxt")[0].value = obj.cst_lnk_txt
                 }
 
-                ts = obj["ts_now"];
+                ts = obj.ts_now;
                 window.setInterval("tick()", 1000);
+
+                var tz = []
+                for(i = 0; i < 24; i += 0.5)
+                    tz.push([i, ((i-12 > 0) ? "+" : "") + String(i-12)]);
+                document.getElementById("timezone").append(sel("timezone", tz, obj.timezone + 12))
+                var region = [[0, "Europe (860 - 870 MHz)"], [1, "USA, Indonesia (905 - 925 MHz)"], [2, "Brazil (915 - 928 MHz)"]]
+                document.getElementById("region").append(sel("region", region, obj.region))
             }
 
             function parseStaticIp(obj) {
@@ -1330,23 +1330,23 @@
 
             function parse(root) {
                 if(null != root) {
-                    parseGeneric(root["generic"]);
-                    parseSys(root["system"]);
-                    parseStaticIp(root["static_ip"]);
-                    parseMqtt(root["mqtt"]);
-                    parseNtp(root["ntp"]);
-                    parseSun(root["sun"]);
+                    parseGeneric(root.generic);
+                    parseSys(root.system);
+                    parseStaticIp(root.static_ip);
+                    parseMqtt(root.mqtt);
+                    parseNtp(root.ntp);
+                    parseSun(root.sun);
                     parsePinout(root.pinout);
-                    parseNrfRadio(root["radioNrf"], root["pinout"]);
+                    parseNrfRadio(root.radioNrf, root.pinout);
                     /*IF_ESP32*/
                     parseCmtRadio(root.radioCmt);
                     /*ENDIF_ESP32*/
                     /*IF_ETHERNET*/
                     parseEth(root.eth)
                     /*ENDIF_ETHERNET*/
-                    parseSerial(root["serial"]);
+                    parseSerial(root.serial);
                     /*IF_PLUGIN_DISPLAY*/
-                    parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
+                    parseDisplay(root.display, root.system.esp_type, root.system);
                     /*ENDIF_PLUGIN_DISPLAY*/
                     getAjax("/api/inverter/list", parseIv);
                 }

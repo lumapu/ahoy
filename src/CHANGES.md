@@ -1,5 +1,19 @@
 # Development Changes
 
+# RELEASE 0.8.140 - 2024-08-16
+
+## 0.8.139 - 2024-08-15
+* fix reload after save for WiFi configurations (5s -> 20s)
+
+## 0.8.138 - 2024-08-15
+* fix ePaper not functional #1722
+
+## 0.8.137 - 2024-08-13
+* fix storage of timezone and region #1723
+
+## 0.8.136 - 2024-08-12
+* fix save settings for ESP32 devices #1720
+
 ## 0.8.135 - 2024-08-11
 * translated `/system` #1717
 * added default pin seetings for opendtufusion board

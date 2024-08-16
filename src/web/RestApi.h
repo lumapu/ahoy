@@ -457,8 +457,8 @@ class RestApi {
 
         void getHtmlReboot(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
-            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
-            obj[F("refresh")] = 5;
+            #if defined(ETHERNET)
+            obj[F("refresh")] = (mConfig->sys.eth.enabled) ? 5 : 20;
             #else
             obj[F("refresh")] = 20;
             #endif
@@ -471,8 +471,8 @@ class RestApi {
             obj[F("pending")] = (bool)mApp->getSavePending();
             obj[F("success")] = (bool)mApp->getLastSaveSucceed();
             obj[F("reboot")] = (bool)mApp->getShouldReboot();
-            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
-            obj[F("reload")] = 5;
+            #if defined(ETHERNET)
+            obj[F("reload")] = (mConfig->sys.eth.enabled) ? 5 : 20;
             #else
             obj[F("reload")] = 20;
             #endif
@@ -489,7 +489,7 @@ class RestApi {
             mApp->setRebootFlag();
             obj[F("html")] = F("Erase settings: success");
             #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
-            obj[F("reload")] = 5;
+            obj[F("reload")] = (mConfig->sys.eth.enabled) ? 5 : 20;
             #else
             obj[F("reload")] = 20;
             #endif
@@ -507,8 +507,8 @@ class RestApi {
             mApp->eraseSettings(true);
             mApp->setRebootFlag();
             obj[F("html")] = F("Factory reset: success");
-            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
-            obj[F("reload")] = 5;
+            #if defined(ETHERNET)
+            obj[F("reload")] = (mConfig->sys.eth.enabled) ? 5 : 20;
             #else
             obj[F("reload")] = 20;
             #endif

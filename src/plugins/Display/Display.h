@@ -45,7 +45,7 @@ class Display {
                 case DISP_TYPE_T4_SSD1306_128X32:   mMono = new DisplayMono128X32(); break; // SSD1306_128X32 (0.91")
                 case DISP_TYPE_T5_SSD1306_64X48:    mMono = new DisplayMono64X48();  break; // SSD1306_64X48 (0.66" - Wemos OLED Shield)
                 case DISP_TYPE_T6_SSD1309_128X64:   mMono = new DisplayMono128X64(); break; // SSD1309_128X64 (2.42")
-    #if defined(ESP32) && !defined(ETHERNET)
+    #if defined(ESP32)
                 case DISP_TYPE_T10_EPAPER:
                     mMono = NULL;   // ePaper does not use this
                     mRefreshCycle = 0;
@@ -73,7 +73,7 @@ class Display {
         }
 
         void loop() {
-            #if defined(ESP32) && !defined(ETHERNET)
+            #if defined(ESP32)
             if ((nullptr != mCfg) && (DISP_TYPE_T10_EPAPER == mCfg->type)) {
                 mEpaper.refreshLoop();
             }
@@ -96,7 +96,7 @@ class Display {
                     mLoopCnt = 0;
                 }
             }
-            #if defined(ESP32) && !defined(ETHERNET)
+            #if defined(ESP32)
             else if (DISP_TYPE_T10_EPAPER == mCfg->type) {
                 // maintain ePaper at least every 15 seconds
                 if (mNewPayload || (((++mLoopCnt) % 15) == 0)) {
@@ -193,7 +193,7 @@ class Display {
             if (mMono ) {
                 mMono->disp();
             }
-    #if defined(ESP32) && !defined(ETHERNET)
+    #if defined(ESP32)
             else if (DISP_TYPE_T10_EPAPER == mCfg->type) {
                 mEpaper.loop((totalPower), totalYieldDay, totalYieldTotal, nrprod);
                 mRefreshCycle++;
@@ -254,7 +254,7 @@ class Display {
         RADIO *mHmsRadio = nullptr;
         uint16_t mRefreshCycle = 0;
 
-    #if defined(ESP32) && !defined(ETHERNET)
+    #if defined(ESP32)
         DisplayEPaper mEpaper;
     #endif
         DisplayMono *mMono = nullptr;
