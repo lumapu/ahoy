@@ -1,5 +1,12 @@
 # Development Changes
 
+## 0.8.141 - 2024-08-16
+* switch AsyncWebserver to https://github.com/mathieucarbou/ESPAsyncWebServer
+* fix missing translations to German #1717
+* increased maximum number of alarms to 50 for ESP32 #1470
+* fix German translation #1688
+* fix display of delete and edit buttons in `/setup` #1372
+
 # RELEASE 0.8.140 - 2024-08-16
 
 ## 0.8.139 - 2024-08-15

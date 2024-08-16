@@ -736,7 +736,7 @@
                 lines.push(ml("tr", {}, [
                     ml("th", {style: "width: 10%; text-align: center;"}, ""),
                     ml("th", {}, "Name"),
-                    ml("th", {}, "Serial"),
+                    ml("th", {class: "d-none d-sm-cell"}, "Serial"),
                     ml("th", {style: "width: 10%; text-align: center;"}, "{#INV_EDIT}"),
                     ml("th", {style: "width: 10%; text-align: center;"}, "{#INV_DELETE}")
                 ]));
@@ -745,7 +745,7 @@
                     lines.push(ml("tr", {}, [
                         ml("td", {}, badge(obj.inverter[i].enabled, (obj.inverter[i].enabled) ? "{#ENABLED}" : "{#DISABLED}")),
                         ml("td", {}, obj.inverter[i].name),
-                        ml("td", {}, String(obj.inverter[i].serial)),
+                        ml("td", {class: "d-none d-sm-cell"}, String(obj.inverter[i].serial)),
                         ml("td", {style: "text-align: center;", onclick: function() {ivModal(obj.inverter[i]);}}, svg(iconGear, 25, 25, "icon icon-fg pointer")),
                         ml("td", {style: "text-align: center; ", onclick: function() {ivDel(obj.inverter[i]);}}, svg(iconDel, 25, 25, "icon icon-fg pointer"))
                     ]));
