@@ -17,6 +17,7 @@ Hoymiles Inverters
 | ✔️ | HMS | 350, 500, 800, 1000, 1600, 1800, 2000 | |
 | ✔️ | HMT | 1600, 1800, 2250 | |
 | ⚠️ | TSUN | [TSOL-M350](https://www.tsun-ess.com/Micro-Inverter/M350-M400), [TSOL-M400](https://www.tsun-ess.com/Micro-Inverter/M350-M400), [TSOL-M800/TSOL-M800(DE)](https://www.tsun-ess.com/Micro-Inverter/M800) | others may work as well (need to be verified). |
+| 🟡 | HERF | (supported) | |
 
 ## Table of Contents
 
@@ -25,16 +26,16 @@ Hoymiles Inverters
 - [Things needed](#things-needed)
     - [There are fake NRF24L01+ Modules out there](#there-are-fake-nrf24l01-modules-out-there)
 - [Wiring things up](#wiring-things-up)
+    - [ESP32 wiring example](#esp32-wiring-example)
+      - [Schematic](#schematic-1)
+      - [Symbolic view](#symbolic-view-1)
+      - [ESP32 GPIO settings](#esp32-gpio-settings)
     - [ESP8266 wiring example on WEMOS D1](#esp8266-wiring-example)
       - [Schematic](#schematic)
       - [Symbolic view](#symbolic-view)
     - [ESP8266 wiring example on 30pin Lolin NodeMCU v3](#esp8266-wiring-example-2)
       - [Schematic](#schematic-2)
       - [Symbolic view](#symbolic-view-2)
-    - [ESP32 wiring example](#esp32-wiring-example)
-      - [Schematic](#schematic-1)
-      - [Symbolic view](#symbolic-view-1)
-      - [ESP32 GPIO settings](#esp32-gpio-settings)
 - [Flash the Firmware on your Ahoy DTU Hardware](#flash-the-firmware-on-your-ahoy-dtu-hardware)
     - [Compiling your own Version](#compiling-your-own-version)
     - [Using a ready-to-flash binary using nodemcu-pyflasher](#using-a-ready-to-flash-binary-using-nodemcu-pyflasher)
@@ -56,9 +57,10 @@ Solenso Inverters:
 
 To build your own AhoyDTU, you only need a few things. Remember that the maker community is always developing new and innovative options that we may not have covered in this readme.
 
-Start with an ESP8266 or ESP32, and combine it with an NRF24L01+ breakout board. Other ESP boards with at least 4MBytes of ROM may also be suitable.
+Start with an ESP32 or ESP8266 (not recommended), and combine it with an NRF24L01+ breakout board for HM-series inverters. To communicate with a HMS or HMT inverter you need to use a CMT2300A radio module.
+Other ESP boards with at least 4MBytes of ROM may also be suitable.
 
-Make sure to choose an NRF24L01+ module that includes the '+' in its name. This is important because we need the 250kbps features that are only available in the plus-variant.
+Note for NRF24 radio module: Make sure to choose an NRF24L01+ module that includes the '+' in its name. This is important because we need the 250kbps features that are only available in the plus-variant.
 
 **Attention**: The NRF24L01+ can only communicate with the MI/HM/TSUN inverter. For the HMS/HMT it is needed to use a CMT2300A!
 
