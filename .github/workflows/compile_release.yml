@@ -210,7 +210,7 @@ jobs:
 
   deploy:
     name: Deploy Environments to fw.ahoydtu.de
-    needs: [build, release]
+    needs: [build-en, build-de, release]
     runs-on: ubuntu-latest
     continue-on-error: false
     steps:
