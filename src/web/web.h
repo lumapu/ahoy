@@ -245,7 +245,7 @@ class Web {
             if (CHECK_MASK(mConfig->sys.protectionMask, mask))
                 checkProtection(request);
 
-            AsyncWebServerResponse *response = request->beginResponse(200, F("text/html; charset=UTF-8"), zippedHtml, len);
+            AsyncWebServerResponse *response = beginResponse(request, 200, F("text/html; charset=UTF-8"), zippedHtml, len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
             if(request->hasParam("v"))
@@ -343,7 +343,7 @@ class Web {
                 }
             }
 
-            AsyncWebServerResponse *response = request->beginResponse(200, F("text/html; charset=UTF-8"), login_html, login_html_len);
+            AsyncWebServerResponse *response = beginResponse(request, 200, F("text/html; charset=UTF-8"), login_html, login_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
         }
@@ -354,7 +354,7 @@ class Web {
             checkProtection(request);
             mApp->lock(true);
 
-            AsyncWebServerResponse *response = request->beginResponse(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
+            AsyncWebServerResponse *response = beginResponse(request, 200, F("text/html; charset=UTF-8"), system_html, system_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
         }
@@ -363,9 +363,9 @@ class Web {
             DPRINTLN(DBG_VERBOSE, F("onColor"));
             AsyncWebServerResponse *response;
             if (mConfig->sys.darkMode)
-                response = request->beginResponse(200, F("text/css"), colorDark_css, colorDark_css_len);
+                response = beginResponse(request, 200, F("text/css"), colorDark_css, colorDark_css_len);
             else
-                response = request->beginResponse(200, F("text/css"), colorBright_css, colorBright_css_len);
+                response = beginResponse(request, 200, F("text/css"), colorBright_css, colorBright_css_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             if(request->hasParam("v")) {
                 response->addHeader(F("Cache-Control"), F("max-age=604800"));
@@ -375,7 +375,7 @@ class Web {
 
         void onCss(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onCss"));
-            AsyncWebServerResponse *response = request->beginResponse(200, F("text/css"), style_css, style_css_len);
+            AsyncWebServerResponse *response = beginResponse(request, 200, F("text/css"), style_css, style_css_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             if(request->hasParam("v")) {
                 response->addHeader(F("Cache-Control"), F("max-age=604800"));
@@ -386,7 +386,7 @@ class Web {
         void onApiJs(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onApiJs"));
 
-            AsyncWebServerResponse *response = request->beginResponse(200, F("text/javascript"), api_js, api_js_len);
+            AsyncWebServerResponse *response = beginResponse(request, 200, F("text/javascript"), api_js, api_js_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             if(request->hasParam("v"))
                 response->addHeader(F("Cache-Control"), F("max-age=604800"));
@@ -396,7 +396,7 @@ class Web {
         void onGridInfoJson(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onGridInfoJson"));
 
-            AsyncWebServerResponse *response = request->beginResponse(200, F("application/json; charset=utf-8"), grid_info_json, grid_info_json_len);
+            AsyncWebServerResponse *response = beginResponse(request, 200, F("application/json; charset=utf-8"), grid_info_json, grid_info_json_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             if(request->hasParam("v"))
                 response->addHeader(F("Cache-Control"), F("max-age=604800"));
@@ -405,7 +405,7 @@ class Web {
 
         void onFavicon(AsyncWebServerRequest *request) {
             static const char favicon_type[] PROGMEM = "image/x-icon";
-            AsyncWebServerResponse *response = request->beginResponse(200, favicon_type, favicon_ico, favicon_ico_len);
+            AsyncWebServerResponse *response = beginResponse(request, 200, favicon_type, favicon_ico, favicon_ico_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
         }
@@ -418,7 +418,7 @@ class Web {
 
         void onReboot(AsyncWebServerRequest *request) {
             mApp->setRebootFlag();
-            AsyncWebServerResponse *response = request->beginResponse(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
+            AsyncWebServerResponse *response = beginResponse(request, 200, F("text/html; charset=UTF-8"), system_html, system_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
         }
@@ -426,7 +426,7 @@ class Web {
         void showHtml(AsyncWebServerRequest *request) {
             checkProtection(request);
 
-            AsyncWebServerResponse *response = request->beginResponse(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
+            AsyncWebServerResponse *response = beginResponse(request, 200, F("text/html; charset=UTF-8"), system_html, system_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
         }
@@ -443,7 +443,7 @@ class Web {
             }
             #endif
 
-            AsyncWebServerResponse *response = request->beginResponse(200, F("text/html; charset=UTF-8"), wizard_html, wizard_html_len);
+            AsyncWebServerResponse *response = beginResponse(request, 200, F("text/html; charset=UTF-8"), wizard_html, wizard_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
             request->send(response);
@@ -635,7 +635,7 @@ class Web {
 
             mApp->saveSettings((request->arg("reboot") == "on"));
 
-            AsyncWebServerResponse *response = request->beginResponse(200, F("text/html; charset=UTF-8"), save_html, save_html_len);
+            AsyncWebServerResponse *response = beginResponse(request, 200, F("text/html; charset=UTF-8"), save_html, save_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
         }
@@ -649,7 +649,7 @@ class Web {
         }
 
         void onAbout(AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response = request->beginResponse(200, F("text/html; charset=UTF-8"), about_html, about_html_len);
+            AsyncWebServerResponse *response = beginResponse(request, 200, F("text/html; charset=UTF-8"), about_html, about_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
             if(request->hasParam("v")) {
@@ -671,6 +671,14 @@ class Web {
 
         void onSystem(AsyncWebServerRequest *request) {
             getPage(request, PROT_MASK_SYSTEM, system_html, system_html_len);
+        }
+
+        AsyncWebServerResponse* beginResponse(AsyncWebServerRequest *request, int code, const String& contentType, const uint8_t * content, size_t len, AwsTemplateProcessor callback=nullptr) {
+            #if defined(ESP32)
+                return request->beginResponse(code, contentType, content, len);
+            #else
+                return request->beginResponse_P(code, contentType, content, len);
+            #endif
         }
 
 
