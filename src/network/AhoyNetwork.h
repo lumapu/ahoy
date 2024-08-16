@@ -52,7 +52,7 @@ class AhoyNetwork {
         }
 
         bool isConnected() const {
-            return (mStatus == NetworkState::CONNECTED);
+            return ((mStatus == NetworkState::CONNECTED) || (mStatus == NetworkState::GOT_IP));
         }
 
         bool updateNtpTime(void) {

@@ -34,6 +34,7 @@ class IApp {
         virtual String getIp(void) = 0;
         virtual String getMac(void) = 0;
         virtual bool isApActive(void) = 0;
+        virtual bool isNetworkConnected() = 0;
 
         virtual uint32_t getUptime() = 0;
         virtual uint32_t getTimestamp() = 0;

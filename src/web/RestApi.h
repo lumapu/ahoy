@@ -674,15 +674,15 @@ class RestApi {
             // find oldest alarm
             uint8_t offset = 0;
             uint32_t oldestStart = 0xffffffff;
-            for(uint8_t i = 0; i < hmInverter::MaxAlarmNum; i++) {
+            for(uint8_t i = 0; i < Inverter<>::MaxAlarmNum; i++) {
                 if((iv->lastAlarm[i].start != 0) && (iv->lastAlarm[i].start < oldestStart)) {
                     offset = i;
                     oldestStart = iv->lastAlarm[i].start;
                 }
             }
 
-            for(uint8_t i = 0; i < hmInverter::MaxAlarmNum; i++) {
-                uint8_t pos = (i + offset) % hmInverter::MaxAlarmNum;
+            for(uint8_t i = 0; i < Inverter<>::MaxAlarmNum; i++) {
+                uint8_t pos = (i + offset) % Inverter<>::MaxAlarmNum;
                 alarm[pos][F("code")]  = iv->lastAlarm[pos].code;
                 alarm[pos][F("str")]   = iv->getAlarmStr(iv->lastAlarm[pos].code);
                 alarm[pos][F("start")] = iv->lastAlarm[pos].start;

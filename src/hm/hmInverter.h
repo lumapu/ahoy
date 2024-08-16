@@ -117,7 +117,7 @@ const calcFunc_t<T> calcFunctions[] = {
 template <class REC_TYP>
 class Inverter {
     public: /*types*/
-        #ifdef(ESP32)
+        #if defined(ESP32)
             constexpr static uint8_t MaxAlarmNum = 50;
         #else
             constexpr static uint8_t MaxAlarmNum = 10;

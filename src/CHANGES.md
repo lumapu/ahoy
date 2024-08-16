@@ -6,6 +6,7 @@
 * increased maximum number of alarms to 50 for ESP32 #1470
 * fix German translation #1688
 * fix display of delete and edit buttons in `/setup` #1372
+* fix display IP in ePaper display (ETH or WiFi, static or DHCP) #1439
 
 # RELEASE 0.8.140 - 2024-08-16
 
