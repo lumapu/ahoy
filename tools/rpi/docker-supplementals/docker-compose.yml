@@ -1,0 +1,38 @@
+version: '3.3'
+
+services:
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus
+    volumes:
+      - ./prometheus:/etc/prometheus
+    networks:
+      hoymiles_net:
+        ipv4_address: 172.18.0.3
+    ports:
+      - 9090:9090
+    restart: always 
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    restart: always 
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    networks:
+      hoymiles_net:
+        ipv4_address: 172.18.0.2
+
+volumes:
+  data:
+  grafana-storage:
+
+networks:
+  hoymiles_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.18.0.0/24"
+
