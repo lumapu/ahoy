@@ -822,6 +822,8 @@ class RestApi {
         void getChipInfo(JsonObject obj) {
             obj[F("cpu_freq")]     = ESP.getCpuFreqMHz();
             obj[F("sdk")]          = ESP.getSdkVersion();
+            obj[F("temp_sensor_c")] = ah::readTemperature();
+
             #if defined(ESP32)
                 obj[F("revision")] = ESP.getChipRevision();
                 obj[F("model")]    = ESP.getChipModel();
@@ -878,8 +880,6 @@ class RestApi {
             obj[F("par_size_app0")] = ESP.getFreeSketchSpace();
             obj[F("par_used_app0")] = ESP.getSketchSize();
 
-            obj[F("temp_sensor_c")] = ah::readTemperature();
-            
             #if defined(ESP32)
                 obj[F("heap_total")] = ESP.getHeapSize();
 
