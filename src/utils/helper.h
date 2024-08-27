@@ -49,6 +49,8 @@ namespace ah {
     String getTimeStrMs(uint64_t t);
     uint64_t Serial2u64(const char *val);
     void dumpBuf(uint8_t buf[], uint8_t len, uint8_t firstRepl = 0, uint8_t lastRepl = 0);
+
+    float readTemperature();
 }
 
 #endif /*__HELPER_H__*/
