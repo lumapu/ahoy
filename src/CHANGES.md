@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.142 - 2024-08-28
+* merge PR: add read_temp_c to system + mqtt #1739
+* improved sending limits of multiple inverters in very short timeframe #1726
+* don't show '0 dBm' once no inverter is available, changed to '-- dBm'
+
 ## 0.8.141 - 2024-08-16
 * switch AsyncWebserver to https://github.com/mathieucarbou/ESPAsyncWebServer
 * fix missing translations to German #1717
