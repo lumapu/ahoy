@@ -158,8 +158,9 @@ class PubMqtt {
             publish(subtopics[MQTT_UPTIME], mVal.data());
             publish(subtopics[MQTT_RSSI], String(WiFi.RSSI()).c_str());
             publish(subtopics[MQTT_FREE_HEAP], String(ESP.getFreeHeap()).c_str());
+            #if defined(ESP32)
             publish(subtopics[MQTT_TEMP_SENS_C], String(ah::readTemperature()).c_str());
-            #ifndef ESP32
+            #else ESP32
             publish(subtopics[MQTT_HEAP_FRAG], String(ESP.getHeapFragmentation()).c_str());
             #endif
         }
