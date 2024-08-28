@@ -2,7 +2,7 @@
 // 2023 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
-
+#include <Arduino.h>
 #include "helper.h"
 #include "dbg.h"
 #include "../plugins/plugin_lang.h"
@@ -141,5 +141,20 @@ namespace ah {
             DBGPRINT(" ");
         }
         DBGPRINTLN("");
+    }
+    float readTemperature() {
+        /*// ADC1 channel 0 is GPIO36
+        adc1_config_width(ADC_WIDTH_BIT_12);
+        adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_0);
+        int adc_reading = adc1_get_raw(ADC1_CHANNEL_0);
+        // Convert the raw ADC reading to a voltage in mV
+        esp_adc_cal_characteristics_t characteristics;
+        esp_adc_cal_value_t val_type = esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, 1100, &characteristics);
+        uint32_t voltage = esp_adc_cal_raw_to_voltage(adc_reading, &characteristics);
+        // Convert the voltage to a temperature in Celsius
+        // This formula is an approximation and might need to be calibrated for your specific use case.
+        float temperature = (voltage - 500) / 10.0;*/
+
+        return temperatureRead();
     }
 }
