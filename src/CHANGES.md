@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.143 - 2024-08-29
+* fixed crash #1743
+
 ## 0.8.142 - 2024-08-28
 * merge PR: add read_temp_c to system + mqtt #1739
 * improved sending limits of multiple inverters in very short timeframe #1726

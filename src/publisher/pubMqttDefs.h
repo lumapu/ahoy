@@ -77,7 +77,8 @@ const char* const subtopics[] PROGMEM = {
     "status",
     "connected",
     "not_connected",
-    "ack_pwr_limit"
+    "ack_pwr_limit",
+    "cpu_temp"
 };
 
 enum {

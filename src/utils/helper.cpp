@@ -156,7 +156,7 @@ namespace ah {
         // This formula is an approximation and might need to be calibrated for your specific use case.
         float temperature = (voltage - 500) / 10.0;*/
 
-        #if defined(ESP_32)
+        #if defined(ESP32)
         return temperatureRead();
         #else
         return 0;
