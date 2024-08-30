@@ -197,6 +197,7 @@ typedef struct {
 typedef struct {
     uint8_t type;
     bool pwrSaveAtIvOffline;
+    bool motion;
     uint8_t screenSaver;
     uint8_t graph_ratio;
     uint8_t graph_size;

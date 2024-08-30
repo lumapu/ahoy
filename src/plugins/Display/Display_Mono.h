@@ -38,7 +38,7 @@ class DisplayMono {
             if (mDisplayActive) {
                 if (!dispConditions) {
                      if (mDisplayTime.isTimeout()) { // switch display off after timeout
-                          mDisplayActive = false;
+                          mCfg->motion = mDisplayActive = false;
                           mDisplay->setPowerSave(true);
                      }
                 }
@@ -47,7 +47,7 @@ class DisplayMono {
             }
             else {
                 if (dispConditions) {
-                     mDisplayActive = true;
+                     mCfg->motion = mDisplayActive = true;
                      mDisplayTime.reStartTimeMonitor(); // switch display on
                      mDisplay->setPowerSave(false);
                 }

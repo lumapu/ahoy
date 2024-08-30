@@ -929,6 +929,7 @@ class RestApi {
 
         void getDisplay(JsonObject obj) {
             obj[F("disp_typ")]          = (uint8_t)mConfig->plugin.display.type;
+            obj[F("disp_motion")]       = (boolean)mConfig->plugin.display.motion;
             obj[F("disp_pwr")]          = (bool)mConfig->plugin.display.pwrSaveAtIvOffline;
             obj[F("disp_screensaver")]  = (uint8_t)mConfig->plugin.display.screenSaver;
             obj[F("disp_rot")]          = (uint8_t)mConfig->plugin.display.rot;
