@@ -26,7 +26,7 @@ class AhoyNetwork {
             mOnNetworkCB = onNetworkCB;
             mOnTimeCB = onTimeCB;
 
-            mNtpIp = IPAddress(0, 0, 0, 0);
+            mNtpIp = IPADDR_NONE;
 
             if('\0' == mConfig->sys.deviceName[0])
                 snprintf(mConfig->sys.deviceName, DEVNAME_LEN, "%s", DEF_DEVICE_NAME);
@@ -60,12 +60,16 @@ class AhoyNetwork {
         static void dnsCallback(const char *name, const ip_addr_t *ipaddr, void *pClass) {
             AhoyNetwork *obj = static_cast<AhoyNetwork*>(pClass);
             if (ipaddr) {
+                #if defined(ESP32)
                 obj->mNtpIp = ipaddr->u_addr.ip4.addr;
+                #else
+                obj->mNtpIp = ipaddr->addr;
+                #endif
             }
         }
 
         void updateNtpTime() {
-            if(mNtpIp != 0) {
+            if(mNtpIp != IPADDR_NONE) {
                 startNtpUpdate();
                 return;
             }
@@ -77,7 +81,11 @@ class AhoyNetwork {
             err_t err = dns_gethostbyname(mConfig->ntp.addr, &ipaddr, dnsCallback, this);
 
             if (err == ERR_OK) {
+                #if defined(ESP32)
                 mNtpIp = ipaddr.u_addr.ip4.addr;
+                #else
+                mNtpIp = ipaddr.addr;
+                #endif
                 startNtpUpdate();
             }
         }
@@ -96,7 +104,7 @@ class AhoyNetwork {
             sendNTPpacket();
 
             // reset to start with DNS lookup next time again
-            mNtpIp = IPAddress(0, 0, 0, 0);
+            mNtpIp = IPADDR_NONE;
         }
 
     public:
