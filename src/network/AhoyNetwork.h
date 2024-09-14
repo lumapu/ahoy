@@ -72,6 +72,8 @@ class AhoyNetwork {
 
             ip_addr_t ipaddr;
             mNtpIp = WiFi.gatewayIP();
+            // dns_gethostbyname runs asynchronous and sets the member mNtpIp which is then checked on
+            // next call of updateNtpTime
             err_t err = dns_gethostbyname(mConfig->ntp.addr, &ipaddr, dnsCallback, this);
 
             if (err == ERR_OK) {
@@ -92,6 +94,9 @@ class AhoyNetwork {
                 this->handleNTPPacket(packet);
             });
             sendNTPpacket();
+
+            // reset to start with DNS lookup next time again
+            mNtpIp = IPAddress(0, 0, 0, 0);
         }
 
     public:
