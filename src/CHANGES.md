@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.144 - 2024-09-14
+* fix NTP lookup if internet connection is not there
+* added fallback for NTP to gateway IP
+
 ## 0.8.143 - 2024-08-29
 * fixed crash #1743
 
