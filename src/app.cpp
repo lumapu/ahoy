@@ -153,10 +153,13 @@ void app::onNetwork(bool gotIp) {
     if(gotIp) {
         ah::Scheduler::resetTicker();
         regularTickers(); //reinstall regular tickers
-        every(std::bind(&app::tickSend, this), mConfig->inst.sendInterval, "tSend");
+        if(!mConfig->inst.startWithoutTime) // already set in regularTickers
+            every(std::bind(&app::tickSend, this), mConfig->inst.sendInterval, "tSend");
         mTickerInstallOnce = true;
         mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
-        once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
+
+        uint32_t nextTrig = (mTimestamp < 0x1337) ? 0 : (mConfig->ntp.interval * 60);
+        once(std::bind(&app::tickNtpUpdate, this), nextTrig, "ntp");
     }
 }
 
@@ -237,6 +240,7 @@ void app::tickNtpUpdate(void) {
         nxtTrig = mConfig->ntp.interval * 60;  // check again in configured interval
         mNtpReceived = false;
     }
+    yield();
 
     updateNtp();
 

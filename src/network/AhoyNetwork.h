@@ -11,9 +11,9 @@
 #include "../utils/helper.h"
 #include "AhoyWifiAp.h"
 #include "AsyncJson.h"
+#include <lwip/dns.h>
 
 #define NTP_PACKET_SIZE 48
-
 class AhoyNetwork {
     public:
         typedef std::function<void(bool)> OnNetworkCB;
@@ -25,6 +25,8 @@ class AhoyNetwork {
             mUtcTimestamp = utcTimestamp;
             mOnNetworkCB = onNetworkCB;
             mOnTimeCB = onTimeCB;
+
+            mNtpIp = IPAddress(0, 0, 0, 0);
 
             if('\0' == mConfig->sys.deviceName[0])
                 snprintf(mConfig->sys.deviceName, DEVNAME_LEN, "%s", DEF_DEVICE_NAME);
@@ -55,24 +57,41 @@ class AhoyNetwork {
             return (mStatus == NetworkState::CONNECTED);
         }
 
-        bool updateNtpTime(void) {
-            if(NetworkState::GOT_IP != mStatus)
-                return false;
+        static void dnsCallback(const char *name, const ip_addr_t *ipaddr, void *pClass) {
+            AhoyNetwork *obj = static_cast<AhoyNetwork*>(pClass);
+            if (ipaddr) {
+                obj->mNtpIp = ipaddr->u_addr.ip4.addr;
+            }
+        }
 
+        void updateNtpTime() {
+            if(mNtpIp != 0) {
+                startNtpUpdate();
+                return;
+            }
+
+            ip_addr_t ipaddr;
+            mNtpIp = WiFi.gatewayIP();
+            err_t err = dns_gethostbyname(mConfig->ntp.addr, &ipaddr, dnsCallback, this);
+
+            if (err == ERR_OK) {
+                mNtpIp = ipaddr.u_addr.ip4.addr;
+                startNtpUpdate();
+            }
+        }
+
+    protected:
+        void startNtpUpdate() {
+            DPRINTLN(DBG_INFO, F("get time from: ") + mNtpIp.toString());
             if (!mUdp.connected()) {
-                IPAddress timeServer;
-                if (!WiFi.hostByName(mConfig->ntp.addr, timeServer))
-                    return false;
-                if (!mUdp.connect(timeServer, mConfig->ntp.port))
-                    return false;
+                if (!mUdp.connect(mNtpIp, mConfig->ntp.port))
+                    return;
             }
 
             mUdp.onPacket([this](AsyncUDPPacket packet) {
                 this->handleNTPPacket(packet);
             });
             sendNTPpacket();
-
-            return true;
         }
 
     public:
@@ -185,7 +204,7 @@ class AhoyNetwork {
                         std::swap(sort[i], sort[j]);
         }
 
-    private:
+    protected:
         void sendNTPpacket(void) {
             uint8_t buf[NTP_PACKET_SIZE];
             memset(buf, 0, NTP_PACKET_SIZE);
@@ -194,11 +213,6 @@ class AhoyNetwork {
             buf[1] = 0;          // Stratum
             buf[2] = 6;          // Max Interval between messages in seconds
             buf[3] = 0xEC;       // Clock Precision
-            // bytes 4 - 11 are for Root Delay and Dispersion and were set to 0 by memset
-            buf[12] = 49;        // four-byte reference ID identifying
-            buf[13] = 0x4E;
-            buf[14] = 49;
-            buf[15] = 52;
 
             mUdp.write(buf, NTP_PACKET_SIZE);
         }
@@ -244,6 +258,8 @@ class AhoyNetwork {
 
         AhoyWifiAp mAp;
         DNSServer mDns;
+
+        IPAddress mNtpIp;
 
         AsyncUDP mUdp; // for time server
         #if defined(ESP8266)
