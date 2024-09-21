@@ -17,12 +17,11 @@
 class AhoyNetwork {
     public:
         typedef std::function<void(bool)> OnNetworkCB;
-        typedef std::function<void(bool)> OnTimeCB;
+        typedef std::function<void(uint32_t utcTimestamp)> OnTimeCB;
 
     public:
-        void setup(settings_t *config, uint32_t *utcTimestamp, OnNetworkCB onNetworkCB, OnTimeCB onTimeCB) {
+        void setup(settings_t *config, OnNetworkCB onNetworkCB, OnTimeCB onTimeCB) {
             mConfig = config;
-            mUtcTimestamp = utcTimestamp;
             mOnNetworkCB = onNetworkCB;
             mOnTimeCB = onTimeCB;
 
@@ -53,6 +52,19 @@ class AhoyNetwork {
             #endif
         }
 
+        virtual void tickNetworkLoop() {
+            if(mDnsCallbackReady) {
+                mDnsCallbackReady = false;
+                startNtpUpdate();
+            }
+
+            if(mNtpTimeoutSec) {
+                mNtpTimeoutSec--;
+                if(!mNtpTimeoutSec)
+                    mOnTimeCB(0); // timeout
+            }
+        }
+
         bool isConnected() const {
             return ((mStatus == NetworkState::CONNECTED) || (mStatus == NetworkState::GOT_IP));
         }
@@ -66,6 +78,7 @@ class AhoyNetwork {
                 obj->mNtpIp = ipaddr->addr;
                 #endif
             }
+            obj->mDnsCallbackReady = true;
         }
 
         void updateNtpTime() {
@@ -73,6 +86,8 @@ class AhoyNetwork {
                 startNtpUpdate();
                 return;
             }
+
+            mNtpTimeoutSec = 30;
 
             ip_addr_t ipaddr;
             mNtpIp = WiFi.gatewayIP();
@@ -94,8 +109,10 @@ class AhoyNetwork {
         void startNtpUpdate() {
             DPRINTLN(DBG_INFO, F("get time from: ") + mNtpIp.toString());
             if (!mUdp.connected()) {
-                if (!mUdp.connect(mNtpIp, mConfig->ntp.port))
+                if (!mUdp.connect(mNtpIp, mConfig->ntp.port)) {
+                    mOnTimeCB(0);
                     return;
+                }
             }
 
             mUdp.onPacket([this](AsyncUDPPacket packet) {
@@ -109,7 +126,6 @@ class AhoyNetwork {
 
     public:
         virtual void begin() = 0;
-        virtual void tickNetworkLoop() = 0;
         virtual String getIp(void) = 0;
         virtual String getMac(void) = 0;
 
@@ -242,10 +258,9 @@ class AhoyNetwork {
             // this is NTP time (seconds since Jan 1 1900):
             unsigned long secsSince1900 = highWord << 16 | lowWord;
 
-            *mUtcTimestamp = secsSince1900 - 2208988800UL; // UTC time
-            DPRINTLN(DBG_INFO, "[NTP]: " + ah::getDateTimeStr(*mUtcTimestamp) + " UTC");
-            mOnTimeCB(true);
             mUdp.close();
+            mNtpTimeoutSec = 0; // clear timeout
+            mOnTimeCB(secsSince1900 - 2208988800UL);
         }
 
     protected:
@@ -257,12 +272,15 @@ class AhoyNetwork {
             CONNECTING // ESP8266
         };
 
+    public:
+        bool mDnsCallbackReady = false;
+
     protected:
         settings_t *mConfig = nullptr;
-        uint32_t *mUtcTimestamp = nullptr;
         bool mConnected = false;
         bool mScanActive = false;
         bool mWifiConnecting = false;
+        uint8_t mNtpTimeoutSec = 0;
 
         OnNetworkCB mOnNetworkCB;
         OnTimeCB mOnTimeCB;

@@ -407,10 +407,7 @@ class app : public IApp, public ah::Scheduler {
                 setRebootFlag();
         }
 
-        void tickNtpUpdate(void);
-        void onNtpUpdate(bool gotTime);
-        bool mNtpReceived = false;
-        void updateNtp(void);
+        void onNtpUpdate(uint32_t utcTimestamp);
 
         void triggerTickSend(uint8_t id) override {
             once([this, id]() {
@@ -465,8 +462,10 @@ class app : public IApp, public ah::Scheduler {
         #if defined(ENABLE_MQTT)
         PubMqttType mMqtt;
         #endif
-        bool mTickerInstallOnce = false;
         bool mMqttEnabled = false;
+
+        uint8_t idTickMqttSecond, idTickMqttMinute;
+        uint8_t idTickMidnight, idTickReboot;
 
         // sun
         int32_t mCalculatedTimezoneOffset = 0;

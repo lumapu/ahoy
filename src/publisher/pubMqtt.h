@@ -409,20 +409,19 @@ class PubMqtt {
             bool total = (mDiscovery.lastIvId == MAX_NUM_INVERTERS);
 
             Inverter<> *iv = mSys->getInverterByPos(mDiscovery.lastIvId);
-            record_t<> *rec = NULL;
-            if (NULL != iv) {
+            record_t<> *rec = nullptr;
+            if (nullptr != iv) {
                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
                 if(0 == mDiscovery.sub)
-                mDiscovery.foundIvCnt++;
+                    mDiscovery.foundIvCnt++;
             }
 
-            if ((NULL != iv) || total) {
+            if ((nullptr != iv) || total) {
                 if (!total) {
                     doc[F("name")] = iv->config->name;
                     doc[F("ids")] = String(iv->config->serial.u64, HEX);
                     doc[F("mdl")] = iv->config->name;
-                }
-                else {
+                } else {
                     doc[F("name")] = node_id;
                     doc[F("ids")] = node_id;
                     doc[F("mdl")] = node_id;
@@ -441,6 +440,7 @@ class PubMqtt {
                 uniq_id.fill(0);
                 buf.fill(0);
                 const char *devCls, *stateCls;
+
                 if (!total) {
                     if (rec->assign[mDiscovery.sub].ch == CH0)
                         snprintf(name.data(), name.size(), "%s", iv->getFieldName(mDiscovery.sub, rec));
@@ -468,20 +468,26 @@ class PubMqtt {
                 doc2[F("unit_of_meas")] = ((!total) ? (iv->getUnit(mDiscovery.sub, rec)) : (unitTotal[mDiscovery.sub]));
                 doc2[F("uniq_id")] = ((!total) ? (String(iv->config->serial.u64, HEX)) : (node_id)) + "_" + uniq_id.data();
                 doc2[F("dev")] = deviceObj;
+
                 if (!(String(stateCls) == String("total_increasing")))
                     doc2[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
-                if (devCls != NULL)
+                if (devCls != nullptr)
                     doc2[F("dev_cla")] = String(devCls);
-                if (stateCls != NULL)
+                if (stateCls != nullptr)
                     doc2[F("stat_cla")] = String(stateCls);
 
                 if (!total)
                     snprintf(topic.data(), topic.size(), "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
                 else // total values
                     snprintf(topic.data(), topic.size(), "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(), fields[fldTotal[mDiscovery.sub]]);
+
                 size_t size = measureJson(doc2) + 1;
                 serializeJson(doc2, buf.data(), size);
-                if(FLD_EVT != rec->assign[mDiscovery.sub].fieldId)
+
+                if(nullptr != rec) {
+                    if(FLD_EVT != rec->assign[mDiscovery.sub].fieldId)
+                        publish(topic.data(), buf.data(), true, false);
+                } else if(total)
                     publish(topic.data(), buf.data(), true, false);
 
                 if(++mDiscovery.sub == ((!total) ? (rec->length) : 4)) {

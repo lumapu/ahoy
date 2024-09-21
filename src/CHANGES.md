@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.145 - 2024-09-22
+* fix NTP related issues #1748 #1752
+* fix MqTT discovery total #1715
+* upgrade webserver version for ESP32 devices
+
 ## 0.8.144 - 2024-09-14
 * fix NTP lookup if internet connection is not there
 * added fallback for NTP to gateway IP
