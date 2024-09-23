@@ -4,6 +4,7 @@
 * fix reset ticker #1754
 * disable MqTT second and minute ticker on network loss
 * converted many `std::bind` to its lambda pendant
+* fix redirect after login
 
 ## 0.8.145 - 2024-09-22
 * fix NTP related issues #1748 #1752

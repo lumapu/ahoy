@@ -339,7 +339,7 @@ class Web {
             if (request->args() > 0) {
                 if (String(request->arg("pwd")) == String(mConfig->sys.adminPwd)) {
                     mApp->unlock(request->client()->remoteIP().toString().c_str(), true);
-                    request->redirect("/");
+                    request->redirect("/index");
                 }
             }
 
