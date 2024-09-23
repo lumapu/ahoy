@@ -87,12 +87,18 @@ namespace ah {
                 mTimestamp = ts;
             }
 
-            bool resetById(uint8_t id) {
-                id = (id % (MAX_NUM_TICKER - 1));
-                if (mTickerInUse[id] == false)
-                    return false;
-                mTicker[id].timeout = mTicker[id].reload;
-                return true;
+            bool resetTickerByName(const char* name) {
+                for (uint8_t id = 0; id < MAX_NUM_TICKER; id++) {
+                    if (mTickerInUse[id]) {
+                        if(strncmp(name, mTicker[id].name, strlen(name)) == 0) {
+                            mTicker[id].timeout = mTicker[id].reload;
+                            mTickerInUse[id] = false;
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
             }
 
             uint32_t getUptime(void) {

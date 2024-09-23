@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.146 - 2024-09-23
+* fix reset ticker #1754
+* disable MqTT second and minute ticker on network loss
+* converted many `std::bind` to its lambda pendant
+
 ## 0.8.145 - 2024-09-22
 * fix NTP related issues #1748 #1752
 * fix MqTT discovery total #1715

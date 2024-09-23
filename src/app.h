@@ -89,7 +89,7 @@ class app : public IApp, public ah::Scheduler {
 
         void setup(void);
         void loop(void) override;
-        void onNetwork(bool gotIp);
+        void onNetwork(bool connected);
         void regularTickers(void);
 
         void handleIntr(void) {
@@ -463,9 +463,6 @@ class app : public IApp, public ah::Scheduler {
         PubMqttType mMqtt;
         #endif
         bool mMqttEnabled = false;
-
-        uint8_t idTickMqttSecond, idTickMqttMinute;
-        uint8_t idTickMidnight, idTickReboot;
 
         // sun
         int32_t mCalculatedTimezoneOffset = 0;
