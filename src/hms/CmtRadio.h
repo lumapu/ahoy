@@ -53,7 +53,8 @@ class CmtRadio : public Radio {
             if(!mCfg->enabled)
                 return;
 
-            DPRINT(DBG_INFO, F("sendControlPacket cmd: "));
+            DPRINT_IVID(DBG_INFO, iv->id);
+            DBGPRINT(F("sendControlPacket cmd: "));
             DBGHEXLN(cmd);
             initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;

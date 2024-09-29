@@ -21,6 +21,10 @@ typedef std::function<void(Inverter<> *)> alarmListenerType;
 
 class Communication : public CommQueue<> {
     public:
+        Communication() : CommQueue() {}
+
+        ~Communication() {}
+
         void setup(uint32_t *timestamp, bool *serialDebug, bool *privacyMode, bool *printWholeTrace) {
             mTimestamp = timestamp;
             mPrivacyMode = privacyMode;

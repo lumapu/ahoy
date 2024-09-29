@@ -18,20 +18,35 @@
 template <uint8_t N=100>
 class CommQueue {
     public:
+        CommQueue() {
+            mutex = xSemaphoreCreateBinaryStatic(&mutex_buffer);
+            xSemaphoreGive(mutex);
+        }
+
+        ~CommQueue() {
+            vSemaphoreDelete(mutex);
+        }
+
         void addImportant(Inverter<> *iv, uint8_t cmd) {
             queue_s q(iv, cmd, true);
+            xSemaphoreTake(mutex, portMAX_DELAY);
             if(!isIncluded(&q)) {
                 dec(&mRdPtr);
                 mQueue[mRdPtr] = q;
-            }
+                DPRINTLN(DBG_INFO, "addI, not incl.: " + String(iv->id));
+            } else
+                DPRINTLN(DBG_INFO, "addI, incl.: " + String(iv->id));
+            xSemaphoreGive(mutex);
         }
 
         void add(Inverter<> *iv, uint8_t cmd) {
+            xSemaphoreTake(mutex, portMAX_DELAY);
             queue_s q(iv, cmd, false);
             if(!isIncluded(&q)) {
                 mQueue[mWrPtr] = q;
                 inc(&mWrPtr);
             }
+            xSemaphoreGive(mutex);
         }
 
         void chgCmd(Inverter<> *iv, uint8_t cmd) {
@@ -62,17 +77,21 @@ class CommQueue {
 
     protected:
         void add(queue_s q) {
+            xSemaphoreTake(mutex, portMAX_DELAY);
             mQueue[mWrPtr] = q;
             inc(&mWrPtr);
+            xSemaphoreGive(mutex);
         }
 
         void add(const queue_s *q, bool rstAttempts = false) {
             mQueue[mWrPtr] = *q;
+            xSemaphoreTake(mutex, portMAX_DELAY);
             if(rstAttempts) {
                 mQueue[mWrPtr].attempts = DEFAULT_ATTEMPS;
                 mQueue[mWrPtr].attemptsMax = DEFAULT_ATTEMPS;
             }
             inc(&mWrPtr);
+            xSemaphoreGive(mutex);
         }
 
         void chgCmd(uint8_t cmd) {
@@ -81,20 +100,21 @@ class CommQueue {
         }
 
         void get(std::function<void(bool valid, const queue_s *q)> cb) {
-            if(mRdPtr == mWrPtr) {
+            if(mRdPtr == mWrPtr)
                 cb(false, &mQueue[mRdPtr]); // empty
-                return;
-            }
-            cb(true, &mQueue[mRdPtr]);
+            else
+                cb(true, &mQueue[mRdPtr]);
         }
 
         void cmdDone(bool keep = false) {
+            xSemaphoreTake(mutex, portMAX_DELAY);
             if(keep) {
                 mQueue[mRdPtr].attempts = DEFAULT_ATTEMPS;
                 mQueue[mRdPtr].attemptsMax = DEFAULT_ATTEMPS;
                 add(mQueue[mRdPtr]); // add to the end again
             }
             inc(&mRdPtr);
+            xSemaphoreGive(mutex);
         }
 
         void setTs(const uint32_t *ts) {
@@ -140,6 +160,10 @@ class CommQueue {
         std::array<queue_s, N> mQueue;
         uint8_t mWrPtr = 0;
         uint8_t mRdPtr = 0;
+
+    private:
+        SemaphoreHandle_t mutex;
+        StaticSemaphore_t mutex_buffer;
 };
 
 

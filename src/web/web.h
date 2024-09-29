@@ -8,10 +8,7 @@
 
 #include "../utils/dbg.h"
 #ifdef ESP32
-#include "AsyncTCP.h"
 #include "Update.h"
-#else
-#include "ESPAsyncTCP.h"
 #endif
 #include "../appInterface.h"
 #include "../hm/hmSystem.h"
