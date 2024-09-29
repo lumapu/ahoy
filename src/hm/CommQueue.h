@@ -11,6 +11,12 @@
 #include "hmInverter.h"
 #include "../utils/dbg.h"
 
+#if !defined(ESP32)
+    #define vSemaphoreDelete(a)
+    #define xSemaphoreTake(a, b)
+    #define xSemaphoreGive(a)
+#endif
+
 template <uint8_t N=100>
 class CommQueue {
     protected: /* types */
@@ -80,8 +86,10 @@ class CommQueue {
             : wrPtr {0}
             , rdPtr {0}
         {
+            #if defined(ESP32)
             this->mutex = xSemaphoreCreateBinaryStatic(&this->mutex_buffer);
             xSemaphoreGive(this->mutex);
+            #endif
         }
 
         ~CommQueue() {
@@ -186,8 +194,12 @@ class CommQueue {
     private:
         uint8_t wrPtr;
         uint8_t rdPtr;
+        #if defined(ESP32)
         SemaphoreHandle_t mutex;
         StaticSemaphore_t mutex_buffer;
+        #else
+        bool mutex;
+        #endif
 };
 
 
