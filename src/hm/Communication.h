@@ -52,7 +52,7 @@ class Communication : public CommQueue<> {
         }
 
         void loop() {
-            get([this](bool valid, const queue_s *q) {
+            get([this](bool valid, queue_s *q) {
                 if(!valid) {
                     if(mPrintSequenceDuration) {
                         mPrintSequenceDuration = false;
@@ -72,7 +72,7 @@ class Communication : public CommQueue<> {
         }
 
     private:
-        inline void innerLoop(const queue_s *q) {
+        inline void innerLoop(queue_s *q) {
             switch(mState) {
                 case States::RESET:
                     if (!mWaitTime.isTimeout())
@@ -95,20 +95,20 @@ class Communication : public CommQueue<> {
                     q->iv->radioStatistics.txCnt++;
                     mIsRetransmit = false;
                     if(NULL == q->iv->radio)
-                        cmdDone(false); // can't communicate while radio is not defined!
+                        cmdDone(q, false); // can't communicate while radio is not defined!
                     mFirstTry = (INV_RADIO_TYPE_NRF == q->iv->ivRadioType) && (q->iv->isAvailable());
                     q->iv->mCmd = q->cmd;
                     q->iv->mIsSingleframeReq = false;
                     mFramesExpected = getFramesExpected(q); // function to get expected frame count.
                     mTimeout = DURATION_TXFRAME + mFramesExpected*DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType];
                     if((q->iv->ivGen == IV_MI) && ((q->cmd == MI_REQ_CH1) || (q->cmd == MI_REQ_4CH)))
-                        incrAttempt(q->iv->channels); // 2 more attempts for 2ch, 4 more for 4ch
+                        incrAttempt(q, q->iv->channels); // 2 more attempts for 2ch, 4 more for 4ch
 
                     mState = States::START;
                     break;
 
                 case States::START:
-                    setTs(mTimestamp);
+                    setTs(q, mTimestamp);
                     if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
                         // frequency was changed during runtime
                         if(q->iv->curCmtFreq != q->iv->config->frequency) {
@@ -127,10 +127,10 @@ class Communication : public CommQueue<> {
                     //q->iv->radioStatistics.txCnt++;
                     q->iv->radio->mRadioWaitTime.startTimeMonitor(mTimeout);
                     if((!mIsRetransmit && (q->cmd == AlarmData)) || (q->cmd == GridOnProFilePara))
-                        incrAttempt((q->cmd == AlarmData)? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
+                        incrAttempt(q, (q->cmd == AlarmData)? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
 
                     mIsRetransmit    = false;
-                    setAttempt();
+                    setAttempt(q);
                     mState = States::WAIT;
                     break;
 
@@ -191,7 +191,7 @@ class Communication : public CommQueue<> {
                             q->iv->mDtuRxCnt++;
 
                             if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
-                                if(parseFrame(p)) {
+                                if(parseFrame(q, p)) {
                                     q->iv->curFrmCnt++;
                                     if(!mIsRetransmit && ((p->packet[9] == 0x02) || (p->packet[9] == 0x82)) && (p->millis < LIMIT_FAST_IV))
                                         mHeu.setIvRetriesGood(q->iv,p->millis < LIMIT_VERYFAST_IV);
@@ -292,7 +292,7 @@ class Communication : public CommQueue<> {
                             }
                         }
 
-                        setAttempt();
+                        setAttempt(q);
 
                         if(*mSerialDebug) {
                             DPRINT_IVID(DBG_WARN, q->iv->id);
@@ -321,7 +321,7 @@ class Communication : public CommQueue<> {
             }
         }
 
-        inline void printRxInfo(const queue_s *q, packet_t *p) {
+        inline void printRxInfo(queue_s *q, packet_t *p) {
             DPRINT_IVID(DBG_INFO, q->iv->id);
             DBGPRINT(F("RX "));
             if(p->millis < 100)
@@ -355,7 +355,7 @@ class Communication : public CommQueue<> {
         }
 
 
-        inline uint8_t getFramesExpected(const queue_s *q) {
+        inline uint8_t getFramesExpected(queue_s *q) {
             if(q->isDevControl)
                 return 1;
 
@@ -419,7 +419,7 @@ class Communication : public CommQueue<> {
             return (ah::crc8(buf, len - 1) == buf[len-1]);
         }
 
-        inline bool parseFrame(packet_t *p) {
+        inline bool parseFrame(queue_s *q, packet_t *p) {
             uint8_t *frameId = &p->packet[9];
             if(0x00 == *frameId) {
                 DPRINTLN(DBG_WARN, F("invalid frameId 0x00"));
@@ -438,7 +438,7 @@ class Communication : public CommQueue<> {
             if((*frameId & ALL_FRAMES) == ALL_FRAMES) {
                 mMaxFrameId = (*frameId & 0x7f);
                 if(mMaxFrameId > 8) // large payloads, e.g. AlarmData
-                    incrAttempt(mMaxFrameId - 6);
+                    incrAttempt(q, mMaxFrameId - 6);
             }
 
             frame_t *f = &mLocalBuf[(*frameId & 0x7f) - 1];
@@ -449,7 +449,7 @@ class Communication : public CommQueue<> {
             return true;
         }
 
-        inline void parseMiFrame(packet_t *p, const queue_s *q) {
+        inline void parseMiFrame(packet_t *p, queue_s *q) {
             if((!mIsRetransmit && p->packet[9] == 0x00) && (p->millis < LIMIT_FAST_IV_MI)) //first frame is fast?
                 mHeu.setIvRetriesGood(q->iv,p->millis < LIMIT_VERYFAST_IV_MI);
             if ((p->packet[0] == MI_REQ_CH1 + ALL_FRAMES)
@@ -473,7 +473,7 @@ class Communication : public CommQueue<> {
             }
         }
 
-        inline bool parseDevCtrl(const packet_t *p, const queue_s *q) {
+        inline bool parseDevCtrl(const packet_t *p, queue_s *q) {
             switch(p->packet[12]) {
                 case ActivePowerContr:
                     if(p->packet[13] != 0x00)
@@ -511,7 +511,7 @@ class Communication : public CommQueue<> {
             return accepted;
         }
 
-        inline bool compilePayload(const queue_s *q) {
+        inline bool compilePayload(queue_s *q) {
             uint16_t crc = 0xffff, crcRcv = 0x0000;
             for(uint8_t i = 0; i < mMaxFrameId; i++) {
                 if(i == (mMaxFrameId - 1)) {
@@ -611,7 +611,7 @@ class Communication : public CommQueue<> {
             return true;
         }
 
-        void sendRetransmit(const queue_s *q, uint8_t i) {
+        void sendRetransmit(queue_s *q, uint8_t i) {
             mFramesExpected = 1;
             q->iv->radio->setExpectedFrames(mFramesExpected);
             q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
@@ -622,7 +622,7 @@ class Communication : public CommQueue<> {
         }
 
     private:
-        void closeRequest(const queue_s *q, bool crcPass) {
+        void closeRequest(queue_s *q, bool crcPass) {
             mHeu.evalTxChQuality(q->iv, crcPass, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
             if(crcPass)
                 q->iv->radioStatistics.rxSuccess++;
@@ -636,7 +636,7 @@ class Communication : public CommQueue<> {
             if(q->isDevControl)
                 keep = !crcPass;
 
-            cmdDone(keep);
+            cmdDone(q, keep);
             q->iv->mGotFragment = false;
             q->iv->mGotLastMsg  = false;
             q->iv->miMultiParts = 0;
@@ -646,7 +646,7 @@ class Communication : public CommQueue<> {
             DBGPRINTLN(F("-----"));
         }
 
-        inline void miHwDecode(packet_t *p, const queue_s *q) {
+        inline void miHwDecode(packet_t *p, queue_s *q) {
             record_t<> *rec = q->iv->getRecordStruct(InverterDevInform_All);  // choose the record structure
             rec->ts = q->ts;
             /*
@@ -760,7 +760,7 @@ class Communication : public CommQueue<> {
             }
         }
 
-        inline void miGPFDecode(packet_t *p, const queue_s *q) {
+        inline void miGPFDecode(packet_t *p, queue_s *q) {
             record_t<> *rec = q->iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
             rec->ts = q->ts;
             rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
@@ -786,7 +786,7 @@ class Communication : public CommQueue<> {
             q->iv->miMultiParts = 7; // indicate we are ready
         }
 
-        inline void miDataDecode(packet_t *p, const queue_s *q) {
+        inline void miDataDecode(packet_t *p, queue_s *q) {
             record_t<> *rec = q->iv->getRecordStruct(RealTimeRunData_Debug);  // choose the parser
             rec->ts = q->ts;
             //mState = States::RESET;
@@ -839,7 +839,7 @@ class Communication : public CommQueue<> {
                 q->iv->miMultiParts += 6; // indicate we are ready
         }
 
-        void miNextRequest(uint8_t cmd, const queue_s *q) {
+        void miNextRequest(uint8_t cmd, queue_s *q) {
             mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
             mHeu.getTxCh(q->iv);
             q->iv->radioStatistics.ivSent++;
@@ -859,12 +859,12 @@ class Communication : public CommQueue<> {
                 DBGHEXLN(cmd);
             }
             mIsRetransmit = true;
-            chgCmd(cmd);
+            chgCmd(q, cmd);
             //mState = States::WAIT;
         }
 
-        void miRepeatRequest(const queue_s *q) {
-            setAttempt();    // if function is called, we got something, and we necessarily need more transmissions for MI types...
+        void miRepeatRequest(queue_s *q) {
+            setAttempt(q);    // if function is called, we got something, and we necessarily need more transmissions for MI types...
             q->iv->radio->sendCmdPacket(q->iv, q->cmd, 0x00, true);
             q->iv->radioStatistics.retransmits++;
             q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType]);
@@ -878,7 +878,7 @@ class Communication : public CommQueue<> {
             //mIsRetransmit = false;
         }
 
-        void miStsConsolidate(const queue_s *q, uint8_t stschan,  record_t<> *rec, uint8_t uState, uint8_t uEnum, uint8_t lState = 0, uint8_t lEnum = 0) {
+        void miStsConsolidate(queue_s *q, uint8_t stschan,  record_t<> *rec, uint8_t uState, uint8_t uEnum, uint8_t lState = 0, uint8_t lEnum = 0) {
             //uint8_t status  = (p->packet[11] << 8) + p->packet[12];
             uint16_t statusMi = 3; // regular status for MI, change to 1 later?
             if ( uState == 2 ) {
