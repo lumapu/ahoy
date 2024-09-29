@@ -18,6 +18,63 @@ class CommQueue {
         static constexpr uint8_t MoreAttemptsAlarmData = 3;
         static constexpr uint8_t MoreAttemptsGridProfile = 0;
 
+    protected:
+        struct QueueElement {
+            Inverter<> *iv;
+            uint8_t cmd;
+            uint8_t attempts;
+            uint8_t attemptsMax;
+            uint32_t ts;
+            bool isDevControl;
+
+            QueueElement()
+                : iv {nullptr}
+                , cmd {0}
+                , attempts {0}
+                , attemptsMax {0}
+                , ts {0}
+                , isDevControl {false}
+            {}
+
+            QueueElement(Inverter<> *iv, uint8_t cmd, bool devCtrl)
+                : iv {iv}
+                , cmd {cmd}
+                , attempts {DefaultAttempts}
+                , attemptsMax {DefaultAttempts}
+                , ts {0}
+                , isDevControl {devCtrl}
+            {}
+
+            QueueElement(const QueueElement &other) // copy constructor
+                : iv {other.iv}
+                , cmd {other.cmd}
+                , attempts {other.attempts}
+                , attemptsMax {other.attemptsMax}
+                , ts {other.ts}
+                , isDevControl {other.isDevControl}
+            {}
+
+            void changeCmd(uint8_t cmd) {
+                this->cmd = cmd;
+                this->isDevControl = false;
+            }
+
+            void setTs(const uint32_t ts) {
+                this->ts = ts;
+            }
+
+            void setAttempt() {
+                if(this->attempts)
+                    this->attempts--;
+            }
+
+            void incrAttempt(uint8_t attempts = 1) {
+                this->attempts += attempts;
+                if (this->attempts > this->attemptsMax)
+                    this->attemptsMax = this->attempts;
+            }
+        };
+
     public:
         CommQueue()
             : wrPtr {0}
@@ -122,63 +179,6 @@ class CommQueue {
             }
             return false;
         }
-
-    protected:
-        struct QueueElement {
-            Inverter<> *iv;
-            uint8_t cmd;
-            uint8_t attempts;
-            uint8_t attemptsMax;
-            uint32_t ts;
-            bool isDevControl;
-
-            QueueElement()
-                : iv {nullptr}
-                , cmd {0}
-                , attempts {0}
-                , attemptsMax {0}
-                , ts {0}
-                , isDevControl {false}
-            {}
-
-            QueueElement(Inverter<> *iv, uint8_t cmd, bool devCtrl)
-                : iv {iv}
-                , cmd {cmd}
-                , attempts {DefaultAttempts}
-                , attemptsMax {DefaultAttempts}
-                , ts {0}
-                , isDevControl {devCtrl}
-            {}
-
-            QueueElement(const QueueElement &other) // copy constructor
-                : iv {other.iv}
-                , cmd {other.cmd}
-                , attempts {other.attempts}
-                , attemptsMax {other.attemptsMax}
-                , ts {other.ts}
-                , isDevControl {other.isDevControl}
-            {}
-
-            void changeCmd(uint8_t cmd) {
-                this->cmd = cmd;
-                this->isDevControl = false;
-            }
-
-            void setTs(const uint32_t ts) {
-                this->ts = ts;
-            }
-
-            void setAttempt() {
-                if(this->attempts)
-                    this->attempts--;
-            }
-
-            void incrAttempt(uint8_t attempts = 1) {
-                this->attempts += attempts;
-                if (this->attempts > this->attemptsMax)
-                    this->attemptsMax = this->attempts;
-            }
-        };
 
     protected:
         std::array<QueueElement, N> mQueue;
