@@ -21,7 +21,9 @@ typedef std::function<void(Inverter<> *)> alarmListenerType;
 
 class Communication : public CommQueue<> {
     public:
-        Communication() : CommQueue() {}
+        Communication()
+            : CommQueue()
+        {}
 
         ~Communication() {}
 
@@ -52,23 +54,29 @@ class Communication : public CommQueue<> {
         }
 
         void loop() {
-            get([this](bool valid, QueueElement *q) {
-                if(!valid) {
-                    if(mPrintSequenceDuration) {
-                        mPrintSequenceDuration = false;
-                        DPRINT(DBG_INFO, F("com loop duration: "));
-                        DBGPRINT(String(millis() - mLastEmptyQueueMillis));
-                        DBGPRINTLN(F("ms"));
-                        DBGPRINTLN(F("-----"));
+            if(States::RESET == mState) {
+                get([this](bool valid, QueueElement *q) {
+                    if(!valid) {
+                        if(mPrintSequenceDuration) {
+                            mPrintSequenceDuration = false;
+                            DPRINT(DBG_INFO, F("com loop duration: "));
+                            DBGPRINT(String(millis() - mLastEmptyQueueMillis));
+                            DBGPRINTLN(F("ms"));
+                            DBGPRINTLN(F("-----"));
+                            el.iv = nullptr;
+                        }
+                        return; // empty
                     }
-                    return; // empty
-                }
-                if(!mPrintSequenceDuration) // entry was added to the queue
-                    mLastEmptyQueueMillis = millis();
-                mPrintSequenceDuration = true;
 
-                innerLoop(q);
-            });
+                    el = *q;
+                    if(!mPrintSequenceDuration) // entry was added to the queue
+                        mLastEmptyQueueMillis = millis();
+                    mPrintSequenceDuration = true;
+                });
+            }
+
+            if(nullptr != el.iv)
+                innerLoop(&el);
         }
 
     private:
@@ -1035,6 +1043,7 @@ class Communication : public CommQueue<> {
     private:
         States mState = States::RESET;
         uint32_t *mTimestamp = nullptr;
+        QueueElement el;
         bool *mPrivacyMode = nullptr, *mSerialDebug = nullptr, *mPrintWholeTrace = nullptr;
         TimeMonitor mWaitTime = TimeMonitor(0, true);  // start as expired (due to code in RESET state)
         std::array<frame_t, MAX_PAYLOAD_ENTRIES> mLocalBuf;

@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -140,24 +140,21 @@ class CommQueue {
             if(this->rdPtr == this->wrPtr)
                 cb(false, nullptr); // empty
             else {
-                //xSemaphoreTake(this->mutex, portMAX_DELAY);
-                //uint8_t tmp = this->rdPtr;
-                //xSemaphoreGive(this->mutex);
-                cb(true, &mQueue[this->rdPtr]);
+                xSemaphoreTake(this->mutex, portMAX_DELAY);
+                QueueElement el = mQueue[this->rdPtr];
+                inc(&this->rdPtr);
+                xSemaphoreGive(this->mutex);
+                cb(true, &el);
             }
         }
 
         void cmdDone(QueueElement *q, bool keep = false) {
-            xSemaphoreTake(this->mutex, portMAX_DELAY);
             if(keep) {
                 q->attempts = DefaultAttempts;
                 q->attemptsMax = DefaultAttempts;
-                xSemaphoreGive(this->mutex);
                 add(q); // add to the end again
-                xSemaphoreTake(this->mutex, portMAX_DELAY);
             }
-            inc(&this->rdPtr);
-            xSemaphoreGive(this->mutex);
+            //inc(&this->rdPtr);
         }
 
     private:
