@@ -102,8 +102,6 @@ class Communication : public CommQueue<> {
                     q->iv->curFrmCnt    = 0;
                     q->iv->radioStatistics.txCnt++;
                     mIsRetransmit = false;
-                    if(NULL == q->iv->radio)
-                        cmdDone(q, false); // can't communicate while radio is not defined!
                     mFirstTry = (INV_RADIO_TYPE_NRF == q->iv->ivRadioType) && (q->iv->isAvailable());
                     q->iv->mCmd = q->cmd;
                     q->iv->mIsSingleframeReq = false;
@@ -112,7 +110,7 @@ class Communication : public CommQueue<> {
                     if((q->iv->ivGen == IV_MI) && ((q->cmd == MI_REQ_CH1) || (q->cmd == MI_REQ_4CH)))
                         q->incrAttempt(q->iv->channels); // 2 more attempts for 2ch, 4 more for 4ch
 
-                    mState = States::START;
+                    mState = (NULL == q->iv->radio) ? States::RESET : States::START;
                     break;
 
                 case States::START:
@@ -644,7 +642,9 @@ class Communication : public CommQueue<> {
             if(q->isDevControl)
                 keep = !crcPass;
 
-            cmdDone(q, keep);
+            if(keep)
+                cmdReset(q);
+
             q->iv->mGotFragment = false;
             q->iv->mGotLastMsg  = false;
             q->iv->miMultiParts = 0;

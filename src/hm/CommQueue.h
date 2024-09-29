@@ -61,6 +61,69 @@ class CommQueue {
         }
 
     protected:
+        void add(QueueElement q) {
+            xSemaphoreTake(this->mutex, portMAX_DELAY);
+            mQueue[this->wrPtr] = q;
+            inc(&this->wrPtr);
+            xSemaphoreGive(this->mutex);
+        }
+
+        void add(QueueElement *q, bool rstAttempts = false) {
+            xSemaphoreTake(this->mutex, portMAX_DELAY);
+            mQueue[this->wrPtr] = *q;
+            if(rstAttempts) {
+                mQueue[this->wrPtr].attempts = DefaultAttempts;
+                mQueue[this->wrPtr].attemptsMax = DefaultAttempts;
+            }
+            inc(&this->wrPtr);
+            xSemaphoreGive(this->mutex);
+        }
+
+        void get(std::function<void(bool valid, QueueElement *q)> cb) {
+            if(this->rdPtr == this->wrPtr)
+                cb(false, nullptr); // empty
+            else {
+                xSemaphoreTake(this->mutex, portMAX_DELAY);
+                QueueElement el = mQueue[this->rdPtr];
+                inc(&this->rdPtr);
+                xSemaphoreGive(this->mutex);
+                cb(true, &el);
+            }
+        }
+
+        void cmdReset(QueueElement *q) {
+            q->attempts = DefaultAttempts;
+            q->attemptsMax = DefaultAttempts;
+            add(q); // add to the end again
+        }
+
+    private:
+        void inc(uint8_t *ptr) {
+            if(++(*ptr) >= N)
+                *ptr = 0;
+        }
+        void dec(uint8_t *ptr) {
+            if((*ptr) == 0)
+                *ptr = N-1;
+            else
+                --(*ptr);
+        }
+
+        bool isIncluded(const QueueElement *q) {
+            uint8_t ptr = this->rdPtr;
+            while (ptr != this->wrPtr) {
+                if(mQueue[ptr].cmd == q->cmd) {
+                    if(mQueue[ptr].iv->id == q->iv->id) {
+                        if(mQueue[ptr].isDevControl == q->isDevControl)
+                            return true;
+                    }
+                }
+                inc(&ptr);
+            }
+            return false;
+        }
+
+    protected:
         struct QueueElement {
             Inverter<> *iv;
             uint8_t cmd;
@@ -116,72 +179,6 @@ class CommQueue {
                     this->attemptsMax = this->attempts;
             }
         };
-
-    protected:
-        void add(QueueElement q) {
-            xSemaphoreTake(this->mutex, portMAX_DELAY);
-            mQueue[this->wrPtr] = q;
-            inc(&this->wrPtr);
-            xSemaphoreGive(this->mutex);
-        }
-
-        void add(QueueElement *q, bool rstAttempts = false) {
-            xSemaphoreTake(this->mutex, portMAX_DELAY);
-            mQueue[this->wrPtr] = *q;
-            if(rstAttempts) {
-                mQueue[this->wrPtr].attempts = DefaultAttempts;
-                mQueue[this->wrPtr].attemptsMax = DefaultAttempts;
-            }
-            inc(&this->wrPtr);
-            xSemaphoreGive(this->mutex);
-        }
-
-        void get(std::function<void(bool valid, QueueElement *q)> cb) {
-            if(this->rdPtr == this->wrPtr)
-                cb(false, nullptr); // empty
-            else {
-                xSemaphoreTake(this->mutex, portMAX_DELAY);
-                QueueElement el = mQueue[this->rdPtr];
-                inc(&this->rdPtr);
-                xSemaphoreGive(this->mutex);
-                cb(true, &el);
-            }
-        }
-
-        void cmdDone(QueueElement *q, bool keep = false) {
-            if(keep) {
-                q->attempts = DefaultAttempts;
-                q->attemptsMax = DefaultAttempts;
-                add(q); // add to the end again
-            }
-            //inc(&this->rdPtr);
-        }
-
-    private:
-        void inc(uint8_t *ptr) {
-            if(++(*ptr) >= N)
-                *ptr = 0;
-        }
-        void dec(uint8_t *ptr) {
-            if((*ptr) == 0)
-                *ptr = N-1;
-            else
-                --(*ptr);
-        }
-
-        bool isIncluded(const QueueElement *q) {
-            uint8_t ptr = this->rdPtr;
-            while (ptr != this->wrPtr) {
-                if(mQueue[ptr].cmd == q->cmd) {
-                    if(mQueue[ptr].iv->id == q->iv->id) {
-                        if(mQueue[ptr].isDevControl == q->isDevControl)
-                            return true;
-                    }
-                }
-                inc(&ptr);
-            }
-            return false;
-        }
 
     protected:
         std::array<QueueElement, N> mQueue;
