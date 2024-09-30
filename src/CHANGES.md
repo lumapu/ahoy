@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.148 - 2024-09-30
+* fixed send power limit #1757
+* fix redirect after login
+
 ## 0.8.147 - 2024-09-29
 * improved queue, added mutex
 * fixed send power limit #1757

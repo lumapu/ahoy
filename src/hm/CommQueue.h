@@ -51,14 +51,11 @@ class CommQueue {
                 , isDevControl {devCtrl}
             {}
 
-            QueueElement(const QueueElement &other) // copy constructor
-                : iv {other.iv}
-                , cmd {other.cmd}
-                , attempts {other.attempts}
-                , attemptsMax {other.attemptsMax}
-                , ts {other.ts}
-                , isDevControl {other.isDevControl}
-            {}
+            QueueElement(const QueueElement&) = delete;
+
+            QueueElement(QueueElement&& other) : QueueElement{} {
+                this->swap(other);
+            }
 
             void changeCmd(uint8_t cmd) {
                 this->cmd = cmd;
@@ -78,6 +75,22 @@ class CommQueue {
                 this->attempts += attempts;
                 if (this->attempts > this->attemptsMax)
                     this->attemptsMax = this->attempts;
+            }
+
+            QueueElement& operator=(const QueueElement&) = delete;
+
+            QueueElement& operator = (QueueElement&& other) {
+                this->swap(other);
+                return *this;
+            }
+
+            void swap(QueueElement& other) {
+                std::swap(this->iv, other.iv);
+                std::swap(this->cmd, other.cmd);
+                std::swap(this->attempts, other.attempts);
+                std::swap(this->attemptsMax, other.attemptsMax);
+                std::swap(this->ts, other.ts);
+                std::swap(this->isDevControl, other.isDevControl);
             }
         };
 
@@ -101,16 +114,16 @@ class CommQueue {
             xSemaphoreTake(this->mutex, portMAX_DELAY);
             if(!isIncluded(&q)) {
                 dec(&this->rdPtr);
-                mQueue[this->rdPtr] = q;
+                mQueue[this->rdPtr] = std::move(q);
             }
             xSemaphoreGive(this->mutex);
         }
 
         void add(Inverter<> *iv, uint8_t cmd) {
-            xSemaphoreTake(this->mutex, portMAX_DELAY);
             QueueElement q(iv, cmd, false);
+            xSemaphoreTake(this->mutex, portMAX_DELAY);
             if(!isIncluded(&q)) {
-                mQueue[this->wrPtr] = q;
+                mQueue[this->wrPtr] = std::move(q);
                 inc(&this->wrPtr);
             }
             xSemaphoreGive(this->mutex);
@@ -135,21 +148,22 @@ class CommQueue {
 
         void add(QueueElement *q, bool rstAttempts = false) {
             xSemaphoreTake(this->mutex, portMAX_DELAY);
-            mQueue[this->wrPtr] = *q;
             if(rstAttempts) {
-                mQueue[this->wrPtr].attempts = DefaultAttempts;
-                mQueue[this->wrPtr].attemptsMax = DefaultAttempts;
+                q->attempts = DefaultAttempts;
+                q->attemptsMax = DefaultAttempts;
             }
+            mQueue[this->wrPtr] = std::move(*q);
             inc(&this->wrPtr);
             xSemaphoreGive(this->mutex);
         }
 
         void get(std::function<void(bool valid, QueueElement *q)> cb) {
-            if(this->rdPtr == this->wrPtr)
+            xSemaphoreTake(this->mutex, portMAX_DELAY);
+            if(this->rdPtr == this->wrPtr) {
+                xSemaphoreGive(this->mutex);
                 cb(false, nullptr); // empty
-            else {
-                xSemaphoreTake(this->mutex, portMAX_DELAY);
-                QueueElement el = mQueue[this->rdPtr];
+            } else {
+                QueueElement el = std::move(mQueue[this->rdPtr]);
                 inc(&this->rdPtr);
                 xSemaphoreGive(this->mutex);
                 cb(true, &el);
