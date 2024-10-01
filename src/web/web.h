@@ -216,31 +216,36 @@ class Web {
         }
 
     private:
-        inline void checkRedirect(AsyncWebServerRequest *request) {
-            if ((mConfig->sys.protectionMask & PROT_MASK_INDEX) != PROT_MASK_INDEX)
-                request->redirect(F("/index"));
-            else if ((mConfig->sys.protectionMask & PROT_MASK_LIVE) != PROT_MASK_LIVE)
-                request->redirect(F("/live"));
-            else if ((mConfig->sys.protectionMask & PROT_MASK_HISTORY) != PROT_MASK_HISTORY)
-                request->redirect(F("/history"));
-            else if ((mConfig->sys.protectionMask & PROT_MASK_SERIAL) != PROT_MASK_SERIAL)
-                request->redirect(F("/serial"));
-            else if ((mConfig->sys.protectionMask & PROT_MASK_SYSTEM) != PROT_MASK_SYSTEM)
-                request->redirect(F("/system"));
-            else
-                request->redirect(F("/login"));
-        }
-
-        void checkProtection(AsyncWebServerRequest *request) {
+        bool checkProtection(AsyncWebServerRequest *request) {
             if(mApp->isProtected(request->client()->remoteIP().toString().c_str(), "", true)) {
-                checkRedirect(request);
-                return;
+                if ((mConfig->sys.protectionMask & PROT_MASK_INDEX) != PROT_MASK_INDEX) {
+                    request->redirect(F("/index"));
+                    return true;
+                } else if ((mConfig->sys.protectionMask & PROT_MASK_LIVE) != PROT_MASK_LIVE) {
+                    request->redirect(F("/live"));
+                    return true;
+                } else if ((mConfig->sys.protectionMask & PROT_MASK_HISTORY) != PROT_MASK_HISTORY) {
+                    request->redirect(F("/history"));
+                    return true;
+                } else if ((mConfig->sys.protectionMask & PROT_MASK_SERIAL) != PROT_MASK_SERIAL) {
+                    request->redirect(F("/serial"));
+                    return true;
+                } else if ((mConfig->sys.protectionMask & PROT_MASK_SYSTEM) != PROT_MASK_SYSTEM) {
+                    request->redirect(F("/system"));
+                    return true;
+                } else {
+                    request->redirect(F("/login"));
+                    return true;
+                }
             }
+
+            return false;
         }
 
         void getPage(AsyncWebServerRequest *request, uint16_t mask, const uint8_t *zippedHtml, uint32_t len) {
             if (CHECK_MASK(mConfig->sys.protectionMask, mask))
-                checkProtection(request);
+                if(checkProtection(request))
+                    return;
 
             AsyncWebServerResponse *response = beginResponse(request, 200, F("text/html; charset=UTF-8"), zippedHtml, len);
             response->addHeader(F("Content-Encoding"), "gzip");
@@ -337,6 +342,7 @@ class Web {
                 if (String(request->arg("pwd")) == String(mConfig->sys.adminPwd)) {
                     mApp->unlock(request->client()->remoteIP().toString().c_str(), true);
                     request->redirect("/index");
+                    return;
                 }
             }
 
