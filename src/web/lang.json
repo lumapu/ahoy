@@ -6,7 +6,7 @@
                 {
                     "token": "NAV_WIZARD",
                     "en": "Setup Wizard",
-                    "de": "Einrichtungsassitent"
+                    "de": "Einrichtungsassistent"
                 },
                 {
                     "token": "NAV_LIVE",
@@ -236,7 +236,7 @@
                 {
                     "token": "LOG_PRINT_TRACES",
                     "en": "Print whole traces in Log",
-                    "de": "alle Informationen in Log schreiben"
+                    "de": "alle Informationen ins Log schreiben"
                 },
                 {
                     "token": "LOG_TO_MQTT",
