@@ -2,6 +2,7 @@
 
 ## 0.8.149 - 2024-10-01
 * fixed send power limit #1757
+* merged: Fix minor typos #1758
 
 ## 0.8.148 - 2024-09-30
 * fixed send power limit #1757
