@@ -648,11 +648,13 @@ class Communication : public CommQueue<> {
                 keep = !crcPass;
 
             if(keep)
-                cmdReset(q);
+                cmdReset(q); // q will be zero'ed after that command
+            else {
+                q->iv->mGotFragment = false;
+                q->iv->mGotLastMsg  = false;
+                q->iv->miMultiParts = 0;
+            }
 
-            q->iv->mGotFragment = false;
-            q->iv->mGotLastMsg  = false;
-            q->iv->miMultiParts = 0;
             mIsRetransmit       = false;
             mCompleteRetry      = false;
             mState              = States::IDLE;
