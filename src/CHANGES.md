@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.150 - 2024-10-02
+* fix nullptr exception
+* modified MqTT to not publish while not connected
+* removed patch for Webserver library - obsolete
+
 ## 0.8.149 - 2024-10-01
 * fixed send power limit #1757
 * merged: Fix minor typos #1758
