@@ -647,13 +647,12 @@ class Communication : public CommQueue<> {
             if(q->isDevControl)
                 keep = !crcPass;
 
+            q->iv->mGotFragment = false;
+            q->iv->mGotLastMsg  = false;
+            q->iv->miMultiParts = 0;
+
             if(keep)
                 cmdReset(q); // q will be zero'ed after that command
-            else {
-                q->iv->mGotFragment = false;
-                q->iv->mGotLastMsg  = false;
-                q->iv->miMultiParts = 0;
-            }
 
             mIsRetransmit       = false;
             mCompleteRetry      = false;
