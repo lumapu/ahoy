@@ -12,9 +12,11 @@
 #include "../utils/dbg.h"
 
 #if !defined(ESP32)
-    #define vSemaphoreDelete(a)
-    #define xSemaphoreTake(a, b)
-    #define xSemaphoreGive(a)
+    #if !defined(vSemaphoreDelete)
+        #define vSemaphoreDelete(a)
+        #define xSemaphoreTake(a, b) { while(a) { yield(); } a = true; }
+        #define xSemaphoreGive(a) { a = false; }
+    #endif
 #endif
 
 template <uint8_t N=100>

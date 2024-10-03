@@ -11,8 +11,11 @@
 #if defined(ENABLE_MQTT)
 #ifdef ESP8266
     #include <ESP8266WiFi.h>
-    #define xSemaphoreTake(a, b) { while(a) { yield(); } a = true; }
-    #define xSemaphoreGive(a) { a = false; }
+    #if !defined(vSemaphoreDelete)
+        #define vSemaphoreDelete(a)
+        #define xSemaphoreTake(a, b) { while(a) { yield(); } a = true; }
+        #define xSemaphoreGive(a) { a = false; }
+    #endif
 #elif defined(ESP32)
     #include <WiFi.h>
 #endif
