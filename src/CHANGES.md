@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.151 - 2024-10-03
+* don't interrupt current command by setting a new limit #1757
+
 ## 0.8.150 - 2024-10-02
 * fix nullptr exception
 * modified MqTT to not publish while not connected

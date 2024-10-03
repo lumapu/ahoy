@@ -34,13 +34,6 @@ class Communication : public CommQueue<> {
             mPrintWholeTrace = printWholeTrace;
         }
 
-        void addImportant(Inverter<> *iv, uint8_t cmd) {
-            if(!mIsDevControl) // only reset communication once there is no other devcontrol command
-                mState = States::IDLE; // cancel current operation
-            mIsDevControl = true;
-            CommQueue::addImportant(iv, cmd);
-        }
-
         void addPayloadListener(payloadListenerType cb) {
             mCbPayload = cb;
         }
@@ -94,9 +87,6 @@ class Communication : public CommQueue<> {
                     for(uint8_t i = 0; i < MAX_PAYLOAD_ENTRIES; i++) {
                         mLocalBuf[i].len = 0;
                     }
-
-                    if(!q->isDevControl)
-                        mIsDevControl = false; // reset devcontrol flag
 
                     if(*mSerialDebug)
                         mHeu.printStatus(q->iv);
@@ -1066,7 +1056,6 @@ class Communication : public CommQueue<> {
         Heuristic mHeu;
         uint32_t mLastEmptyQueueMillis = 0;
         bool mPrintSequenceDuration = false;
-        bool mIsDevControl = false; // holds if current command is devcontrol
 };
 
 #endif /*__COMMUNICATION_H__*/
