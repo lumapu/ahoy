@@ -817,7 +817,8 @@
                         ml("input", {type: "hidden", name: "isnrf"}, null),
                         ml("div", {id: "setcmt"}, [
                             divRow("{#INV_FREQUENCY}", sel("freq", esp32cmtFreq, obj.freq)),
-                            divRow("{#INV_POWER_LEVEL}", sel("cmtpa", esp32cmtPa, obj.pa))
+                            divRow("{#INV_POWER_LEVEL}", sel("cmtpa", esp32cmtPa, obj.pa)),
+                            divRow("{#INV_SEARCH}", ml("input", {type: "button", value: "{#BTN_SEARCH}", class: "btn", onclick: function() { cmtSearch(); }}, null))
                         ]),
                         ml("div", {id: "setnrf"},
                             divRow("{#INV_POWER_LEVEL}", sel("nrfpa", nrfPa, obj.pa))
@@ -900,6 +901,16 @@
                     o.freq = document.getElementsByName("freq")[0].value;
                     o.disnightcom = document.getElementsByName("disnightcom")[0].checked;
                     getAjax("/api/setup", cb, "POST", JSON.stringify(o));
+                }
+
+                function cmtSearch() {
+                    var o = {}
+                    o.cmd = "cmt_search"
+                    o.token = "*"
+                    o.id = obj.id
+                    o.to_ch = document.getElementsByName("freq")[0].value;
+
+                    getAjax("/api/ctrl", cb, "POST", JSON.stringify(o));
                 }
 
                 function convHerf(sn) {

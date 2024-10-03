@@ -291,6 +291,29 @@ class app : public IApp, public ah::Scheduler {
             return mConfig->cmt.enabled;
         }
 
+        bool cmtSearch(uint8_t id, uint8_t toCh) override {
+            #if defined(ESP32)
+            Inverter<> *iv;
+
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                iv = mSys.getInverterByPos(i, true);
+                if(nullptr != iv) {
+                    if(i == id)
+                        break;
+                    else
+                        iv = nullptr;
+                }
+            }
+
+            if(nullptr != iv) {
+                mCmtRadio.catchInverter(iv, toCh);
+                return true;
+            }
+            #endif
+
+            return false;
+        }
+
         uint8_t getNrfIrqPin(void) {
             return mConfig->nrf.pinIrq;
         }

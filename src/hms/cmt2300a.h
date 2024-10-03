@@ -188,6 +188,10 @@ class Cmt2300a {
             }
         }
 
+        bool isTxReady() {
+            return !mTxPending;
+        }
+
         CmtStatus goRx(void) {
             if(mTxPending)
                 return CmtStatus::ERR_TX_PENDING;

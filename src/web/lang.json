@@ -699,6 +699,16 @@
                     "de": "Kommunikation w&auml;hrend der Nacht pausieren (Breiten- und L&auml;ngengrad m&uuml;ssen gesetzt sein"
                 },
                 {
+                    "token": "INV_SEARCH",
+                    "en": "Catch Inverter",
+                    "de": "Wechselrichter suchen"
+                },
+                {
+                    "token": "BTN_SEARCH",
+                    "en": "start",
+                    "de": "starten"
+                },
+                {
                     "token": "BTN_SAVE",
                     "en": "save",
                     "de": "speichern"

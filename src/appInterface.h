@@ -56,6 +56,8 @@ class IApp {
         virtual bool getNrfEnabled() = 0;
         virtual bool getCmtEnabled() = 0;
 
+        virtual bool cmtSearch(uint8_t id, uint8_t toCh) = 0;
+
         virtual uint32_t getMqttRxCnt() = 0;
         virtual uint32_t getMqttTxCnt() = 0;
 

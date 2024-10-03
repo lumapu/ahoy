@@ -1131,6 +1131,11 @@ class RestApi {
                 iv->setDevCommand(jsonIn[F("val")].as<int>());
             } else if(F("restart_ahoy") == jsonIn[F("cmd")]) {
                 mApp->setRebootFlag();
+            } else if(F("cmt_search") == jsonIn[F("cmd")]) {
+                if(!mApp->cmtSearch(jsonIn[F("id")], jsonIn[F("to_ch")])) {
+                    jsonOut[F("error")] = F("ERR_INVERTER_NOT_FOUND");
+                    return false;
+                }
             } else {
                 jsonOut[F("error")] = F("ERR_UNKNOWN_CMD");
                 return false;
