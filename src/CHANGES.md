@@ -3,6 +3,7 @@
 ## 0.8.151 - 2024-10-03
 * don't interrupt current command by setting a new limit #1757
 * add button for CMT inverters to catch them independend on which frequency they were before #1749
+* increased communication queue length from 100 to 200 for ESP32-S3
 
 ## 0.8.150 - 2024-10-02
 * fix nullptr exception
