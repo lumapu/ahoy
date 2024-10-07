@@ -4,6 +4,8 @@
 * patching MqTT library to prevent raise conditions while using semaphores
 * update ESP32 espressif platform to `0.6.9`
 * update ESPAsyncWebServer to `3.3.12`
+* merge: avoid using pkg_resources because it's deprecated in python 3.12 #1759
+* merge: HA discovery IP address fix, HA json output fix #1760
 
 ## 0.8.151 - 2024-10-03
 * don't interrupt current command by setting a new limit #1757
