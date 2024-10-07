@@ -430,7 +430,7 @@ class PubMqtt {
                     doc[F("mdl")] = node_id;
                 }
 
-                doc[F("cu")] = F("http://") + String(WiFi.localIP().toString());
+                doc[F("cu")] = F("http://") +  mApp->getIp();
                 doc[F("mf")] = F("Hoymiles");
                 JsonObject deviceObj = doc.as<JsonObject>(); // deviceObj is only pointer!?
 
@@ -449,13 +449,15 @@ class PubMqtt {
                         snprintf(name.data(), name.size(), "%s", iv->getFieldName(mDiscovery.sub, rec));
                     else
                         snprintf(name.data(), name.size(), "CH%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
-                    snprintf(topic.data(), name.size(), "/ch%d/%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                    if (!mCfgMqtt->json)
+                        snprintf(topic.data(), name.size(), "/ch%d/%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                    else
+                        snprintf(topic.data(), name.size(), "/ch%d", rec->assign[mDiscovery.sub].ch);
                     snprintf(uniq_id.data(), uniq_id.size(), "ch%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
 
                     devCls = getFieldDeviceClass(rec->assign[mDiscovery.sub].fieldId);
                     stateCls = getFieldStateClass(rec->assign[mDiscovery.sub].fieldId);
                 }
-
                 else { // total values
                     snprintf(name.data(), name.size(), "Total %s", fields[fldTotal[mDiscovery.sub]]);
                     snprintf(topic.data(), topic.size(), "/%s", fields[fldTotal[mDiscovery.sub]]);
@@ -467,7 +469,20 @@ class PubMqtt {
                 DynamicJsonDocument doc2(512);
                 constexpr static const char* unitTotal[] = {"W", "kWh", "Wh", "W"};
                 doc2[F("name")] = String(name.data());
-                doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + ((!total) ? String(iv->config->name) : "total" ) + String(topic.data());
+
+                if (mCfgMqtt->json) {
+                    if (total) {
+                        doc2[F("val_tpl")] = String("{{ value_json.") + fields[fldTotal[mDiscovery.sub]] + String(" }}");
+                        doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + "total";
+                    }
+                    else {
+                        doc2[F("val_tpl")] = String("{{ value_json.") + iv->getFieldName(mDiscovery.sub, rec) + String(" }}");
+                        doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + String(iv->config->name) + String(topic.data());
+                    }
+                }
+                else {
+                    doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + ((!total) ? String(iv->config->name) : "total" ) + String(topic.data());
+                }
                 doc2[F("unit_of_meas")] = ((!total) ? (iv->getUnit(mDiscovery.sub, rec)) : (unitTotal[mDiscovery.sub]));
                 doc2[F("uniq_id")] = ((!total) ? (String(iv->config->serial.u64, HEX)) : (node_id)) + "_" + uniq_id.data();
                 doc2[F("dev")] = deviceObj;
