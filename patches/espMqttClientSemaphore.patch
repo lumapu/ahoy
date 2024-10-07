@@ -1,0 +1,88 @@
+diff --git a/src/MqttClient.cpp b/src/MqttClient.cpp
+index dc21f74..d4b35c4 100644
+--- a/src/MqttClient.cpp
++++ b/src/MqttClient.cpp
+@@ -1,7 +1,7 @@
+ /*
+ Copyright (c) 2022 Bert Melis. All rights reserved.
+ 
+-This work is licensed under the terms of the MIT license.  
++This work is licensed under the terms of the MIT license.
+ For a copy, see <https://opensource.org/licenses/MIT> or
+ the LICENSE file.
+ */
+@@ -148,16 +148,19 @@ uint16_t MqttClient::publish(const char* topic, uint8_t qos, bool retain, const
+   #endif
+     return 0;
+   }
+-  EMC_SEMAPHORE_TAKE();
+-  uint16_t packetId = (qos > 0) ? _getNextPacketId() : 1;
+-  if (!_addPacket(packetId, topic, payload, length, qos, retain)) {
+-    emc_log_e("Could not create PUBLISH packet");
++  uint16_t packetId = 0;
++  if(pdTRUE == EMC_SEMAPHORE_TAKE()) {
++    packetId = (qos > 0) ? _getNextPacketId() : 1;
++    if (!_addPacket(packetId, topic, payload, length, qos, retain)) {
++      emc_log_e("Could not create PUBLISH packet");
++      EMC_SEMAPHORE_GIVE();
++      _onError(packetId, Error::OUT_OF_MEMORY);
++      if(pdTRUE == EMC_SEMAPHORE_TAKE())
++        packetId = 0;
++    }
+     EMC_SEMAPHORE_GIVE();
+-    _onError(packetId, Error::OUT_OF_MEMORY);
+-    EMC_SEMAPHORE_TAKE();
+-    packetId = 0;
++    yield();
+   }
+-  EMC_SEMAPHORE_GIVE();
+   return packetId;
+ }
+ 
+@@ -174,16 +177,19 @@ uint16_t MqttClient::publish(const char* topic, uint8_t qos, bool retain, espMqt
+   #endif
+     return 0;
+   }
+-  EMC_SEMAPHORE_TAKE();
+-  uint16_t packetId = (qos > 0) ? _getNextPacketId() : 1;
+-  if (!_addPacket(packetId, topic, callback, length, qos, retain)) {
+-    emc_log_e("Could not create PUBLISH packet");
++  uint16_t packetId = 0;
++  if(pdTRUE == EMC_SEMAPHORE_TAKE()) {
++    packetId = (qos > 0) ? _getNextPacketId() : 1;
++    if (!_addPacket(packetId, topic, callback, length, qos, retain)) {
++      emc_log_e("Could not create PUBLISH packet");
++      EMC_SEMAPHORE_GIVE();
++      _onError(packetId, Error::OUT_OF_MEMORY);
++      if(pdTRUE == EMC_SEMAPHORE_TAKE())
++        packetId = 0;
++    }
+     EMC_SEMAPHORE_GIVE();
+-    _onError(packetId, Error::OUT_OF_MEMORY);
+-    EMC_SEMAPHORE_TAKE();
+-    packetId = 0;
++    yield();
+   }
+-  EMC_SEMAPHORE_GIVE();
+   return packetId;
+ }
+ 
+@@ -237,11 +243,13 @@ void MqttClient::loop() {
+     case State::connectingMqtt:
+       #if EMC_WAIT_FOR_CONNACK
+       if (_transport->connected()) {
+-        EMC_SEMAPHORE_TAKE();
+-        _sendPacket();
+-        _checkIncoming();
+-        _checkPing();
+-        EMC_SEMAPHORE_GIVE();
++        if(pdTRUE == EMC_SEMAPHORE_TAKE()) {
++          _sendPacket();
++          _checkIncoming();
++          _checkPing();
++          EMC_SEMAPHORE_GIVE();
++          yield();
++        }
+       } else {
+         _setState(State::disconnectingTcp1);
+         _disconnectReason = DisconnectReason::TCP_DISCONNECTED;

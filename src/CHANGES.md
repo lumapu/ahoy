@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.152 - 2024-10-07
+* patching MqTT library to prevent raise conditions while using semaphores
+* update ESP32 espressif platform to `0.6.9`
+* update ESPAsyncWebServer to `3.3.12`
+
 ## 0.8.151 - 2024-10-03
 * don't interrupt current command by setting a new limit #1757
 * add button for CMT inverters to catch them independend on which frequency they were before #1749

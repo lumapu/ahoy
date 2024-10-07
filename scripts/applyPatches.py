@@ -25,6 +25,8 @@ def applyPatch(libName, patchFile):
     os.chdir(start)
 
 
+applyPatch("espMqttClient", "../patches/espMqttClientSemaphore.patch")
+
 # list of patches to apply (relative to /src)
 if (env['PIOENV'][:5] == "esp32") or (env['PIOENV'][:13] == "opendtufusion"):
     applyPatch("GxEPD2", "../patches/GxEPD2_HAL.patch")
