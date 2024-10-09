@@ -1,41 +1,54 @@
-Changelog v0.8.83
+Changelog v0.8.140
 
-* added German translations for all variants
-* added reading grid profile
-* added decimal place for active power control (APC aka power limit)
-* added information about working IRQ for NRF24 and CMT2300A to `/system`
-* added loss rate to `/visualization` in the statistics window and MqTT
-* added optional output to display whether it's night time or not. Can be reused as output to control battery system or mapped to a LED
-* added timestamp for `max ac power` as tooltip
-* added wizard for initial WiFi connection
-* added history graph (still under development)
-* added simulator (must be activated before compile, standard: off)
-* added minimal version (without: MqTT, Display, History), WebUI is not changed! (not compiled automatically)
-* added info about installed binary to `/update`
-* added protection to prevent update to wrong firmware (environment check)
-* added optional custom link to the menu
-* added support for other regions (USA, Indonesia)
-* added warning for WiFi channel 12-14 (ESP8266 only)
-* added `max_power` to MqTT total values
-* added API-Token authentification for external scripts
-* improved MqTT by marking sent data and improved `last_success` resends
-* improved communication for HM and MI inverters
-* improved reading live data from inverter
-* improved sending active power control command faster
-* improved `/settings`: pinout has an own subgroup
-* improved export by saving settings before they are exported (to have everything in JSON)
-* improved code quality (cppcheck)
-* seperated sunrise and sunset offset to two fields
-* fix MqTT night communication
-* fix missing favicon to html header
-* fix build on Windows of `opendtufusion` environments (git: trailing whitespaces)
-* fix generation of DTU-ID
-* fix: protect commands from popup in `/live` if password is set
-* fix: prevent sending commands to inverter which isn't active
-* combined firmware and hardware version to JSON topics (MqTT)
-* updated Prometheus with latest changes
-* upgraded most libraries to newer versions
-* beautified typography, added spaces between value and unit for `/visualization`
-* removed add to total (MqTT) inverter setting
+* added HMS-400-1T support (serial number 1125...)
+* added further ESP8266 versions (-all, -minimal) because of small ressources on ESP8266
+* added some Gridprofiles
+* added support for characters in serial number of inverter (A-F)
+* added default coordinates on fresh install, needed for history graph on display and WebUI
+* added option to reset values on communication start (sunrise)
+* added max inverter temperature to WebUI
+* added yield day to history graph
+* added script and [instructions](../manual/factory_firmware.md) how to generate factory firmware which includes predefined settings
+* added button for downloading coredump (ESP32 variants only) to `/system`. Once a crash happens the reason can be checked afterwards (even after a reboot)
+* added support of HERF inverters, serial number is converted in Javascript
+* added device name to HTML title
+* added feature to restart Ahoy using MqTT
+* added feature to publish MqTT messages as JSON as well (new setting)
+* add timestamp to JSON output
+* improved communication to inverter
+* improved translation to German
+* improved HTML pages, reduced in size by only including relevant contents depending by chip type
+* improved history graph in WebUI
+* improved network routines
+* improved Wizard
+* improved WebUI by disabling upload and import buttons when no file is selected
+* improved queue, only add new object once they not exist in queue
+* improved MqTT `OnMessage` (threadsafe)
+* improved read of alarms, prevent duplicates, update alarm time if there is an update
+* improved alarms are now sorted in ascending direction
+* improved by prevent add inverter multiple times
+* improved sending active power controll commands
+* improved refresh routine of ePaper, full refresh each 12h
+* redesigned WebUI on `/system`
+* changed MqTT retained flags
+* change MqTT return value of power limit acknowledge from `boolean` to `float`. The value returned is the same as it was set to confirm reception (not the read back value)
+* converted ePaper and Ethernet to hal-SPI
+* combined Ethernet and WiFi variants - Ethernet is now always included, but needs to be enabled if needed
+* changed: Ethernet variants (W5500) now support WiFi as fall back / configuration
+* switch AsyncWebserver library
+* fixed autodiscovery for homeassistant
+* fix reset values functionality
+* fix read back of active power control value, now it has one decimal place
+* fix NTP issues
+* fixed MqTT discovery field `ALARM_MES_ID`
+* fix close button color of modal windows in dark mode
+* fixed calculation of max AC power
+* fixed reset values at midnight if WiFi isn't available
+* fixed HMT-1800-4T number of inputs
+* fix crash if invalid serial number was set -> inverter will be disabled automatically
+* fixed ESP8266, ESP32 static IP
+* fixed ethernet MAC address read back
+* update several libraries to more recent versions
+* removed `yield efficiency` because the inverter already calculates correct
 
 full version log: [Development Log](https://github.com/lumapu/ahoy/blob/development03/src/CHANGES.md)

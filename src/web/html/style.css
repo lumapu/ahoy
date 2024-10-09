@@ -33,12 +33,16 @@ textarea {
     color: var(--fg2);
 }
 
-svg rect {fill: #00A;}
-svg.chart {
-    background: #f2f2f2;
-    border: 2px solid gray;
-    padding: 1px;
+svg polyline {
+	fill-opacity: .5;
+	stroke-width:	1;
 }
+
+svg text {
+	font-size: x-small;
+	fill: var(--chart-text);
+}
+
 
 div.chartDivContainer {
     padding: 1px;
@@ -139,7 +143,7 @@ svg.icon {
     background-color: var(--nav-active);
 }
 
-span.seperator {
+span.separator {
     width: 100%;
     height: 1px;
     margin: 5px 0 5px;
@@ -559,7 +563,13 @@ input.btn {
     cursor: pointer;
 }
 
-input.btn:hover {
+input.btn:disabled {
+    background-color: var(--primary-disabled);
+    color: #888;
+    cursor: not-allowed;
+}
+
+input.btn:not(:disabled):hover {
     background-color: #044e86;
 }
 
@@ -677,7 +687,7 @@ div.hr {
     border-radius: 3px;
     display: inline-block;
     position: absolute;
-    transform: translate(-50%,-100%);
+    transform: translate(-50%,-50%);
     margin:0 auto;
     color: var(--fg2);
     min-width: 100px;
@@ -748,6 +758,7 @@ div.hr {
     font-family: inherit;
     cursor: pointer;
     padding: 0;
+    color: var(--fg);
 }
 
 button.close {
@@ -847,4 +858,17 @@ ul {
 .container {
     height: 100%;
     overflow: auto;
+}
+
+.progress {
+    display: flex;
+    height: 1rem;
+    overflow: hidden;
+    background-color: #e9ecef;
+    border-radius: .25rem;
+}
+
+.progress-bar {
+    display: flex;
+    background-color: var(--primary);
 }

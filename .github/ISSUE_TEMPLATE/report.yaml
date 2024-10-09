@@ -1,9 +1,6 @@
-name: "AhoyDTU bug"
-description: "File a bug report"
-title: "[Bug]"
-labels: ["bug", "needs-triage"]
-assignees:
-  - lumapu
+name: "issue report"
+description: "issue report"
+labels: ["new", "needs-triage"]
 body:
   - type: markdown
     attributes:
@@ -12,7 +9,7 @@ body:
         Wir lesen auch gerne Deutsch, bitte fülle die u.a. Fragen aus damit wir Dir bestmöglich helfen können Danke!
         Bitte unser FAQ als Hilfestellung prüfen: https://ahoydtu.de/faq
         
-        Please read, copy & fill in the template from our Posting Guide lines into your Support Forum post.
+        Please read, then copy & fill in the template from our Posting Guide lines into your Support Forum post.
         We do enjoy the english language, but we need a couple of things to best support you in your goal, please fill in all / most of the details given below. Thanks!
         Check our FAQ: https://ahoydtu.de/faq
   - type: markdown
@@ -35,7 +32,7 @@ body:
       label: Assembly
       description:
       options:
-        - I did the assebly by myself
+        - I did the assembly by myself
         - the DTU was already assembled
     validations:
       required: true
@@ -84,7 +81,7 @@ body:
       label: Connection picture
       description: 
       options:
-        - label: I will attach/upload an Image of my wiring
+        - label: I will attach/upload an image of my wiring
     validations:
       required: true
   - type: markdown

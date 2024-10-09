@@ -22,7 +22,7 @@
 #include <functional>
 #include "../config/settings.h"
 
-#include "radio.h"
+#include "Radio.h"
 /**
  * For values which are of interest and not transmitted by the inverter can be
  * calculated automatically.
@@ -33,28 +33,31 @@
 
 // prototypes
 template<class T=float>
-static T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0);
+T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0);
+T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcUdcCh(Inverter<> *iv, uint8_t arg0);
+T calcUdcCh(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0);
+T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0);
+T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcIrradiation(Inverter<> *iv, uint8_t arg0);
+T calcIrradiation(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0);
+T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
-static T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0);
+T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0);
+
+template<class T=float>
+T calcMaxTemperature(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
 using func_t = T (Inverter<> *, uint8_t);
@@ -84,7 +87,7 @@ struct record_t {
     byteAssign_t* assign = nullptr; // assignment of bytes in payload
     uint8_t length = 0;             // length of the assignment list
     T *record = nullptr;            // data pointer
-    uint32_t ts = 0;                // timestamp of last received payload
+    uint32_t ts = 0;                // Timestamp of last received payload
     uint8_t pyldLen = 0;            // expected payload length for plausibility check
     MqttSentStatus mqttSentStatus = MqttSentStatus:: NEW_DATA; // indicates the current MqTT sent status
 };
@@ -100,14 +103,15 @@ struct alarm_t {
 // list of all available functions, mapped in hmDefines.h
 template<class T=float>
 const calcFunc_t<T> calcFunctions[] = {
-    { CALC_YT_CH0,   &calcYieldTotalCh0 },
-    { CALC_YD_CH0,   &calcYieldDayCh0   },
-    { CALC_UDC_CH,   &calcUdcCh         },
-    { CALC_PDC_CH0,  &calcPowerDcCh0    },
-    { CALC_EFF_CH0,  &calcEffiencyCh0   },
-    { CALC_IRR_CH,   &calcIrradiation   },
-    { CALC_MPAC_CH0, &calcMaxPowerAcCh0 },
-    { CALC_MPDC_CH,  &calcMaxPowerDc    }
+    { CALC_YT_CH0,   &calcYieldTotalCh0  },
+    { CALC_YD_CH0,   &calcYieldDayCh0    },
+    { CALC_UDC_CH,   &calcUdcCh          },
+    { CALC_PDC_CH0,  &calcPowerDcCh0     },
+    { CALC_EFF_CH0,  &calcEffiencyCh0    },
+    { CALC_IRR_CH,   &calcIrradiation    },
+    { CALC_MPAC_CH0, &calcMaxPowerAcCh0  },
+    { CALC_MPDC_CH,  &calcMaxPowerDc     },
+    { CALC_MT_CH0,   &calcMaxTemperature }
 };
 
 template <class REC_TYP>
@@ -146,7 +150,8 @@ class Inverter {
         statistics_t  radioStatistics;                      // information about transmitted, failed, ... packets
         HeuristicInv  heuristics;                           // heuristic information / logic
         uint8_t       curCmtFreq = 0;                       // current used CMT frequency, used to check if freq. was changed during runtime
-        uint32_t      tsMaxAcPower = 0;                     // holds the timestamp when the MaxAC power was seen
+        uint32_t      tsMaxAcPower = 0;                     // holds the Timestamp when the MaxAC power was seen
+        uint32_t      tsMaxTemperature = 0;                 // holds the Timestamp when the max temperature was seen
         bool          commEnabled = true;                   // 'pause night communication' sets this field to false
 
     public:
@@ -189,7 +194,7 @@ class Inverter {
                     cb(InverterDevInform_Simple, false); // get hardware version
                 } else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0)) {
                     cb(AlarmData, false);                // get last alarms
-                } else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
+                } else if((0 == mGridLen) && GeneralConfig->readGrid) { // read grid profile
                     cb(GridOnProFilePara, false);
                 } else if (mGetLossInterval > AHOY_GET_LOSS_INTERVAL) { // get loss rate
                     mGetLossInterval = 1;
@@ -213,7 +218,7 @@ class Inverter {
                         if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0) {
                             cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
                             mIvRxCnt +=2;
-                        } else if((getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec) == 0) && generalConfig->readGrid) // read grid profile
+                        } else if((getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec) == 0) && GeneralConfig->readGrid) // read grid profile
                             cb(0x10, false); // legacy GPF command
                     }
                 }
@@ -229,19 +234,20 @@ class Inverter {
             initAssignment(&recordAlarm, AlarmData);
             toRadioId();
             curCmtFreq = this->config->frequency; // update to frequency read from settings
+            resetAlarms(true);
         }
 
         uint8_t getPosByChFld(uint8_t channel, uint8_t fieldId, record_t<> *rec) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getPosByChFld"));
-            if(NULL != rec) {
-                uint8_t pos = 0;
-                for(; pos < rec->length; pos++) {
-                    if((rec->assign[pos].ch == channel) && (rec->assign[pos].fieldId == fieldId))
-                        break;
-                }
-                return (pos >= rec->length) ? 0xff : pos;
-            } else
+            if(nullptr == rec)
                 return 0xff;
+
+            uint8_t pos = 0;
+            for(; pos < rec->length; pos++) {
+                if((rec->assign[pos].ch == channel) && (rec->assign[pos].fieldId == fieldId))
+                    break;
+            }
+            return (pos >= rec->length) ? 0xff : pos;
         }
 
         byteAssign_t *getByteAssign(uint8_t pos, record_t<> *rec) {
@@ -270,15 +276,18 @@ class Inverter {
             if(InverterStatus::OFF != status) {
                 mDevControlRequest = true;
                 devControlCmd = cmd;
-                //app->triggerTickSend(); // done in RestApi.h, because of "chicken-and-egg problem ;-)"
+                assert(App);
+                App->triggerTickSend(id);
+                return true;
             }
-            return (InverterStatus::OFF != status);
+            return false;
         }
 
         bool setDevCommand(uint8_t cmd) {
-            if(InverterStatus::OFF != status)
+            bool retval = (InverterStatus::OFF != status);
+            if(retval)
                 devControlCmd = cmd;
-            return (InverterStatus::OFF != status);
+            return retval;
         }
 
         void addValue(uint8_t pos, const uint8_t buf[], record_t<> *rec) {
@@ -288,32 +297,30 @@ class Inverter {
                 uint8_t  end = ptr + rec->assign[pos].num;
                 uint16_t div = rec->assign[pos].div;
 
-                if(NULL != rec) {
-                    if(CMD_CALC != div) {
-                        uint32_t val = 0;
-                        do {
-                            val <<= 8;
-                            val |= buf[ptr];
-                        } while(++ptr != end);
+                if(CMD_CALC != div) {
+                    uint32_t val = 0;
+                    do {
+                        val <<= 8;
+                        val |= buf[ptr];
+                    } while(++ptr != end);
 
-                        if ((FLD_T == rec->assign[pos].fieldId) || (FLD_Q == rec->assign[pos].fieldId) || (FLD_PF == rec->assign[pos].fieldId)) {
-                            // temperature, Qvar, and power factor are a signed values
-                            rec->record[pos] = ((REC_TYP)((int16_t)val)) / (REC_TYP)(div);
-                        } else if (FLD_YT == rec->assign[pos].fieldId) {
-                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
-                        } else if (FLD_YD == rec->assign[pos].fieldId) {
-                            float actYD = (REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency;
-                            uint8_t idx = rec->assign[pos].ch - 1;
-                            if (mLastYD[idx] > actYD)
-                                mOffYD[idx] += mLastYD[idx];
-                            mLastYD[idx] = actYD;
-                            rec->record[pos] = mOffYD[idx] + actYD;
-                        } else {
-                            if ((REC_TYP)(div) > 1)
-                                rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
-                            else
-                                rec->record[pos] = (REC_TYP)(val);
-                        }
+                    if ((FLD_T == rec->assign[pos].fieldId) || (FLD_Q == rec->assign[pos].fieldId) || (FLD_PF == rec->assign[pos].fieldId)) {
+                        // temperature, Qvar, and power factor are a signed values
+                        rec->record[pos] = ((REC_TYP)((int16_t)val)) / (REC_TYP)(div);
+                    } else if (FLD_YT == rec->assign[pos].fieldId) {
+                        rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div)) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
+                    } else if (FLD_YD == rec->assign[pos].fieldId) {
+                        float actYD = (REC_TYP)(val) / (REC_TYP)(div);
+                        uint8_t idx = rec->assign[pos].ch - 1;
+                        if (mLastYD[idx] > actYD)
+                            mOffYD[idx] += mLastYD[idx];
+                        mLastYD[idx] = actYD;
+                        rec->record[pos] = mOffYD[idx] + actYD;
+                    } else {
+                        if ((REC_TYP)(div) > 1)
+                            rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
+                        else
+                            rec->record[pos] = (REC_TYP)(val);
                     }
                 }
 
@@ -337,7 +344,7 @@ class Inverter {
                         // eg. hw version ...
                     } else if (rec->assign == SystemConfigParaAssignment) {
                         DPRINTLN(DBG_DEBUG, "add config");
-                        if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
+                        if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos) {
                             actPowerLimit = rec->record[pos];
                             DPRINT(DBG_DEBUG, F("Inverter actual power limit: "));
                             DPRINTLN(DBG_DEBUG, String(actPowerLimit, 1));
@@ -356,7 +363,7 @@ class Inverter {
 
         bool setValue(uint8_t pos, record_t<> *rec, REC_TYP val) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:setValue"));
-            if(NULL == rec)
+            if(nullptr == rec)
                 return false;
             if(pos > rec->length)
                 return false;
@@ -407,23 +414,17 @@ class Inverter {
         bool isAvailable() {
             bool avail = false;
 
-            if((recordMeas.ts == 0) && (recordInfo.ts == 0) && (recordConfig.ts == 0) && (recordAlarm.ts == 0))
+            if(recordMeas.ts == 0)
                 return false;
 
-            if((*timestamp - recordMeas.ts) < INVERTER_INACT_THRES_SEC)
-                avail = true;
-            if((*timestamp - recordInfo.ts) < INVERTER_INACT_THRES_SEC)
-                avail = true;
-            if((*timestamp - recordConfig.ts) < INVERTER_INACT_THRES_SEC)
-                avail = true;
-            if((*timestamp - recordAlarm.ts) < INVERTER_INACT_THRES_SEC)
+            if(((*Timestamp) - recordMeas.ts) < INVERTER_INACT_THRES_SEC)
                 avail = true;
 
             if(avail) {
                 if(status < InverterStatus::PRODUCING)
                     status = InverterStatus::STARTING;
             } else {
-                if((*timestamp - recordMeas.ts) > INVERTER_OFF_THRES_SEC) {
+                if(((*Timestamp) - recordMeas.ts) > INVERTER_OFF_THRES_SEC) {
                     if(status != InverterStatus::OFF) {
                         status = InverterStatus::OFF;
                         actPowerLimit = 0xffff; // power limit will be read once inverter becomes available
@@ -537,6 +538,10 @@ class Inverter {
                             rec->length  = (uint8_t)(HMS4CH_LIST_LEN);
                             rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(hms4chAssignment));
                             rec->pyldLen = HMS4CH_PAYLOAD_LEN;
+                        } else if(IV_HMT == ivGen){
+                            rec->length  = (uint8_t)(HMT4CH_LIST_LEN);
+                            rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(hmt4chAssignment));
+                            rec->pyldLen = HMT4CH_PAYLOAD_LEN;
                         }
                         channels = 4;
                     }
@@ -584,7 +589,7 @@ class Inverter {
             }
         }
 
-        void resetAlarms() {
+        void resetAlarms(bool clearTs = false) {
             lastAlarm.fill({0, 0, 0});
             mAlarmNxtWrPos = 0;
             alarmCnt = 0;
@@ -592,6 +597,11 @@ class Inverter {
 
             memset(mOffYD, 0, sizeof(float) * 6);
             memset(mLastYD, 0, sizeof(float) * 6);
+
+            if(clearTs) {
+                tsMaxAcPower = *Timestamp;
+                tsMaxTemperature = *Timestamp;
+            }
         }
 
         bool parseGetLossRate(const uint8_t pyld[], uint8_t len) {
@@ -660,7 +670,6 @@ class Inverter {
             DPRINTLN(DBG_DEBUG, "Alarm #" + String(pyld[startOff+1]) + " '" + String(getAlarmStr(pyld[startOff+1])) + "' start: " + ah::getTimeStr(start) + ", end: " + ah::getTimeStr(endTime));
             addAlarm(pyld[startOff+1], start, endTime);
 
-            alarmCnt++;
             alarmLastId = alarmMesIndex;
 
             return pyld[startOff+1];
@@ -808,6 +817,26 @@ class Inverter {
 
     private:
         inline void addAlarm(uint16_t code, uint32_t start, uint32_t end) {
+            uint8_t i = 0;
+
+            if(start > end)
+                end = 0;
+
+            for(; i < 10; i++) {
+                ++mAlarmNxtWrPos;
+                mAlarmNxtWrPos = mAlarmNxtWrPos % 10;
+
+                if(lastAlarm[mAlarmNxtWrPos].code == code && lastAlarm[mAlarmNxtWrPos].start == start) {
+                    // replace with same or update end time
+                    if(lastAlarm[mAlarmNxtWrPos].end == 0 || lastAlarm[mAlarmNxtWrPos].end == end) {
+                        break;
+                    }
+                }
+            }
+
+            if(alarmCnt < 10 && alarmCnt <= mAlarmNxtWrPos)
+                alarmCnt = mAlarmNxtWrPos + 1;
+
             lastAlarm[mAlarmNxtWrPos] = alarm_t(code, start, end);
             if(++mAlarmNxtWrPos >= 10) // rolling buffer
                 mAlarmNxtWrPos = 0;
@@ -824,8 +853,9 @@ class Inverter {
         }
 
     public:
-        static uint32_t  *timestamp;     // system timestamp
-        static cfgInst_t *generalConfig; // general inverter configuration from setup
+        static uint32_t  *Timestamp;     // system timestamp
+        static cfgInst_t *GeneralConfig; // general inverter configuration from setup
+        static IApp *App;
 
         uint16_t mDtuRxCnt = 0;
         uint16_t mDtuTxCnt = 0;
@@ -843,9 +873,11 @@ class Inverter {
 };
 
 template <class REC_TYP>
-uint32_t *Inverter<REC_TYP>::timestamp {0};
+uint32_t *Inverter<REC_TYP>::Timestamp {0};
 template <class REC_TYP>
-cfgInst_t *Inverter<REC_TYP>::generalConfig {0};
+cfgInst_t *Inverter<REC_TYP>::GeneralConfig {0};
+template <class REC_TYP>
+IApp *Inverter<REC_TYP>::App {nullptr};
 
 
 /**
@@ -855,7 +887,7 @@ cfgInst_t *Inverter<REC_TYP>::generalConfig {0};
  */
 
 template<class T=float>
-static T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0) {
+T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcYieldTotalCh0"));
     if(NULL != iv) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
@@ -869,7 +901,7 @@ static T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0) {
+T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcYieldDayCh0"));
     if(NULL != iv) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
@@ -883,7 +915,7 @@ static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcUdcCh(Inverter<> *iv, uint8_t arg0) {
+T calcUdcCh(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcUdcCh"));
     // arg0 = channel of source
     record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
@@ -897,7 +929,7 @@ static T calcUdcCh(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0) {
+T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcPowerDcCh0"));
     if(NULL != iv) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
@@ -911,7 +943,7 @@ static T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0) {
+T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcEfficiencyCh0"));
     if(NULL != iv) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
@@ -927,7 +959,7 @@ static T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcIrradiation(Inverter<> *iv, uint8_t arg0) {
+T calcIrradiation(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcIrradiation"));
     // arg0 = channel
     if(NULL != iv) {
@@ -939,7 +971,7 @@ static T calcIrradiation(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0) {
+T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcMaxPowerAcCh0"));
     T acMaxPower = 0.0;
     if(NULL != iv) {
@@ -952,7 +984,7 @@ static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0) {
             }
         }
         if(acPower > acMaxPower) {
-            iv->tsMaxAcPower = *iv->timestamp;
+            iv->tsMaxAcPower = *iv->Timestamp;
             return acPower;
         }
     }
@@ -960,7 +992,7 @@ static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0) {
 }
 
 template<class T=float>
-static T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0) {
+T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcMaxPowerDc"));
     // arg0 = channel
     T dcMaxPower = 0.0;
@@ -977,6 +1009,24 @@ static T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0) {
             return dcPower;
     }
     return dcMaxPower;
+}
+
+template<class T=float>
+T calcMaxTemperature(Inverter<> *iv, uint8_t arg0) {
+    DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcMaxTemperature"));
+    // arg0 = channel
+    if(NULL != iv) {
+        record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+        T temp = iv->getChannelFieldValue(arg0, FLD_T, rec);
+        T maxTemp = iv->getChannelFieldValue(arg0, FLD_MT, rec);
+
+        if(temp > maxTemp) {
+            iv->tsMaxTemperature = *iv->Timestamp;
+            return temp;
+        }
+        return maxTemp;
+    }
+    return 0;
 }
 
 #endif /*__HM_INVERTER_H__*/

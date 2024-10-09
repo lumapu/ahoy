@@ -117,7 +117,7 @@ class Communication : public CommQueue<> {
 
                     //q->iv->radioStatistics.txCnt++;
                     q->iv->radio->mRadioWaitTime.startTimeMonitor(mTimeout);
-                    if(!mIsRetransmit && (q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
+                    if((!mIsRetransmit && (q->cmd == AlarmData)) || (q->cmd == GridOnProFilePara))
                         incrAttempt((q->cmd == AlarmData)? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
 
                     mIsRetransmit    = false;
@@ -159,8 +159,6 @@ class Communication : public CommQueue<> {
                                         mFirstTry = false;
                                     mHeu.evalTxChQuality(q->iv, false, 0, 0);
                                     mHeu.getTxCh(q->iv);
-                                    //q->iv->radioStatistics.rxFailNoAnser++;  // should only be one of fail or retransmit.
-                                    //q->iv->radioStatistics.txCnt--;
                                     q->iv->radioStatistics.retransmits++;
                                     q->iv->radio->mRadioWaitTime.stopTimeMonitor();
                                     mState = States::START;
@@ -276,7 +274,7 @@ class Communication : public CommQueue<> {
                                     DBGPRINT(F(" frames missing "));
                                     DBGPRINTLN(F("-> complete retransmit"));
                                 }
-                                mHeu.evalTxChQuality(q->iv, false, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
+                                mHeu.evalTxChQuality(q->iv, false, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt, true);
                                 q->iv->radioStatistics.txCnt--;
                                 q->iv->radioStatistics.retransmits++;
                                 mCompleteRetry = true;
@@ -622,7 +620,7 @@ class Communication : public CommQueue<> {
             else if(q->iv->mGotFragment || mCompleteRetry)
                 q->iv->radioStatistics.rxFail++; // got no complete payload
             else
-                q->iv->radioStatistics.rxFailNoAnser++; // got nothing
+                q->iv->radioStatistics.rxFailNoAnswer++; // got nothing
             mWaitTime.startTimeMonitor(1); // maybe remove, side effects unknown
 
             bool keep = false;
@@ -893,50 +891,60 @@ class Communication : public CommQueue<> {
 
             uint16_t prntsts = (statusMi == 3) ? 1 : statusMi;
             bool stsok = true;
-            if ( prntsts != rec->record[q->iv->getPosByChFld(0, FLD_EVT, rec)] ) { //sth.'s changed?
-                q->iv->alarmCnt = 1; // minimum...
+            bool changedStatus = false;  //if true, raise alarms and send via mqtt (might affect single channel only)
+            uint8_t oldState = rec->record[q->iv->getPosByChFld(0, FLD_EVT, rec)];
+            if ( prntsts != oldState ) { // sth.'s changed?
                 stsok = false;
-                //sth is or was wrong?
-                if ((q->iv->type != INV_TYPE_1CH)
-                    && ((statusMi != 3)
-                        || ((q->iv->lastAlarm[stschan].code) && (q->iv->lastAlarm[stschan].code != 1)))
-                   ) {
-                    q->iv->lastAlarm[stschan+q->iv->type==INV_TYPE_2CH ? 2: 4] = alarm_t(q->iv->lastAlarm[stschan].code, q->iv->lastAlarm[stschan].start,q->ts);
-                    q->iv->lastAlarm[stschan] = alarm_t(prntsts, q->ts,0);
-                    q->iv->alarmCnt = q->iv->type == INV_TYPE_2CH ? 3 : 5;
-                } else if ((q->iv->type == INV_TYPE_1CH)
-                    && ( (statusMi != 3)
-                        || ((q->iv->lastAlarm[stschan].code) && (q->iv->lastAlarm[stschan].code != 1)))
-                   ) {
-                    q->iv->lastAlarm[stschan] = alarm_t(q->iv->lastAlarm[0].code, q->iv->lastAlarm[0].start,q->ts);
-                } else if (q->iv->type == INV_TYPE_1CH)
-                    stsok = true;
-
-                q->iv->alarmLastId = prntsts; //iv->alarmMesIndex;
-
-                if (q->iv->alarmCnt > 1) { //more than one channel
-                    for (uint8_t ch = 0; ch < (q->iv->alarmCnt); ++ch) { //start with 1
-                        if (q->iv->lastAlarm[ch].code == 1) {
-                            stsok = true;
-                            break;
+                if( (!oldState) || (!q->iv->alarmCnt) ) {          // initial zero value? => just write this channel to main state and raise changed flags
+                    changedStatus = true;
+                    q->iv->alarmCnt = 1; // minimum...
+                } else {
+                    //sth is or was wrong?
+                    if (q->iv->type == INV_TYPE_1CH) {
+                        changedStatus = true;
+                        if(q->iv->alarmCnt == 2) // we had sth. other than "producing" in the past
+                            q->iv->lastAlarm[1].end = q->ts;
+                        else {                   // copy old state and mark as ended
+                            q->iv->lastAlarm[1] = alarm_t(q->iv->lastAlarm[0].code, q->iv->lastAlarm[0].start,q->ts);
+                            q->iv->alarmCnt = 2;
+                        }
+                    } else if((prntsts != 1) || (q->iv->alarmCnt > 1) ) { // we had sth. other than "producing" in the past in at least one channel (2 and 4 ch types)
+                        if (q->iv->alarmCnt == 1)
+                            q->iv->alarmCnt = (q->iv->type == INV_TYPE_2CH) ? 5 : 9;
+                        if(q->iv->lastAlarm[stschan].code != prntsts) { // changed?
+                            changedStatus = true;
+                            if(q->iv->lastAlarm[stschan].code) // copy old data and mark as ended (if any)
+                                q->iv->lastAlarm[(stschan + (q->iv->type==INV_TYPE_2CH ? 2 : 4))] = alarm_t(q->iv->lastAlarm[stschan].code, q->iv->lastAlarm[stschan].start,q->ts);
+                            q->iv->lastAlarm[stschan] = alarm_t(prntsts, q->ts,0);
+                        }
+                        if(changedStatus) {
+                            for (uint8_t i = 1; i <= q->iv->channels; i++) { //start with 1
+                                if (q->iv->lastAlarm[i].code == 1) {
+                                    stsok = true;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
+            }
+
+            if (!stsok) {
+                q->iv->setValue(q->iv->getPosByChFld(0, FLD_EVT, rec), rec, prntsts);
+                q->iv->lastAlarm[0] = alarm_t(prntsts, q->ts, 0);
+            }
+            if (changedStatus || !stsok) {
+                rec->ts = q->ts;
+                rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
+                q->iv->alarmLastId = prntsts; //iv->alarmMesIndex;
+                if (NULL != mCbAlarm)
+                    (mCbAlarm)(q->iv);
                 if(*mSerialDebug) {
                     DPRINT(DBG_WARN, F("New state on CH"));
                     DBGPRINT(String(stschan)); DBGPRINT(F(" ("));
                     DBGPRINT(String(prntsts)); DBGPRINT(F("): "));
                     DBGPRINTLN(q->iv->getAlarmStr(prntsts));
                 }
-                if(!q->iv->miMultiParts)
-                    q->iv->miMultiParts = 1; // indicate we got status info (1+2 ch types)
-            }
-
-            if (!stsok) {
-                q->iv->setValue(q->iv->getPosByChFld(0, FLD_EVT, rec), rec, prntsts);
-                q->iv->lastAlarm[0] = alarm_t(prntsts, q->ts, 0);
-                rec->ts = q->ts;
-                rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
             }
 
             if (q->iv->alarmMesIndex < rec->record[q->iv->getPosByChFld(0, FLD_EVT, rec)]) {
@@ -947,6 +955,8 @@ class Communication : public CommQueue<> {
                     DBGPRINTLN(String(q->iv->alarmMesIndex));
                 }
             }
+            if(!q->iv->miMultiParts)
+                q->iv->miMultiParts = 1; // indicate we got status info (1+2 ch types)
         }
 
 
@@ -986,10 +996,8 @@ class Communication : public CommQueue<> {
                     ac_pow += iv->getValue(iv->getPosByChFld(1, FLD_PDC, rec), rec);
             } else {
                 for(uint8_t i = 1; i <= iv->channels; i++) {
-                    if ((!iv->lastAlarm[i].code) || (iv->lastAlarm[i].code == 1)) {
-                        uint8_t pos = iv->getPosByChFld(i, FLD_PDC, rec);
-                        ac_pow += iv->getValue(pos, rec);
-                    }
+                    if ((!iv->lastAlarm[i].code) || (iv->lastAlarm[i].code == 1))
+                        ac_pow += iv->getValue(iv->getPosByChFld(i, FLD_PDC, rec), rec);
                 }
             }
             ac_pow = (int) (ac_pow*9.5);

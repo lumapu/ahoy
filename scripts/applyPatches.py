@@ -26,9 +26,10 @@ def applyPatch(libName, patchFile):
 
 
 # list of patches to apply (relative to /src)
-if env['PIOENV'][:22] != "opendtufusion-ethernet":
-    applyPatch("ESP Async WebServer", "../patches/AsyncWeb_Prometheus.patch")
+applyPatch("ESPAsyncWebServer-esphome", "../patches/AsyncWeb_Prometheus.patch")
 
-if env['PIOENV'][:13] == "opendtufusion":
-    applyPatch("GxEPD2", "../patches/GxEPD2_SW_SPI.patch")
+if (env['PIOENV'][:5] == "esp32") or (env['PIOENV'][:13] == "opendtufusion"):
+    applyPatch("GxEPD2", "../patches/GxEPD2_HAL.patch")
+
+if (env['PIOENV'][:13] == "opendtufusion") or (env['PIOENV'][:5] == "esp32"):
     applyPatch("RF24", "../patches/RF24_Hal.patch")

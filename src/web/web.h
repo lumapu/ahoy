@@ -16,11 +16,7 @@
 #include "../appInterface.h"
 #include "../hm/hmSystem.h"
 #include "../utils/helper.h"
-#if defined(ETHERNET)
-#include "AsyncWebServer_ESP32_W5500.h"
-#else /* defined(ETHERNET) */
 #include "ESPAsyncWebServer.h"
-#endif /* defined(ETHERNET) */
 #include "html/h/api_js.h"
 #include "html/h/colorBright_css.h"
 #include "html/h/colorDark_css.h"
@@ -41,14 +37,19 @@
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLed2", "pinLedHighActive", "pinLedLum", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
+const char* const pinArgNames[] = {
+    "pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0",
+    "pinLed1", "pinLed2", "pinLedHighActive", "pinLedLum", "pinCmtSclk",
+    "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"
+    #if defined (ETHERNET)
+    , "ethCs", "ethSclk", "ethMiso", "ethMosi", "ethIrq", "ethRst"
+    #endif
+};
 
 template <class HMSYSTEM>
 class Web {
    public:
-        Web(void) : mWeb(80), mEvts("/events") {
-            memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
-        }
+        Web(void) : mWeb(80), mEvts("/events") {}
 
         void setup(IApp *app, HMSYSTEM *sys, settings_t *config) {
             mApp     = app;
@@ -56,7 +57,8 @@ class Web {
             mConfig  = config;
 
             DPRINTLN(DBG_VERBOSE, F("app::setup-on"));
-            mWeb.on("/",               HTTP_GET,  std::bind(&Web::onIndex,        this, std::placeholders::_1));
+            mWeb.on("/",               HTTP_GET,  std::bind(&Web::onIndex,        this, std::placeholders::_1, true));
+            mWeb.on("/index",          HTTP_GET,  std::bind(&Web::onIndex,        this, std::placeholders::_1, false));
             mWeb.on("/login",          HTTP_ANY,  std::bind(&Web::onLogin,        this, std::placeholders::_1));
             mWeb.on("/logout",         HTTP_GET,  std::bind(&Web::onLogout,       this, std::placeholders::_1));
             mWeb.on("/colors.css",     HTTP_GET,  std::bind(&Web::onColor,        this, std::placeholders::_1));
@@ -74,6 +76,7 @@ class Web {
 
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
             mWeb.on("/wizard",         HTTP_GET,  std::bind(&Web::onWizard,       this, std::placeholders::_1));
+            mWeb.on("/generate_204",   HTTP_GET,  std::bind(&Web::onWizard,       this, std::placeholders::_1));   //Android captive portal
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
@@ -105,11 +108,17 @@ class Web {
 
         void tickSecond() {
             if (mSerialClientConnnected) {
+                if(nullptr == mSerialBuf)
+                    return;
+
                 if (mSerialBufFill > 0) {
                     mEvts.send(mSerialBuf, "serial", millis());
                     memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
                     mSerialBufFill = 0;
                 }
+            } else if(nullptr != mSerialBuf) {
+                delete[] mSerialBuf;
+                mSerialBuf = nullptr;
             }
         }
 
@@ -153,18 +162,14 @@ class Web {
             mUploadFp.write(data, len);
             if (final) {
                 mUploadFp.close();
-                #if !defined(ETHERNET)
                 char pwd[PWD_LEN];
                 strncpy(pwd, mConfig->sys.stationPwd, PWD_LEN); // backup WiFi PWD
-                #endif
                 if (!mApp->readSettings("/tmp.json")) {
                     mUploadFail = true;
                     DPRINTLN(DBG_ERROR, F("upload JSON error!"));
                 } else {
                     LittleFS.remove("/tmp.json");
-                    #if !defined(ETHERNET)
                     strncpy(mConfig->sys.stationPwd, pwd, PWD_LEN); // restore WiFi PWD
-                    #endif
                     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                         if((mConfig->inst.iv[i].serial.u64 != 0) && (mConfig->inst.iv[i].serial.u64 < 138999999999)) { // hexadecimal
                             mConfig->inst.iv[i].serial.u64 = ah::Serial2u64(String(mConfig->inst.iv[i].serial.u64).c_str());
@@ -179,6 +184,9 @@ class Web {
 
         void serialCb(String msg) {
             if (!mSerialClientConnnected)
+                return;
+
+            if(nullptr == mSerialBuf)
                 return;
 
             msg.replace("\r\n", "<rn>");
@@ -260,8 +268,8 @@ class Web {
             bool reboot = (!Update.hasError());
 
             String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"");
-            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
-                html += F("5");
+            #if defined(ETHERNET)
+                html += (mConfig->sys.eth.enabled) ? F("5") : F("20");
             #else
                 html += F("20");
             #endif
@@ -297,6 +305,10 @@ class Web {
         void onConnect(AsyncEventSourceClient *client) {
             DPRINTLN(DBG_VERBOSE, "onConnect");
 
+            if(nullptr == mSerialBuf) {
+                mSerialBuf = new char[WEB_SERIAL_BUF_SIZE];
+                memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
+            }
             mSerialClientConnnected = true;
 
             if (client->lastId())
@@ -305,7 +317,19 @@ class Web {
             client->send("hello!", NULL, millis(), 1000);
         }
 
-        void onIndex(AsyncWebServerRequest *request) {
+        void onIndex(AsyncWebServerRequest *request, bool checkAp = true) {
+            #if !defined(ETHERNET)
+            if(mApp->isApActive() && checkAp) {
+                onWizard(request);
+                return;
+            }
+            #else
+            // show wizard only if ethernet is not configured
+            if(mApp->isApActive() && checkAp && !mConfig->sys.eth.enabled) {
+                onWizard(request);
+                return;
+            }
+            #endif
             getPage(request, PROT_MASK_INDEX, index_html, index_html_len);
         }
 
@@ -388,6 +412,7 @@ class Web {
 
         void showNotFound(AsyncWebServerRequest *request) {
             checkProtection(request);
+            //DBGPRINTLN(request->url());
             request->redirect("/wizard");
         }
 
@@ -411,6 +436,13 @@ class Web {
         }
 
         void onWizard(AsyncWebServerRequest *request) {
+            #if defined(ETHERNET)
+            if(mConfig->sys.eth.enabled) {
+                getPage(request, PROT_MASK_INDEX, index_html, index_html_len);
+                return;
+            }
+            #endif
+
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), wizard_html, wizard_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
@@ -428,15 +460,14 @@ class Web {
             char buf[20] = {0};
 
             // general
-            #if !defined(ETHERNET)
             if (request->arg("ssid") != "")
                 request->arg("ssid").toCharArray(mConfig->sys.stationSsid, SSID_LEN);
             if (request->arg("pwd") != "{PWD}")
                 request->arg("pwd").toCharArray(mConfig->sys.stationPwd, PWD_LEN);
+            mConfig->sys.isHidden = (request->arg("hidd") == "on");
+
             if (request->arg("ap_pwd") != "")
                 request->arg("ap_pwd").toCharArray(mConfig->sys.apPwd, PWD_LEN);
-            mConfig->sys.isHidden = (request->arg("hidd") == "on");
-            #endif /* !defined(ETHERNET) */
             if (request->arg("device") != "")
                 request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
             mConfig->sys.darkMode = (request->arg("darkMode") == "on");
@@ -477,17 +508,22 @@ class Web {
 
             if (request->arg("invInterval") != "")
                 mConfig->inst.sendInterval = request->arg("invInterval").toInt();
-            mConfig->inst.rstYieldMidNight = (request->arg("invRstMid") == "on");
+            mConfig->inst.rstValsAtMidNight = (request->arg("invRstMid") == "on");
             mConfig->inst.rstValsCommStop = (request->arg("invRstComStop") == "on");
+            mConfig->inst.rstValsCommStart = (request->arg("invRstComStart") == "on");
             mConfig->inst.rstValsNotAvail = (request->arg("invRstNotAvail") == "on");
             mConfig->inst.startWithoutTime = (request->arg("strtWthtTm") == "on");
             mConfig->inst.readGrid = (request->arg("rdGrid") == "on");
-            mConfig->inst.rstMaxValsMidNight = (request->arg("invRstMaxMid") == "on");
-            mConfig->inst.yieldEffiency = (request->arg("yldEff")).toFloat();
+            mConfig->inst.rstIncludeMaxVals = (request->arg("invRstMaxMid") == "on");
 
 
             // pinout
-            for (uint8_t i = 0; i < 16; i++) {
+            #if defined(ETHERNET)
+            for (uint8_t i = 0; i < 22; i++)
+            #else
+            for (uint8_t i = 0; i < 16; i++)
+            #endif
+            {
                 uint8_t pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
                     case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_NRF_CS_PIN);  break;
@@ -506,11 +542,23 @@ class Web {
                     case 13: mConfig->cmt.pinCsb   = pin; break;
                     case 14: mConfig->cmt.pinFcsb  = pin; break;
                     case 15: mConfig->cmt.pinIrq   = pin; break;
+
+                    #if defined(ETHERNET)
+                    case 16: mConfig->sys.eth.pinCs   = pin; break;
+                    case 17: mConfig->sys.eth.pinSclk = pin; break;
+                    case 18: mConfig->sys.eth.pinMiso = pin; break;
+                    case 19: mConfig->sys.eth.pinMosi = pin; break;
+                    case 20: mConfig->sys.eth.pinIrq  = pin; break;
+                    case 21: mConfig->sys.eth.pinRst  = pin; break;
+                    #endif
                 }
             }
 
             mConfig->nrf.enabled = (request->arg("nrfEnable") == "on");
             mConfig->cmt.enabled = (request->arg("cmtEnable") == "on");
+            #if defined(ETHERNET)
+            mConfig->sys.eth.enabled = (request->arg("ethEn") == "on");
+            #endif
 
             // ntp
             if (request->arg("ntpAddr") != "") {
@@ -544,8 +592,10 @@ class Web {
             if (request->arg("mqttPwd") != "{PWD}")
                 request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
             request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
+            mConfig->mqtt.json = (request->arg("mqttJson") == "on");
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
+            mConfig->mqtt.enableRetain = (request->arg("retain") == "on");
 
             // serial console
             mConfig->serial.debug = (request->arg("serDbg") == "on");
@@ -662,7 +712,7 @@ class Web {
             { "max_power",            "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->getMaxPower();} },
             { "radio_rx_success",     "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxSuccess;} },
             { "radio_rx_fail",        "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxFail;} },
-            { "radio_rx_fail_answer", "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxFailNoAnser;} },
+            { "radio_rx_fail_answer", "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxFailNoAnswer;} },
             { "radio_frame_cnt",      "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.frmCnt;} },
             { "radio_tx_cnt",         "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.txCnt;} },
             { "radio_retransmits",    "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.retransmits;} },
@@ -911,7 +961,7 @@ class Web {
         settings_t *mConfig = nullptr;
 
         bool mSerialAddTime = true;
-        char mSerialBuf[WEB_SERIAL_BUF_SIZE];
+        char *mSerialBuf = nullptr;
         uint16_t mSerialBufFill = 0;
         bool mSerialClientConnnected = false;
 

@@ -24,6 +24,7 @@ This repository provides hardware and software solutions for communicating with 
 
 ## Changelog
 [latest Release](https://github.com/lumapu/ahoy/blob/main/src/CHANGES.md)
+
 [Development Version](https://github.com/lumapu/ahoy/blob/development03/src/CHANGES.md)
 
 
@@ -31,10 +32,9 @@ Table of approaches:
 
 | Board  | MI | HM | HMS/HMT | comment | HowTo start |
 | ------ | -- | -- | ------- | ------- | ---------- |
-| [ESP8266/ESP32, C++](manual/Getting_Started.md) | ✔️ | ✔️ | ✔️ |  👈 the most effort is spent here | [create your own DTU](https://ahoydtu.de/getting_started/) |
-| [Arduino Nano, C++](tools/nano/NRF24_SendRcv/) | ❌ | ✔️ | ❌ | |
-| [Raspberry Pi, Python](tools/rpi/) | ❌ | ✔️ | ❌ | |
-| [Others, C/C++](tools/nano/NRF24_SendRcv/) | ❌ | ✔️ | ❌ |  |
+| [ESP32, C++](manual/Getting_Started.md) | ✔️ | ✔️ | ✔️ |  [create your own DTU](https://ahoydtu.de/getting_started/) |
+| ESP8266, C++ | ✔️ | ✔️ | ❌ | ⚠️ not recommended for new DTU |
+
 
 ⚠️ **Warning: HMS-XXXXW-2T WiFi inverters are not supported. They have a 'W' in their name and a DTU serial number on its sticker**
 
@@ -47,6 +47,8 @@ Table of approaches:
 
 ## Our Website
 [https://ahoydtu.de](https://ahoydtu.de)
+
+[Firmware Archive https://fw.ahoydtu.de](https://fw.ahoydtu.de)
 
 ## Success Stories
 - [Getting the data into influxDB and visualize them in a Grafana Dashboard](https://grafana.com/grafana/dashboards/16850-pv-power-ahoy/) (thx @Carl)

@@ -7,6 +7,7 @@
 src/config/config_override.h
 src/web/html/h/*
 src/web/html/tmp/*
+src/data/*
 /**/Debug
 /**/v16/*
 *.db
@@ -15,3 +16,4 @@ src/web/html/tmp/*
 src/output.map
 
 /.venv
+/scripts/__pycache__/*

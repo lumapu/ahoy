@@ -14,6 +14,7 @@
                 </p>
                 <p>
                     <span class="des">System Infos:</span>
+                    <div id="total"></div>
                     <div id="iv"></div>
                     <div class="hr"></div>
                     <div id="warn_info"></div>
@@ -23,9 +24,9 @@
                     <h3>{#SUPPORT}:</h3>
                     <ul>
                         <li><a href="https://github.com/lumapu/ahoy/blob/main/src/CHANGES.md" target="_blank">{#CHANGELOG}</a></li>
-                        <li>{#DISCUSS} <a href="https://discord.gg/WzhxEY62mB">Discord</a></li>
+                        <li>{#DISCUSS} <a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
                         <li>{#REPORT} <a href="https://github.com/lumapu/ahoy/issues" target="_blank">{#ISSUES}</a></li>
-                        <li>{#CONTRIBUTE} <a href="https://github.com/lumapu/ahoy/blob/main/User_Manual.md"  target="_blank">{#DOCUMENTATION}</a></li>
+                        <li>{#CONTRIBUTE} <a href="https://docs.ahoydtu.de"  target="_blank">{#DOCUMENTATION}</a></li>
                         <li><a href="https://fw.ahoydtu.de/fw/dev/" target="_blank">Download</a> & Test {#DEV_FIRMWARE}, <a href="https://github.com/lumapu/ahoy/blob/development03/src/CHANGES.md" target="_blank">{#DEV_CHANGELOG}</a></li>
                         <li>{#DON_MAKE} <a href="https://paypal.me/lupusch"  target="_blank">{#DONATION}</a></li>
                     </ul>
@@ -56,8 +57,10 @@
             }
 
             function parseGeneric(obj) {
-                if(exeOnce)
+                if(exeOnce) {
                     parseESP(obj)
+                    parseTitle(obj)
+                }
                 parseRssi(obj)
             }
 
@@ -70,9 +73,9 @@
                 var min  = parseInt(up / 60) % 60;
                 var sec  = up % 60;
                 var e = document.getElementById("uptime");
-                e.innerHTML = days + " Day";
+                e.innerHTML = days + " {#DAY}";
                 if(1 != days)
-                    e.innerHTML += "s";
+                    e.innerHTML += "{#S}";
                 e.innerHTML += ", " + ("0"+hrs).substr(-2) + ":"
                    + ("0"+min).substr(-2) + ":"
                    + ("0"+sec).substr(-2);
@@ -111,6 +114,10 @@
 
             function parseIv(obj, ts) {
                 var p = div(["none"]);
+                var total = 0;
+                var count = 0;
+                var mobile = window.screen.width < 470;
+
                 for(var i of obj) {
                     var icon = iconSuccess;
                     var cl = "icon-success";
@@ -126,20 +133,28 @@
                     } else if(0 == i["ts_last_success"]) {
                         avail = "{#AVAIL_NO_DATA}";
                     } else {
-                        avail = "{#AVAIL} ";
+                        if (!mobile)
+                            avail = "{#AVAIL} ";
                         if(false == i["is_producing"])
                             avail += "{#NOT_PRODUCING}";
                         else {
                             icon = iconSuccessFull;
-                            avail += "{#PRODUCING} " + i.cur_pwr + "W";
+                            avail += "{#PRODUCING} " + i.cur_pwr + " W";
+                            total += i.cur_pwr;
+                            count += 1;
                         }
                     }
 
+                    var text;
+                        if (mobile)
+                            text = "#";
+                        else
+                            text = "{#INVERTER} #";
                     p.append(
-                        svg(icon, 30, 30, "icon " + cl),
-                        span("{#INVERTER} #" + i["id"] + ": " + i["name"] + " {#IS} " + avail),
-                        br()
-                    );
+                            svg(icon, 30, 30, "icon " + cl),
+                            span(text + i["id"] + ": " + i["name"] + " {#IS} " + avail),
+                            br()
+                        );
 
                     if(false == i["is_avail"]) {
                         if(i["ts_last_success"] > 0) {
@@ -149,6 +164,13 @@
                     }
                 }
                 document.getElementById("iv").replaceChildren(p);
+
+                if (count > 1) {
+                    var t = div(["none"]);
+                    t.append(svg(iconInfo, 30, 30, "icon icon-info"), span("Total: " + Math.round(total).toLocaleString() + " W"), br());
+                    document.getElementById("total").replaceChildren(t);
+                    document.getElementById("total").appendChild(div(["hr"]));
+                }
             }
 
             function parseWarn(warn) {
@@ -165,7 +187,7 @@
                         p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("{#UPDATE_AVAIL}: " + release), br());
                     else if(getVerInt("{#VERSION}") > getVerInt(release))
                         p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("{#USING_DEV_VERSION} {#VERSION}. {#DEV_ISSUE_RELEASE_VERSION}: " + release), br());
-                                       else 
+                                       else
                         p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("{#RELEASE_INSTALLED}: " + release), br());
                 }
 

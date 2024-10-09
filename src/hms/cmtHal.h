@@ -16,9 +16,7 @@
 
 class cmtHal : public SpiPatcherHandle {
     public:
-        cmtHal() {
-            mSpiPatcher = SpiPatcher::getInstance(DEF_CMT_SPI_HOST);
-        }
+        cmtHal() {}
 
         void patch() override {
             esp_rom_gpio_connect_out_signal(mPinSdio, spi_periph_signal[mHostDevice].spid_out, false, false);
@@ -39,7 +37,13 @@ class cmtHal : public SpiPatcherHandle {
             mPinFcs   = static_cast<gpio_num_t>(fcs);
             mSpiSpeed = speed;
 
-            mHostDevice = mSpiPatcher->getDevice();
+            #if defined(CONFIG_IDF_TARGET_ESP32S3)
+            mHostDevice = SPI2_HOST;
+            #else
+            mHostDevice = (14 == clk) ? SPI2_HOST : SPI_HOST_OTHER;
+            #endif
+
+            mSpiPatcher = SpiPatcher::getInstance(mHostDevice);
 
             gpio_reset_pin(mPinSdio);
             gpio_set_direction(mPinSdio, GPIO_MODE_INPUT_OUTPUT);
@@ -50,6 +54,7 @@ class cmtHal : public SpiPatcherHandle {
             gpio_set_level(mPinClk, 0);
 
             gpio_reset_pin(mPinCs);
+            request_spi();
             spi_device_interface_config_t devcfg_reg = {
                 .command_bits = 1,
                 .address_bits = 7,
@@ -66,7 +71,8 @@ class cmtHal : public SpiPatcherHandle {
                 .pre_cb = nullptr,
                 .post_cb = nullptr
             };
-            ESP_ERROR_CHECK(spi_bus_add_device(mHostDevice, &devcfg_reg, &spi_reg));
+            mSpiPatcher->addDevice(mHostDevice, &devcfg_reg, &spi_reg);
+            release_spi();
 
             gpio_reset_pin(mPinFcs);
             spi_device_interface_config_t devcfg_fifo = {

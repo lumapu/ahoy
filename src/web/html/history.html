@@ -13,82 +13,178 @@
         <div id="wrapper">
             <div id="content">
                 <h3>{#TOTAL_POWER}</h3>
-                <div>
-                    <div class="chartDiv" id="pwrChart">  </div>
-                    <p>
-                        {#MAX_DAY}: <span id="pwrMaxDay"></span> W. {#LAST_VALUE}: <span id="pwrLast"></span> W.<br />
-                        {#MAXIMUM}: <span id="pwrMax"></span> W. {#UPDATED} <span id="pwrRefresh"></span> {#SECONDS}
-                    </p>
-                </div>
+                <div class="chartDiv" id="pwrChart"></div>
+                <h3>{#TOTAL_POWER_DAY}</h3>
+                <div class="chartDiv" id="pwrDayChart"></div>
+                <!--IF_ENABLE_HISTORY_YIELD_PER_DAY-->
+                <h3>{#TOTAL_YIELD_PER_DAY}</h3>
+                <div class="chartDiv" id="ydChart"></div>
+                <!--ENDIF_ENABLE_HISTORY_YIELD_PER_DAY-->
+                <!--IF_ENABLE_HISTORY_LOAD_DATA-->
+                <h4 style="margin-bottom:0px;">Insert data into Yield per day history</h4>
+                <fieldset style="padding: 1px;">
+                    <legend class="des" style="margin-top: 0px;">Insert data (*.json) i.e. from a saved "/api/yieldDayHistory" call
+                    </legend>
+                    <form id="form" method="POST" action="/api/addYDHist" enctype="multipart/form-data"
+                        accept-charset="utf-8">
+                        <input type="button" class="btn my-4" style="padding: 3px;margin: 3px;" value="Insert" onclick="submit()">
+                        <input type="file" name="insert" style="width: 80%;">
+                    </form>
+                </fieldset>
+                <!--ENDIF_ENABLE_HISTORY_LOAD_DATA-->
             </div>
         </div>
         {#HTML_FOOTER}
 
         <script type="text/javascript">
-            const svgns = "http://www.w3.org/2000/svg";
-            var pwrExeOnce = true;
-            var ydExeOnce = true;
-            // make a simple rectangle
-            var mRefresh = 60;
-            var mLastValue = 0;
-            const mChartHeight = 250;
+            const height = 250
+            var once = true
 
-            function parseHistory(obj, namePrefix, execOnce) {
-                mRefresh = obj.refresh
-                var data = Object.assign({}, obj.value)
-                numDataPts = Object.keys(data).length
+            function calcScale(obj) {
+                let s = {}
+                s.x_mul = 60
+                s.ts_dur = obj.refresh * obj.value.length
+                s.ts_start = obj.lastValueTs - s.ts_dur
+                while(s.x_mul * 10 <= s.ts_dur)
+                    s.x_mul += (s.x_mul == 60) ? 240 : ((s.x_mul < 1800) ? 300 : 1800)
 
-                if (true == execOnce) {
-                    let s = document.createElementNS(svgns, "svg");
-                    s.setAttribute("class", "chart");
-                    s.setAttribute("width", (numDataPts + 2) * 2);
-                    s.setAttribute("height", mChartHeight);
-                    s.setAttribute("role", "img");
-
-                    let g = document.createElementNS(svgns, "g");
-                    s.appendChild(g);
-                    for (var i = 0; i < numDataPts; i++) {
-                        val = data[i];
-                        let rect = document.createElementNS(svgns, "rect");
-                        rect.setAttribute("id", namePrefix+"Rect" + i);
-                        rect.setAttribute("x", i * 2);
-                        rect.setAttribute("width", 2);
-                        g.appendChild(rect);
-                    }
-                    document.getElementById(namePrefix+"Chart").appendChild(s);
-                }
-
-                // normalize data to chart
-                let divider = obj.max / mChartHeight;
-                if (divider == 0)
-                    divider = 1;
-                for (var i = 0; i < numDataPts; i++) {
-                    val = data[i];
-                    if (val > 0)
-                        mLastValue = val
-                    val = val / divider
-                    rect = document.getElementById(namePrefix+"Rect" + i);
-                    rect.setAttribute("height", val);
-                    rect.setAttribute("y", mChartHeight - val);
-                }
-                document.getElementById(namePrefix + "Max").innerHTML = obj.max;
-                if (mRefresh < 5)
-                    mRefresh = 5;
-                document.getElementById(namePrefix + "Refresh").innerHTML = mRefresh;
+                s.y_mul = 10
+                while(s.y_mul * 10 <= obj.max)
+                    s.y_mul += (s.y_mul < 100) ? 10 : 100
+                s.y_step = Math.ceil(obj.max / s.y_mul)
+                s.y_max = s.y_mul * s.y_step
+                return s
             }
+
+            function setupSvg(id, obj) {
+                let scale = calcScale(obj)
+                let n = obj.value.length
+                return mlNs("svg", {class: "container", id: id+"_svg", viewBox: "0 0 "+String(n*2+50)+" "+String(height+20), width: "100%", height: "100%"}, [
+                    mlNs("defs", {}, [
+                        mlNs("linearGradient", {id: "gLine", x1: 0, y1: 0, x2: 0, y2: "100%"}, [
+                            mlNs("stop", {offset: 0, "stop-color": "#006ec0"}),
+                            mlNs("stop", {offset: "80%", "stop-color": "#5050ff"}),
+                            mlNs("stop", {offset: "100%", "stop-color": "gray"})
+                        ]),
+                        mlNs("linearGradient", {id: "gFill", x1: 0, y1: 0, x2: 0, y2: "100%"}, [
+                            mlNs("stop", {offset: 0, "stop-color": "#006ec0"}),
+                            mlNs("stop", {offset: "50%", "stop-color": "#0034c0"}),
+                            mlNs("stop", {offset: "100%", "stop-color": "#e0e0e0"})
+                        ])
+                    ]),
+                    ...gridText(n*2, scale),
+                    mlNs("g", {transform: "translate(30, 5)"}, [
+                        ...grid(n*2, scale),
+                        ...poly(n*2, obj, scale)
+                    ])
+                ])
+            }
+
+            function gridText(x2, scale) {
+                let g = []
+                let div = height / scale.y_max
+                for(let i = 0; i <= scale.y_max; i += scale.y_mul) {
+                    g.push(mlNs("text", {x: 0, y: height-(i*div)+9}, String(i)))
+                }
+                div = x2 / scale.ts_dur
+                for(let i = 0; i < scale.ts_dur; i++) {
+                    if((i + scale.ts_start) % scale.x_mul == 0) {
+                        let d = new Date((scale.ts_start + i) * 1000)
+                        g.push(mlNs("text", {x: (i*div)+17, y: height+20}, ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2)))
+                    }
+                }
+                return g
+            }
+
+            function grid(x2, scale) {
+                let g = []
+                let div = height / scale.y_max
+                for(let i = 0; i <= scale.y_max; i += scale.y_mul) {
+                    g.push(mlNs("line", {x1: 0, x2: x2, y1: height-i*div, y2: height-i*div, "stroke-width": 1, "stroke-dasharray": "1,3", stroke: "#aaa"}))
+                }
+                div = x2 / scale.ts_dur
+                for(let i = 0; i <= scale.ts_dur; i++) {
+                    if((i + scale.ts_start) % scale.x_mul == 0) {
+                        g.push(mlNs("line", {x1: (i*div), x2: (i*div), y1: 0, y2: height, "stroke-width": 1, "stroke-dasharray": "1,3", stroke: "#aaa"}))
+                    }
+                }
+                return g
+            }
+
+            function poly(x2, obj, scale) {
+                let pts = ""
+                let i = 0, first = -1, last = -1, lastVal = 0
+                let div = scale.y_max / height
+                if(div == 0)
+                    div = 1
+                for (val of obj.value) {
+                    if(val > 0) {
+                        lastVal = val
+                        pts += " " + String(i) + "," + String(height - val / div)
+                        if(first < 0)
+                            first = i
+                        last = i
+                    }
+                    i += 2
+                }
+                let pts2 = pts + " " + String(last) + "," + String(height)
+                pts2 += " " + String(first) + "," + String(height)
+                elm = [
+                    mlNs("polyline", {stroke: "url(#gLine)", fill: "none", points: pts}),
+                    mlNs("polyline", {stroke: "none", fill: "url(#gFill)", points: pts2}),
+                    mlNs("text", {x: i*.8, y: 10}, "{#MAXIMUM}: " + String(obj.max) + "W"),
+                    mlNs("text", {x: i*.8, y: 25}, "{#LAST_VALUE}: " + String(lastVal) + "W")
+                ]
+
+                if(undefined !== obj.yld)
+                    elm.push(mlNs("text", {x: i*.8, y: 40}, "{#YIELD_DAY}: " + String(obj.yld) + "kWh"))
+
+                return elm;
+            }
+
 
             function parsePowerHistory(obj){
-                if (null != obj) {
-                    parseNav(obj.generic);
-                    parseHistory(obj,"pwr", pwrExeOnce)
-                    document.getElementById("pwrLast").innerHTML = mLastValue
-                    document.getElementById("pwrMaxDay").innerHTML = obj.maxDay
+                if(once) {
+                    once = false
+                    parseNav(obj.generic)
+                    parseESP(obj.generic)
+                    parseRssi(obj.generic)
+                    parseTitle(obj.generic)
+                    window.setInterval("getAjax('/api/powerHistory', parsePowerHistory)", obj.refresh * 1000)
+                    setTimeout(() => {
+                        window.setInterval("getAjax('/api/powerHistoryDay', parsePowerHistoryDay)", obj.refresh * 1000)
+                    }, 200)
+                    /*IF_ENABLE_HISTORY_YIELD_PER_DAY*/
+                    setTimeout(() => {
+                        window.setInterval("getAjax('/api/yieldDayHistory', parseYieldDayHistory)", obj.refresh * 1000)
+                    }, 400)
+                    /*ENDIF_ENABLE_HISTORY_YIELD_PER_DAY*/
                 }
-                if (pwrExeOnce) {
-                    pwrExeOnce = false;
-                    window.setInterval("getAjax('/api/powerHistory', parsePowerHistory)", mRefresh * 1000);
+                if (null != obj) {
+                    let svg = setupSvg("ph", obj);
+                    document.getElementById("pwrChart").replaceChildren(svg);
+                    setTimeout(() => { getAjax("/api/powerHistoryDay", parsePowerHistoryDay) }, 50);
                 }
             }
+
+            function parsePowerHistoryDay(obj) {
+                if (null != obj) {
+                    let svg = setupSvg("phDay", obj);
+                    document.getElementById("pwrDayChart").replaceChildren(svg);
+                    /*IF_ENABLE_HISTORY_YIELD_PER_DAY*/
+                    setTimeout(() => { getAjax("/api/yieldDayHistory", parseYieldDayHistory) }, 50);
+                    /*ENDIF_ENABLE_HISTORY_YIELD_PER_DAY*/
+                }
+            }
+
+            /*IF_ENABLE_HISTORY_YIELD_PER_DAY*/
+            function parseYieldDayHistory(obj) {
+                if (null != obj) {
+                    let svg = setupSvg("phDay", obj);
+                    document.getElementById("pwrDayChart").replaceChildren(svg);
+                }
+            }
+            /*ENDIF_ENABLE_HISTORY_YIELD_PER_DAY*/
 
             getAjax("/api/powerHistory", parsePowerHistory);
         </script>

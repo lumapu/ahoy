@@ -24,8 +24,10 @@ class PubMqttIvData {
     public:
         PubMqttIvData() : mTotal{}, mSubTopic{}, mVal{} {}
 
-        void setup(HMSYSTEM *sys, uint32_t *utcTs, std::queue<sendListCmdIv> *sendList) {
+        void setup(IApp *app, HMSYSTEM *sys, cfgMqtt_t *cfg_mqtt, uint32_t *utcTs, std::queue<sendListCmdIv> *sendList) {
+            mApp           = app;
             mSys           = sys;
+            mCfg           = cfg_mqtt;
             mUtcTimestamp  = utcTs;
             mSendList      = sendList;
             mState         = IDLE;
@@ -75,6 +77,7 @@ class PubMqttIvData {
             mTotalFound = false;
             mSendTotalYd = true;
             mAllTotalFound = true;
+            mAtLeastOneWasntSent = false;
             if(!mSendList->empty()) {
                 mCmd = mSendList->front().cmd;
                 mIvSend = mSendList->front().iv;
@@ -113,7 +116,7 @@ class PubMqttIvData {
                     mPublish(mSubTopic.data(), mVal.data(), true, QOS_0);
 
                     if((mIv->ivGen == IV_HMS) || (mIv->ivGen == IV_HMT)) {
-                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch0/rssi", mIv->config->name);
+                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/rssi", mIv->config->name);
                         snprintf(mVal.data(), mVal.size(), "%d", mIv->rssi);
                         mPublish(mSubTopic.data(), mVal.data(), false, QOS_0);
                     }
@@ -122,7 +125,7 @@ class PubMqttIvData {
 
                 mIv->isProducing(); // recalculate status
                 mState = SEND_DATA;
-            } else if(mSendTotals && mTotalFound) {
+            } else if(mSendTotals && mTotalFound && mAtLeastOneWasntSent) {
                 if(mYldTotalStore > mTotal[2])
                     mSendTotalYd = false; // don't send yield total if last value was greater
                 else
@@ -167,9 +170,6 @@ class PubMqttIvData {
                                 case FLD_PDC:
                                     mTotal[3] += mIv->getValue(mPos, rec);
                                     break;
-                                case FLD_MP:
-                                    mTotal[4] += mIv->getValue(mPos, rec);
-                                    break;
                             }
                         } else
                             mAllTotalFound = false;
@@ -177,6 +177,7 @@ class PubMqttIvData {
                 }
 
                 if (MqttSentStatus::LAST_SUCCESS_SENT == rec->mqttSentStatus) {
+                    mAtLeastOneWasntSent = true;
                     if(InverterDevInform_All == mCmd) {
                         snprintf(mSubTopic.data(), mSubTopic.size(), "%s/firmware", mIv->config->name);
                         snprintf(mVal.data(), mVal.size(), "{\"version\":%d,\"build_year\":\"%d\",\"build_month_day\":%d,\"build_hour_min\":%d,\"bootloader\":%d}",
@@ -185,7 +186,6 @@ class PubMqttIvData {
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_MONTH_DAY, rec)),
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_HOUR_MINUTE, rec)),
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_BOOTLOADER_VER, rec)));
-                        retained = true;
                     } else if(InverterDevInform_Simple == mCmd) {
                         snprintf(mSubTopic.data(), mSubTopic.size(), "%s/hardware", mIv->config->name);
                         snprintf(mVal.data(), mVal.size(), "{\"part\":%d,\"version\":\"%d\",\"grid_profile_code\":%d,\"grid_profile_version\":%d}",
@@ -193,20 +193,54 @@ class PubMqttIvData {
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_HW_VERSION, rec)),
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec)),
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_VERSION, rec)));
-                        retained = true;
                     } else {
-                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
-                        snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mIv->getValue(mPos, rec)));
+                        if (!mCfg->json) {
+                            snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
+                            snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mIv->getValue(mPos, rec)));
+                        } else {
+                            if (FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId) {
+                                uint8_t qos = (FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId) ? QOS_2 : QOS_0;
+                                snprintf(mSubTopic.data(), mSubTopic.size(), "%s/%s", mIv->config->name, fields[rec->assign[mPos].fieldId]);
+                                snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mIv->getValue(mPos, rec)));
+                                mPublish(mSubTopic.data(), mVal.data(), retained, qos);
+                            }
+                        }
                     }
 
-                    uint8_t qos = (FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId) ? QOS_2 : QOS_0;
-                    if((FLD_EVT != rec->assign[mPos].fieldId)
-                        && (FLD_LAST_ALARM_CODE != rec->assign[mPos].fieldId))
-                        mPublish(mSubTopic.data(), mVal.data(), retained, qos);
+                    if ((InverterDevInform_All == mCmd) || (InverterDevInform_Simple == mCmd) || !mCfg->json)
+                    {
+                        uint8_t qos = (FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId) ? QOS_2 : QOS_0;
+                        if((FLD_EVT != rec->assign[mPos].fieldId) && (FLD_LAST_ALARM_CODE != rec->assign[mPos].fieldId))
+                            mPublish(mSubTopic.data(), mVal.data(), retained, qos);
+                    }
                 }
                 mPos++;
             } else {
                 if (MqttSentStatus::LAST_SUCCESS_SENT == rec->mqttSentStatus) {
+                    if (mCfg->json && (RealTimeRunData_Debug == mCmd)) {
+                        DynamicJsonDocument doc(300);
+
+                        for (mPos = 0; mPos < rec->length; mPos++) {
+                            doc[fields[rec->assign[mPos].fieldId]] = ah::round3(mIv->getValue(mPos, rec));
+
+                            bool publish = false;
+                            if (mPos != (rec->length - 1)) { // not last one
+                                if (rec->assign[mPos].ch != rec->assign[mPos+1].ch)
+                                    publish = true;
+                            } else
+                                publish = true;
+
+                            if (publish) {
+                                doc[F("ts")] = rec->ts;
+                                // if next channel or end->publish
+                                serializeJson(doc, mVal.data(), mVal.size());
+                                snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d", mIv->config->name, rec->assign[mPos].ch);
+                                mPublish(mSubTopic.data(), mVal.data(), false, QOS_0);
+                                doc.clear();
+                            }
+                        }
+                    }
+
                     sendRadioStat(rec->length);
                     rec->mqttSentStatus = MqttSentStatus::DATA_SENT;
                 }
@@ -220,7 +254,7 @@ class PubMqttIvData {
                 mIv->radioStatistics.txCnt,
                 mIv->radioStatistics.rxSuccess,
                 mIv->radioStatistics.rxFail,
-                mIv->radioStatistics.rxFailNoAnser,
+                mIv->radioStatistics.rxFailNoAnswer,
                 mIv->radioStatistics.retransmits,
                 mIv->radioStatistics.ivLoss,
                 mIv->radioStatistics.ivSent,
@@ -261,18 +295,39 @@ class PubMqttIvData {
                     case 4:
                         fieldId = FLD_MP;
                         retained = false;
+                        mTotal[4] = mApp->getTotalMaxPower();
                         break;
                 }
-                snprintf(mSubTopic.data(), mSubTopic.size(), "total/%s", fields[fieldId]);
-                snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mTotal[mPos]));
-                mPublish(mSubTopic.data(), mVal.data(), retained, QOS_0);
+                if (!mCfg->json) {
+                    snprintf(mSubTopic.data(), mSubTopic.size(), "total/%s", fields[fieldId]);
+                    snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mTotal[mPos]));
+                    mPublish(mSubTopic.data(), mVal.data(), retained, QOS_0);
+                }
                 mPos++;
             } else {
+                if (mCfg->json) {
+                    int type[5] = {FLD_PAC, FLD_YT, FLD_YD, FLD_PDC, FLD_MP};
+                    snprintf(mVal.data(), mVal.size(), "{");
+
+                    for (mPos = 0; mPos < 5; mPos++) {
+                        snprintf(mSubTopic.data(), mSubTopic.size(), "\"%s\":%g", fields[type[mPos]], ah::round3(mTotal[mPos]));
+                        strcat(mVal.data(), mSubTopic.data());
+                        if (mPos < 4)
+                            strcat(mVal.data(), ",");
+                        else
+                            strcat(mVal.data(), "}");
+                    }
+                    mPublish("total", mVal.data(), true, QOS_0);
+                }
                 mSendList->pop();
                 mSendTotals = false;
                 mState = IDLE;
             }
         }
+
+    private:
+        IApp *mApp = nullptr;
+        cfgMqtt_t *mCfg = nullptr;
 
         HMSYSTEM *mSys = nullptr;
         uint32_t *mUtcTimestamp = nullptr;
@@ -282,7 +337,8 @@ class PubMqttIvData {
 
         uint8_t mCmd = 0;
         uint8_t mLastIvId = 0;
-        bool mSendTotals = false, mTotalFound = false, mAllTotalFound = false, mSendTotalYd = false;
+        bool mSendTotals = false, mTotalFound = false, mAllTotalFound = false;
+        bool mSendTotalYd = false, mAtLeastOneWasntSent = false;
         float mTotal[5], mYldTotalStore = 0;
 
         Inverter<> *mIv = nullptr, *mIvSend = nullptr;
@@ -290,7 +346,7 @@ class PubMqttIvData {
         bool mRTRDataHasBeenSent = false;
 
         std::array<char, (32 + MAX_NAME_LENGTH + 1)> mSubTopic;
-        std::array<char, 140> mVal;
+        std::array<char, 300> mVal;
 
         std::queue<sendListCmdIv> *mSendList = nullptr;
 };

@@ -16,23 +16,25 @@ jobs:
     - uses: actions/checkout@v4
 
   build-en:
-    name: Build Environments (English)
+    name: Build (EN)
     needs: check
     runs-on: ubuntu-latest
     continue-on-error: true
     strategy:
       matrix:
         variant:
+          - opendtufusion
+          - opendtufusion-16MB
           - esp8266
+          - esp8266-all
+          - esp8266-minimal
           - esp8266-prometheus
           - esp8285
           - esp32-wroom32
+          - esp32-wroom32-minimal
           - esp32-wroom32-prometheus
-          - esp32-wroom32-ethernet
           - esp32-s2-mini
           - esp32-c3-mini
-          - opendtufusion
-          - opendtufusion-ethernet
     steps:
     - uses: actions/checkout@v4
     - uses: benjlevesque/short-sha@v3.0
@@ -66,6 +68,11 @@ jobs:
 
     - name: Run PlatformIO
       run:  pio run -d src -e ${{ matrix.variant }}
+
+    - name: Compress .elf
+      uses: edgarrc/action-7z@v1
+      with:
+        args: 7z a -t7z -mx=9 src/.pio/build/${{ matrix.variant }}/firmware.elf.7z ./src/.pio/build/${{ matrix.variant }}/firmware.elf
 
     - name: Rename Firmware
       run: python scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
@@ -77,23 +84,23 @@ jobs:
         path: firmware/*
 
   build-de:
-    name: Build Environments (German)
+    name: Build (DE)
     needs: check
     runs-on: ubuntu-latest
     continue-on-error: true
     strategy:
       matrix:
         variant:
+          - opendtufusion-de
+          #- opendtufusion-16MB-de #not needed, only the partions.bin is different and can be used from english build
           - esp8266-de
+          - esp8266-all-de
           - esp8266-prometheus-de
           - esp8285-de
           - esp32-wroom32-de
           - esp32-wroom32-prometheus-de
-          - esp32-wroom32-ethernet-de
           - esp32-s2-mini-de
           - esp32-c3-mini-de
-          - opendtufusion-de
-          - opendtufusion-ethernet-de
     steps:
     - uses: actions/checkout@v4
     - uses: benjlevesque/short-sha@v3.0
@@ -128,6 +135,11 @@ jobs:
     - name: Run PlatformIO
       run:  pio run -d src -e ${{ matrix.variant }}
 
+    - name: Compress .elf
+      uses: edgarrc/action-7z@v1
+      with:
+        args: 7z a -t7z -mx=9 src/.pio/build/${{ matrix.variant }}/firmware.elf.7z ./src/.pio/build/${{ matrix.variant }}/firmware.elf
+
     - name: Rename Firmware
       run: python scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
 
@@ -138,7 +150,7 @@ jobs:
         path: firmware/*
 
   deploy:
-    name: Deploy Environments
+    name: Update Artifacts / Deploy
     needs: [build-en, build-de]
     runs-on: ubuntu-latest
     continue-on-error: false
@@ -164,8 +176,25 @@ jobs:
       env:
           VERSION: ${{ steps.version_name.outputs.name }}
 
+
+    - name: Create ESP Web Tools Manifest
+      working-directory: src
+      run: python ../scripts/buildManifest.py
+
+    - name: Copy install html
+      run: mv scripts/gh-action-dev-build-flash.html firmware/install.html
+
+    - name: Copy Changes.md
+      run: mv src/CHANGES.md firmware/CHANGES.md
+
+
     - name: Rename firmware directory
       run: mv firmware ${{ steps.version_name.outputs.name }}
+
+    - name: delete environment Artifacts
+      uses: geekyeggo/delete-artifact@v4
+      with:
+        name: dev-*
 
     - name: Deploy
       uses: nogsantos/scp-deploy@master
@@ -176,3 +205,17 @@ jobs:
         port: ${{ secrets.FW_SSH_PORT }}
         user: ${{ secrets.FW_SSH_USER }}
         key: ${{ secrets.FW_SSH_KEY }}
+
+    - name: Clean elf files (7z compressed) for Artifact
+      run: |
+        rm -f \
+          ${{ steps.version_name.outputs.name }}/*/*.elf.7z
+
+    - name: Create Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dev-${{ steps.version_name.outputs.name }}
+        path: |
+          ${{ steps.version_name.outputs.name }}/*
+          manual/User_Manual.md
+          manual/Getting_Started.md

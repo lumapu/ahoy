@@ -35,15 +35,16 @@
                 var hrs  = parseInt(up / 3600) % 24;
                 var min  = parseInt(up / 60) % 60;
                 var sec  = up % 60;
-                document.getElementById("uptime").innerHTML = days + " Days, "
+                document.getElementById("uptime").innerHTML = days + " {#DAYS}, "
                     + ("0"+hrs).substr(-2) + ":"
                     + ("0"+min).substr(-2) + ":"
                     + ("0"+sec).substr(-2);
 
-                parseRssi(obj);
+                parseRssi(obj)
                 if(true == exeOnce) {
-                    parseNav(obj);
-                    parseESP(obj);
+                    parseNav(obj)
+                    parseESP(obj)
+                    parseTitle(obj)
                     window.setInterval("getAjax('/api/generic', parseGeneric)", 5000);
                     exeOnce = false;
                     setTimeOffset();
@@ -65,7 +66,7 @@
             });
             document.getElementById("scroll").addEventListener("click", function() {
                 mAutoScroll = !mAutoScroll;
-                this.value = (mAutoScroll) ? "autoscroll" : "manual scroll";
+                this.value = (mAutoScroll) ? "{#BTN_AUTOSCROLL}" : "{#BTN_MANUALSCROLL}";
             });
             document.getElementById("copy").addEventListener("click", function() {
                 con.value = version + " - " + build + "\n---------------\n" + con.value;
@@ -80,10 +81,10 @@
                     try {
                         return document.execCommand("copy");  // Security exception may be thrown by some browsers.
                     } catch (ex) {
-                        alert("Copy to clipboard failed" + ex);
+                        alert("{#CLIPBOARD_FAILED} " + ex);
                     } finally {
                         document.body.removeChild(ta);
-                        alert("Copied to clipboard");
+                        alert("{#COPIED_TO_CLIPBOARD}");
                     }
                 }
             });

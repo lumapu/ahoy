@@ -33,7 +33,6 @@
 
 #define CONFIG_VERSION      11
 
-
 #define PROT_MASK_INDEX     0x0001
 #define PROT_MASK_LIVE      0x0002
 #define PROT_MASK_SERIAL    0x0004
@@ -55,6 +54,20 @@
 #define DEF_PROT_MQTT       0x0000
 
 
+#define SSID_LEN                32
+#define PWD_LEN                 64
+#define DEVNAME_LEN             16
+#define NTP_ADDR_LEN            32 // DNS Name
+
+#define MQTT_ADDR_LEN           64 // DNS Name
+#define MQTT_CLIENTID_LEN       22 // number of chars is limited to 23 up to v3.1 of MQTT
+#define MQTT_USER_LEN           65 // there is another byte necessary for \0
+#define MQTT_PWD_LEN            65
+#define MQTT_TOPIC_LEN          65
+
+#define MQTT_MAX_PACKET_SIZE    384
+
+
 typedef struct {
     uint8_t ip[4];      // ip address
     uint8_t mask[4];    // sub mask
@@ -62,6 +75,19 @@ typedef struct {
     uint8_t dns2[4];    // dns 2
     uint8_t gateway[4]; // standard gateway
 } cfgIp_t;
+
+
+#if defined(ETHERNET)
+typedef struct {
+    bool enabled;
+    uint8_t pinCs;
+    uint8_t pinSclk;
+    uint8_t pinMiso;
+    uint8_t pinMosi;
+    uint8_t pinIrq;
+    uint8_t pinRst;
+} cfgEth_t;
+#endif
 
 typedef struct {
     char deviceName[DEVNAME_LEN];
@@ -72,13 +98,14 @@ typedef struct {
     uint8_t region;
     int8_t timezone;
 
-#if !defined(ETHERNET)
+    char apPwd[PWD_LEN];
     // wifi
     char stationSsid[SSID_LEN];
     char stationPwd[PWD_LEN];
-    char apPwd[PWD_LEN];
     bool isHidden;
-#endif /* !defined(ETHERNET) */
+    #if defined(ETHERNET)
+    cfgEth_t eth;
+    #endif
 
     cfgIp_t ip;
 } cfgSys_t;
@@ -136,7 +163,9 @@ typedef struct {
     char user[MQTT_USER_LEN];
     char pwd[MQTT_PWD_LEN];
     char topic[MQTT_TOPIC_LEN];
+    bool json;
     uint16_t interval;
+    bool enableRetain;
 } cfgMqtt_t;
 
 typedef struct {
@@ -152,16 +181,16 @@ typedef struct {
 } cfgIv_t;
 
 typedef struct {
-    bool enabled;
+//    bool enabled;
     cfgIv_t iv[MAX_NUM_INVERTERS];
 
     uint16_t sendInterval;
-    bool rstYieldMidNight;
+    bool rstValsAtMidNight;
     bool rstValsNotAvail;
     bool rstValsCommStop;
-    bool rstMaxValsMidNight;
+    bool rstValsCommStart;
+    bool rstIncludeMaxVals;
     bool startWithoutTime;
-    float yieldEffiency;
     bool readGrid;
 } cfgInst_t;
 
@@ -211,8 +240,9 @@ class settings {
             std::fill(reinterpret_cast<char*>(&mCfg), reinterpret_cast<char*>(&mCfg) + sizeof(mCfg), 0);
         }
 
-        void setup() {
+        void setup(settings_t *&c) {
             DPRINTLN(DBG_INFO, F("Initializing FS .."));
+            c = &mCfg;
 
             mCfg.valid = false;
             #if !defined(ESP32)
@@ -248,31 +278,11 @@ class settings {
             DPRINTLN(DBG_INFO, F("FS stopped"));
         }
 
-        void getPtr(settings_t *&cfg) {
-            cfg = &mCfg;
-        }
-
-        bool getValid(void) {
-            return mCfg.valid;
-        }
-
         inline bool getLastSaveSucceed() {
             return mLastSaveSucceed;
         }
 
-        void getInfo(uint32_t *used, uint32_t *size) {
-            #if !defined(ESP32)
-                FSInfo info;
-                LittleFS.info(info);
-                *used = info.usedBytes;
-                *size = info.totalBytes;
 
-                DPRINTLN(DBG_INFO, F("-- FILESYSTEM INFO --"));
-                DPRINTLN(DBG_INFO, String(info.usedBytes) + F(" of ") + String(info.totalBytes)  + F(" used"));
-            #else
-                DPRINTLN(DBG_WARN, F("not supported by ESP32"));
-            #endif
-        }
 
         bool readSettings(const char* path) {
             loadDefaults();
@@ -387,14 +397,26 @@ class settings {
             // restore temp settings
             if(keepWifi)
                 memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
-            #if !defined(ETHERNET)
             else {
-                snprintf(mCfg.sys.stationSsid, SSID_LEN, FB_WIFI_SSID);
-                snprintf(mCfg.sys.stationPwd,  PWD_LEN,  FB_WIFI_PWD);
-                snprintf(mCfg.sys.apPwd,       PWD_LEN,  WIFI_AP_PWD);
+                mCfg.sys.stationSsid[0] = '\0';
+                mCfg.sys.stationPwd[0] = '\0';
                 mCfg.sys.isHidden = false;
             }
-            #endif /* !defined(ETHERNET) */
+            snprintf(mCfg.sys.apPwd,       PWD_LEN,  WIFI_AP_PWD);
+
+            #if defined(ETHERNET)
+                #if defined(DEF_ETH_ENABLED)
+                mCfg.sys.eth.enabled = true;
+                #else
+                mCfg.sys.eth.enabled = false;
+                #endif
+            mCfg.sys.eth.pinCs   = DEF_ETH_CS_PIN;
+            mCfg.sys.eth.pinSclk = DEF_ETH_SCK_PIN;
+            mCfg.sys.eth.pinMiso = DEF_ETH_MISO_PIN;
+            mCfg.sys.eth.pinMosi = DEF_ETH_MOSI_PIN;
+            mCfg.sys.eth.pinIrq  = DEF_ETH_IRQ_PIN;
+            mCfg.sys.eth.pinRst  = DEF_ETH_RST_PIN;
+            #endif
 
             snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
             mCfg.sys.region   = 0; // Europe
@@ -407,7 +429,11 @@ class settings {
             mCfg.nrf.pinMosi           = DEF_NRF_MOSI_PIN;
             mCfg.nrf.pinSclk           = DEF_NRF_SCLK_PIN;
 
+            #if defined(ETHERNET)
+            mCfg.nrf.enabled           = false;
+            #else
             mCfg.nrf.enabled           = true;
+            #endif
 
             #if defined(ESP32)
             mCfg.cmt.pinSclk           = DEF_CMT_SCLK;
@@ -428,8 +454,8 @@ class settings {
             mCfg.ntp.port = DEF_NTP_PORT;
             mCfg.ntp.interval = 720;
 
-            mCfg.sun.lat         = 0.0;
-            mCfg.sun.lon         = 0.0;
+            mCfg.sun.lat         = 51.1; // mid of Germany
+            mCfg.sun.lon         = 10.5; // mid of Germany
             mCfg.sun.offsetSecMorning = 0;
             mCfg.sun.offsetSecEvening = 0;
 
@@ -445,15 +471,17 @@ class settings {
             snprintf(mCfg.mqtt.pwd,    MQTT_PWD_LEN,   "%s", DEF_MQTT_PWD);
             snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
             mCfg.mqtt.interval = 0; // off
+            mCfg.mqtt.json = false; // off
+            mCfg.mqtt.enableRetain = true;
 
-            mCfg.inst.sendInterval     = SEND_INTERVAL;
-            mCfg.inst.rstYieldMidNight = false;
-            mCfg.inst.rstValsNotAvail  = false;
-            mCfg.inst.rstValsCommStop  = false;
-            mCfg.inst.startWithoutTime = false;
-            mCfg.inst.rstMaxValsMidNight = false;
-            mCfg.inst.yieldEffiency    = 1.0f;
-            mCfg.inst.readGrid         = true;
+            mCfg.inst.sendInterval       = SEND_INTERVAL;
+            mCfg.inst.rstValsAtMidNight   = false;
+            mCfg.inst.rstValsNotAvail    = false;
+            mCfg.inst.rstValsCommStop    = false;
+            mCfg.inst.rstValsCommStart   = false;
+            mCfg.inst.startWithoutTime   = false;
+            mCfg.inst.rstIncludeMaxVals = false;
+            mCfg.inst.readGrid           = true;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 mCfg.inst.iv[i].powerLevel  = 0xff; // impossible high value
@@ -528,12 +556,10 @@ class settings {
         void jsonNetwork(JsonObject obj, bool set = false) {
             if(set) {
                 char buf[16];
-                #if !defined(ETHERNET)
                 obj[F("ssid")] = mCfg.sys.stationSsid;
                 obj[F("pwd")]  = mCfg.sys.stationPwd;
                 obj[F("ap_pwd")]  = mCfg.sys.apPwd;
                 obj[F("hidd")] = (bool) mCfg.sys.isHidden;
-                #endif /* !defined(ETHERNET) */
                 obj[F("dev")]  = mCfg.sys.deviceName;
                 obj[F("adm")]  = mCfg.sys.adminPwd;
                 obj[F("prot_mask")] = mCfg.sys.protectionMask;
@@ -546,13 +572,21 @@ class settings {
                 ah::ip2Char(mCfg.sys.ip.dns1, buf);    obj[F("dns1")] = String(buf);
                 ah::ip2Char(mCfg.sys.ip.dns2, buf);    obj[F("dns2")] = String(buf);
                 ah::ip2Char(mCfg.sys.ip.gateway, buf); obj[F("gtwy")] = String(buf);
+
+                #if defined(ETHERNET)
+                obj[F("en")]   = mCfg.sys.eth.enabled;
+                obj[F("cs")]   = mCfg.sys.eth.pinCs;
+                obj[F("sclk")] = mCfg.sys.eth.pinSclk;
+                obj[F("miso")] = mCfg.sys.eth.pinMiso;
+                obj[F("mosi")] = mCfg.sys.eth.pinMosi;
+                obj[F("irq")]  = mCfg.sys.eth.pinIrq;
+                obj[F("rst")]  = mCfg.sys.eth.pinRst;
+                #endif
             } else {
-                #if !defined(ETHERNET)
                 getChar(obj, F("ssid"), mCfg.sys.stationSsid, SSID_LEN);
                 getChar(obj, F("pwd"), mCfg.sys.stationPwd, PWD_LEN);
                 getChar(obj, F("ap_pwd"), mCfg.sys.apPwd, PWD_LEN);
                 getVal<bool>(obj, F("hidd"), &mCfg.sys.isHidden);
-                #endif /* !defined(ETHERNET) */
                 getChar(obj, F("dev"), mCfg.sys.deviceName, DEVNAME_LEN);
                 getChar(obj, F("adm"), mCfg.sys.adminPwd, PWD_LEN);
                 getVal<uint16_t>(obj, F("prot_mask"), &mCfg.sys.protectionMask);
@@ -569,6 +603,16 @@ class settings {
                 if(mCfg.sys.protectionMask == 0)
                     mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
                                             | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT | DEF_PROT_HISTORY;
+
+                #if defined(ETHERNET)
+                getVal<bool>(obj, F("en"), &mCfg.sys.eth.enabled);
+                getVal<uint8_t>(obj, F("cs"), &mCfg.sys.eth.pinCs);
+                getVal<uint8_t>(obj, F("sclk"), &mCfg.sys.eth.pinSclk);
+                getVal<uint8_t>(obj, F("miso"), &mCfg.sys.eth.pinMiso);
+                getVal<uint8_t>(obj, F("mosi"), &mCfg.sys.eth.pinMosi);
+                getVal<uint8_t>(obj, F("irq"), &mCfg.sys.eth.pinIrq);
+                getVal<uint8_t>(obj, F("rst"), &mCfg.sys.eth.pinRst);
+                #endif
             }
         }
 
@@ -681,16 +725,20 @@ class settings {
                 obj[F("user")]     = mCfg.mqtt.user;
                 obj[F("pwd")]      = mCfg.mqtt.pwd;
                 obj[F("topic")]    = mCfg.mqtt.topic;
+                obj[F("json")]     = mCfg.mqtt.json;
                 obj[F("intvl")]    = mCfg.mqtt.interval;
+                obj[F("retain")]   = mCfg.mqtt.enableRetain;
 
             } else {
                 getVal<uint16_t>(obj, F("port"), &mCfg.mqtt.port);
                 getVal<uint16_t>(obj, F("intvl"), &mCfg.mqtt.interval);
+                getVal<bool>(obj, F("json"), &mCfg.mqtt.json);
                 getChar(obj, F("broker"), mCfg.mqtt.broker, MQTT_ADDR_LEN);
                 getChar(obj, F("user"), mCfg.mqtt.user, MQTT_USER_LEN);
                 getChar(obj, F("clientId"), mCfg.mqtt.clientId, MQTT_CLIENTID_LEN);
                 getChar(obj, F("pwd"), mCfg.mqtt.pwd, MQTT_PWD_LEN);
                 getChar(obj, F("topic"), mCfg.mqtt.topic, MQTT_TOPIC_LEN);
+                getVal<bool>(obj, F("retain"), &mCfg.mqtt.enableRetain);
             }
         }
 
@@ -757,30 +805,25 @@ class settings {
         void jsonInst(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("intvl")]          = mCfg.inst.sendInterval;
-                obj[F("en")] = (bool)mCfg.inst.enabled;
-                obj[F("rstMidNight")]    = (bool)mCfg.inst.rstYieldMidNight;
+//                obj[F("en")] = (bool)mCfg.inst.enabled;
+                obj[F("rstMidNight")]    = (bool)mCfg.inst.rstValsAtMidNight;
                 obj[F("rstNotAvail")]    = (bool)mCfg.inst.rstValsNotAvail;
                 obj[F("rstComStop")]     = (bool)mCfg.inst.rstValsCommStop;
+                obj[F("rstComStart")]    = (bool)mCfg.inst.rstValsCommStart;
                 obj[F("strtWthtTime")]   = (bool)mCfg.inst.startWithoutTime;
-                obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstMaxValsMidNight;
-                obj[F("yldEff")]         = mCfg.inst.yieldEffiency;
+                obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstIncludeMaxVals;
                 obj[F("rdGrid")]         = (bool)mCfg.inst.readGrid;
             }
             else {
                 getVal<uint16_t>(obj, F("intvl"), &mCfg.inst.sendInterval);
-                getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
-                getVal<bool>(obj, F("rstMidNight"), &mCfg.inst.rstYieldMidNight);
+//                getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
+                getVal<bool>(obj, F("rstMidNight"), &mCfg.inst.rstValsAtMidNight);
                 getVal<bool>(obj, F("rstNotAvail"), &mCfg.inst.rstValsNotAvail);
                 getVal<bool>(obj, F("rstComStop"), &mCfg.inst.rstValsCommStop);
+                getVal<bool>(obj, F("rstComStart"), &mCfg.inst.rstValsCommStart);
                 getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
-                getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstMaxValsMidNight);
-                getVal<float>(obj, F("yldEff"), &mCfg.inst.yieldEffiency);
+                getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstIncludeMaxVals);
                 getVal<bool>(obj, F("rdGrid"), &mCfg.inst.readGrid);
-
-                if(mCfg.inst.yieldEffiency < 0.5)
-                    mCfg.inst.yieldEffiency = 1.0f;
-                else if(mCfg.inst.yieldEffiency > 1.0f)
-                    mCfg.inst.yieldEffiency = 1.0f;
             }
 
             JsonArray ivArr;
@@ -854,6 +897,7 @@ class settings {
         }
     #endif
 
+    private:
         settings_t mCfg;
         bool mLastSaveSucceed = 0;
 };

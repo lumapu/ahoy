@@ -61,6 +61,23 @@ function ml(tagName, ...args) {
     return nester(el, args[1])
 }
 
+function mlNs(tagName, ...args) {
+    var el = document.createElementNS("http://www.w3.org/2000/svg", tagName);
+    if(args[0]) {
+        for(var name in args[0]) {
+            if(name.indexOf("on") === 0) {
+                el.addEventListener(name.substr(2).toLowerCase(), args[0][name], false)
+            } else {
+                el.setAttribute(name, args[0][name]);
+            }
+        }
+    }
+    if (!args[1]) {
+        return el;
+    }
+    return nester(el, args[1])
+}
+
 function nester(el, n) {
     if (typeof n === "string") {
         el.innerHTML = n;
@@ -84,10 +101,12 @@ function topnav() {
 }
 
 function parseNav(obj) {
-    for(i = 0; i < 13; i++) {
+    for(i = 0; i < 14; i++) {
         if(i == 2)
             continue;
         var l = document.getElementById("nav"+i);
+        if(null == l)
+            continue
         if(12 == i) {
             if(obj.cst_lnk.length > 0) {
                 l.href = obj.cst_lnk
@@ -124,7 +143,7 @@ function parseVersion(obj) {
 
 function parseESP(obj) {
     document.getElementById("esp_type").replaceChildren(
-        document.createTextNode("Board: " + obj["esp_type"])
+        document.createTextNode("Board: " + obj.esp_type)
     );
 }
 
@@ -134,7 +153,11 @@ function parseRssi(obj) {
         icon = iconWifi1;
     else if(obj["wifi_rssi"] <= -70)
         icon = iconWifi2;
-    document.getElementById("wifiicon").replaceChildren(svg(icon, 32, 32, "icon-fg2", obj["wifi_rssi"]));
+    document.getElementById("wifiicon").replaceChildren(svg(icon, 32, 32, "icon-fg2", obj.wifi_rssi));
+}
+
+function parseTitle(obj) {
+    document.title = obj.host + " - " + document.title
 }
 
 function toIsoDateStr(d) {
@@ -219,6 +242,10 @@ function tr2(cols) {
 
 function badge(success, text, second="error") {
     return ml("span", {class: "badge badge-" + ((success) ? "success" : second)}, text);
+}
+
+function progress(val) {
+    return ml("div", {class: "progress"}, ml("div", {class: "progress-bar", style: "width: " + val + "%"}, null))
 }
 
 function tabChange(id) {

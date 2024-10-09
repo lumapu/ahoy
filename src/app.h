@@ -17,9 +17,9 @@
 #include "defines.h"
 #include "appInterface.h"
 #include "hm/hmSystem.h"
-#include "hm/hmRadio.h"
+#include "hm/NrfRadio.h"
 #if defined(ESP32)
-#include "hms/hmsRadio.h"
+#include "hms/CmtRadio.h"
 #endif
 #if defined(ENABLE_MQTT)
 #include "publisher/pubMqtt.h"
@@ -31,17 +31,22 @@
 #include "utils/syslog.h"
 #include "web/RestApi.h"
 #include "web/Protection.h"
+#include "plugins/MaxPower.h"
 #if defined(ENABLE_HISTORY)
 #include "plugins/history.h"
 #endif /*ENABLE_HISTORY*/
 #include "web/web.h"
 #include "hm/Communication.h"
 #if defined(ETHERNET)
-    #include "eth/ahoyeth.h"
+    #include "network/AhoyEthernet.h"
 #else /* defined(ETHERNET) */
-    #include "wifi/ahoywifi.h"
-    #include "utils/improv.h"
+    #if defined(ESP32)
+        #include "network/AhoyWifiEsp32.h"
+    #else
+        #include "network/AhoyWifiEsp8266.h"
+    #endif
 #endif /* defined(ETHERNET) */
+#include "utils/improv.h"
 
 #if defined(ENABLE_SIMULATOR)
     #include "hm/simulator.h"
@@ -162,32 +167,33 @@ class app : public IApp, public ah::Scheduler {
             return mSaveReboot;
         }
 
-        #if !defined(ETHERNET)
-        void scanAvailNetworks() override {
-            mWifi.scanAvailNetworks();
-        }
-
         bool getAvailNetworks(JsonObject obj) override {
-            return mWifi.getAvailNetworks(obj);
+            return mNetwork->getAvailNetworks(obj, this);
         }
 
         void setupStation(void) override {
-            mWifi.setupStation();
-        }
-
-        void setStopApAllowedMode(bool allowed) override {
-            mWifi.setStopApAllowedMode(allowed);
-        }
-
-        String getStationIp(void) override {
-            return mWifi.getStationIp();
+            mNetwork->begin();
         }
 
         bool getWasInCh12to14(void) const override {
-            return mWifi.getWasInCh12to14();
+            #if defined(ESP8266)
+            return mNetwork->getWasInCh12to14();
+            #else
+            return false;
+            #endif
         }
 
-        #endif /* !defined(ETHERNET) */
+        String getIp(void) override {
+            return mNetwork->getIp();
+        }
+
+        String getMac(void) override {
+            return mNetwork->getMac();
+        }
+
+        bool isApActive(void) override {
+            return mNetwork->isApActive();
+        }
 
         void setRebootFlag() override {
             once(std::bind(&app::tickReboot, this), 3, "rboot");
@@ -201,6 +207,10 @@ class app : public IApp, public ah::Scheduler {
             return mVersionModules;
         }
 
+        void addOnce(ah::scdCb c, uint32_t timeout, const char *name) override {
+            once(c, timeout, name);
+        }
+
         uint32_t getSunrise() override {
             return mSunrise;
         }
@@ -210,7 +220,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         bool getSettingsValid() override {
-            return mSettings.getValid();
+            return mConfig->valid;
         }
 
         bool getRebootRequestState() override {
@@ -246,6 +256,12 @@ class app : public IApp, public ah::Scheduler {
                 return 0;
             #endif
         }
+
+        #if defined(ETHERNET)
+        bool isWiredConnection() override {
+            return mNetwork->isWiredConnection();
+        }
+        #endif
 
         void lock(bool fromWeb) override {
             mProtection->lock(fromWeb);
@@ -295,20 +311,28 @@ class app : public IApp, public ah::Scheduler {
             DPRINT(DBG_DEBUG, F("setTimestamp: "));
             DBGPRINTLN(String(newTime));
             if(0 == newTime)
-            {
-                #if defined(ETHERNET)
-                mEth.updateNtpTime();
-                #else /* defined(ETHERNET) */
-                mWifi.getNtpTime();
-                #endif /* defined(ETHERNET) */
-            }
-            else
+                mNetwork->updateNtpTime();
+            else {
                 Scheduler::setTimestamp(newTime);
+                onNtpUpdate(false);
+            }
+        }
+
+        float getTotalMaxPower(void) override {
+            return mMaxPower.getTotalMaxPower();
         }
 
         uint16_t getHistoryValue(uint8_t type, uint16_t i) override {
             #if defined(ENABLE_HISTORY)
                 return mHistory.valueAt((HistoryStorageType)type, i);
+            #else
+                return 0;
+            #endif
+        }
+
+        uint32_t getHistoryPeriod(uint8_t type) override {
+            #if defined(ENABLE_HISTORY)
+                return mHistory.getPeriod((HistoryStorageType)type);
             #else
                 return 0;
             #endif
@@ -322,6 +346,21 @@ class app : public IApp, public ah::Scheduler {
             #endif
         }
 
+        uint32_t getHistoryLastValueTs(uint8_t type) override {
+            #if defined(ENABLE_HISTORY)
+                return mHistory.getLastValueTs((HistoryStorageType)type);
+            #else
+                return 0;
+            #endif
+        }
+        #if defined(ENABLE_HISTORY_LOAD_DATA)
+        void addValueToHistory(uint8_t historyType, uint8_t valueType, uint32_t value) override {
+            #if defined(ENABLE_HISTORY)
+                return mHistory.addValue((HistoryStorageType)historyType, valueType, value);
+            #endif
+        }
+        #endif
+
     private:
         #define CHECK_AVAIL     true
         #define SKIP_YIELD_DAY  true
@@ -330,15 +369,14 @@ class app : public IApp, public ah::Scheduler {
         void zeroIvValues(bool checkAvail = false, bool skipYieldDay = true);
 
         void payloadEventListener(uint8_t cmd, Inverter<> *iv) {
-            #if !defined(AP_ONLY)
+            mMaxPower.payloadEvent(cmd, iv);
             #if defined(ENABLE_MQTT)
                 if (mMqttEnabled)
                     mMqtt.payloadEventListener(cmd, iv);
-            #endif /*ENABLE_MQTT*/
             #endif
             #if defined(PLUGIN_DISPLAY)
-            if(DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
-               mDisplay.payloadEventListener(cmd);
+                if(DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
+                   mDisplay.payloadEventListener(cmd);
             #endif
            updateLed();
         }
@@ -366,14 +404,14 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void tickNtpUpdate(void);
-        #if defined(ETHERNET)
         void onNtpUpdate(bool gotTime);
         bool mNtpReceived = false;
-        #endif /* defined(ETHERNET) */
         void updateNtp(void);
 
-        void triggerTickSend() override {
-            once(std::bind(&app::tickSend, this), 0, "tSend");
+        void triggerTickSend(uint8_t id) override {
+            once([this, id]() {
+                sendIv(mSys.getInverterByPos(id));
+            }, 0, "devct");
         }
 
         void tickCalcSunrise(void);
@@ -382,34 +420,28 @@ class app : public IApp, public ah::Scheduler {
         void tickSunrise(void);
         void tickComm(void);
         void tickSend(void);
+        bool sendIv(Inverter<> *iv);
         void tickMinute(void);
         void tickZeroValues(void);
         void tickMidnight(void);
         void notAvailChanged(void);
 
         HmSystemType mSys;
-        HmRadio<> mNrfRadio;
+        NrfRadio<> mNrfRadio;
         Communication mCommunication;
 
         bool mShowRebootRequest = false;
 
-        #if defined(ETHERNET)
-        ahoyeth mEth;
-        #else /* defined(ETHERNET) */
-        ahoywifi mWifi;
-        #endif /* defined(ETHERNET) */
+        AhoyNetwork *mNetwork = nullptr;
         WebType mWeb;
         RestApiType mApi;
         Protection *mProtection = nullptr;
         #ifdef ENABLE_SYSLOG
         DbgSyslog mDbgSyslog;
         #endif
-        //PayloadType mPayload;
-        //MiPayloadType mMiPayload;
+
         PubSerialType mPubSerial;
-        #if !defined(ETHERNET)
         //Improv mImprov;
-        #endif
         #ifdef ESP32
         CmtRadio<> mCmtRadio;
         #endif
@@ -422,16 +454,14 @@ class app : public IApp, public ah::Scheduler {
         bool mSaveReboot = false;
 
         uint8_t mSendLastIvId = 0;
-        bool mSendFirst = false;
         bool mAllIvNotAvail = false;
 
         bool mNetworkConnected = false;
 
-        // mqtt
         #if defined(ENABLE_MQTT)
         PubMqttType mMqtt;
-        #endif /*ENABLE_MQTT*/
-        bool mMqttReconnect = false;
+        #endif
+        bool mTickerInstallOnce = false;
         bool mMqttEnabled = false;
 
         // sun
@@ -439,6 +469,7 @@ class app : public IApp, public ah::Scheduler {
         uint32_t mSunrise = 0, mSunset = 0;
 
         // plugins
+        MaxPower<float> mMaxPower;
         #if defined(PLUGIN_DISPLAY)
         DisplayType mDisplay;
         DisplayData mDispData;

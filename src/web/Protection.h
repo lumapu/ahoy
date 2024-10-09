@@ -24,7 +24,7 @@ class Protection {
         }
 
     public:
-        Protection(Protection &other) = delete;
+        Protection(const Protection &other) = delete;
         void operator=(const Protection &) = delete;
 
         static Protection* getInstance(const char *pwd) {

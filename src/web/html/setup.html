@@ -52,27 +52,16 @@
                     <div class="s_content">
                         <fieldset class="mb-2">
                             <legend class="des">WiFi</legend>
-
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-3 my-2">{#AP_PWD}</div>
                                 <div class="col-12 col-sm-9"><input type="text" name="ap_pwd" minlength="8" /></div>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-12 col-sm-3 my-2">{#SEARCH_NETWORKS}</div>
-                                <div class="col-12 col-sm-9"><input type="button" name="scanbtn" id="scanbtn" class="btn" value="{#BTN_SCAN}" onclick="scan()"/></div>
-                            </div>
-
-                            <div class="row mb-2 mb-sm-3">
-                                <div class="col-12 col-sm-3 my-2">{#AVAIL_NETWORKS}</div>
-                                <div class="col-12 col-sm-9">
-                                    <select name="networks" id="networks" onChange="selNet()">
-                                        <option value="-1" selected disabled hidden>{#NETWORK_NOT_SCANNED}</option>
-                                    </select>
-                                </div>
-                            </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3 my-2">SSID</div>
-                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/></div>
+                                <div class="col-12 col-sm-9">
+                                    <input type="text" name="ssid"/><br/>
+                                    <a href="/wizard">{#SCAN_WIFI}</a>
+                                </div>
                             </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3">{#SSID_HIDDEN}</div>
@@ -138,7 +127,11 @@
                                 <div class="col-4"><input type="checkbox" name="invRstMid"/></div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-8 mb-2">{#INV_PAUSE_SUNSET}</div>
+                                <div class="col-8 mb-2">{#INV_RESET_SUNRISE}</div>
+                                <div class="col-4"><input type="checkbox" name="invRstComStart"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 mb-2">{#INV_RESET_SUNSET}</div>
                                 <div class="col-4"><input type="checkbox" name="invRstComStop"/></div>
                             </div>
                             <div class="row mb-3">
@@ -146,7 +139,7 @@
                                 <div class="col-4"><input type="checkbox" name="invRstNotAvail"/></div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-8">{#INV_RESET_MAX_MIDNIGHT}</div>
+                                <div class="col-8">{#INV_RESET_MAX_VALUES}</div>
                                 <div class="col-4"><input type="checkbox" name="invRstMaxMid"/></div>
                             </div>
                             <div class="row mb-3">
@@ -156,10 +149,6 @@
                             <div class="row mb-3">
                                 <div class="col-8">{#INV_READ_GRID_PROFILE}</div>
                                 <div class="col-4"><input type="checkbox" name="rdGrid"/></div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-8">{#INV_YIELD_EFF}</div>
-                                <div class="col-4"><input type="number" name="yldEff" step="any"/></div>
                             </div>
                         </fieldset>
                     </div>
@@ -246,6 +235,10 @@
                                 <div class="col-12 col-sm-3 my-2">Topic</div>
                                 <div class="col-12 col-sm-9"><input type="text" name="mqttTopic" pattern="[\-\+A-Za-z0-9\.\/#\$%&=_]+" title="Invalid input" /></div>
                             </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#MQTT_JSON}</div>
+                                <div class="col-12 col-sm-9"><input type="checkbox" name="mqttJson" /></div>
+                            </div>
                             <p class="des">{#MQTT_NOTE}</p>
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-3 my-2">{#INTERVAL}</div>
@@ -257,6 +250,10 @@
                                     <input type="button" name="mqttDiscovery" id="mqttDiscovery" class="btn" value="{#BTN_SEND}" onclick="sendDiscoveryConfig()"/>
                                     <span id="apiResultMqtt"></span>
                                 </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#RETAIN}</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="retain"/></div>
                             </div>
                         </fieldset>
                     </div>
@@ -274,9 +271,13 @@
                             <p class="des">{#RADIO} (CMT2300A)</p>
                             <div id="cmt"></div>
                             <!--ENDIF_ESP32-->
+                            <!--IF_ETHERNET-->
+                            <p class="des">Ethernet</p>
+                            <div id="eth"></div>
+                            <!--ENDIF_ETHERNET-->
                         </fieldset>
                     </div>
-
+                    <!--IF_PLUGIN_DISPLAY-->
                     <button type="button" class="s_collapsible">{#DISPLAY_CONFIG}</button>
                     <div class="s_content">
                         <fieldset class="mb-4">
@@ -290,7 +291,7 @@
                             <div id="screenSaver"></div>
                             <div class="row mb-3" id="luminanceOption">
                                 <div class="col-12 col-sm-3 my-2">{#DISP_LUMINANCE}</div>
-                                <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="0" max="255"></select></div>
+                                <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="0" max="255"></div>
                             </div>
                             <p class="des">{#DISP_PINOUT}</p>
                             <div id="dispPins"></div>
@@ -299,12 +300,13 @@
                                 <p class="des">{#GRAPH_OPTIONS}</p>
                                 <div class="row mb-3">
                                     <div class="col-12 col-sm-3 my-2">{#GRAPH_SHOW_RATIO}</div>
-                                    <div class="col-12 col-sm-9"><input type="number" name="disp_graph_ratio" min="0" max="100"></select></div>
+                                    <div class="col-12 col-sm-9"><input type="number" name="disp_graph_ratio" min="0" max="100"></div>
                                 </div>
                                 <div id="graphSize"></div>
                             </div>
                         </fieldset>
                     </div>
+                    <!--ENDIF_PLUGIN_DISPLAY-->
 
                     <div class="row mb-4 mt-4">
                         <div class="col-8 col-sm-3">{#BTN_REBOOT_SUCCESSFUL_SAVE}</div>
@@ -324,8 +326,8 @@
                             <div class="col-12 col-sm-9">
                                 <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
                                     <div class="row">
-                                        <div class="col-12 col-sm-8 my-2"><input type="file" name="upload"></div>
-                                        <div class="col-12 col-sm-4 my-2"><input type="button" class="btn" value="Import" onclick="hide()"></div>
+                                        <div class="col-12 col-sm-8 my-2"><input type="file" id="importFileInput" name="upload"></div>
+                                        <div class="col-12 col-sm-4 my-2"><input type="button" id="importButton" class="btn" value="Import" onclick="hide()"></div>
                                     </div>
                                 </form>
                             </div>
@@ -345,6 +347,7 @@
             var maxInv = 0;
             var ts = 0;
 
+            /*IF_ESP8266*/
             var esp8266pins = [
                 [255, "{#PIN_OFF}"],
                 [0, "D3 (GPIO0)"],
@@ -365,6 +368,7 @@
                 [15, "D8 (GPIO15)"],
                 [16, "D0 (GPIO16 - {#PIN_NO_IRQ})"]
             ];
+            /*ENDIF_ESP8266*/
 
             /*IF_ESP32*/
             var esp32pins = [
@@ -396,6 +400,7 @@
                 [36, "VP (GPIO36, {#PIN_INPUT_ONLY})"],
                 [39, "VN (GPIO39, {#PIN_INPUT_ONLY})"]
             ];
+            /*IF_ESP32-S2*/
             var esp32sXpins = [
                 [255, "off / default"],
                 [0,  "GPIO0 ({#PIN_DONT_USE} - BOOT)"],
@@ -444,6 +449,58 @@
                 [47, "GPIO47"],
                 [48, "GPIO48"],
             ];
+            /*ENDIF_ESP32-S2*/
+            /*IF_ESP32-S3*/
+            var esp32sXpins = [
+                [255, "off / default"],
+                [0,  "GPIO0 ({#PIN_DONT_USE} - BOOT)"],
+                [1,  "GPIO1"],
+                [2,  "GPIO2"],
+                [3,  "GPIO3"],
+                [4,  "GPIO4 (CMT CSB)"],
+                [5,  "GPIO5 (CMT SDIO)"],
+                [6,  "GPIO6 (CMT SCLK)"],
+                [7,  "GPIO7"],
+                [8,  "GPIO8 (CMT GPIO3)"],
+                [9,  "GPIO9 (DATA display)"],
+                [10, "GPIO10 (SCK display)"],
+                [11, "GPIO11 (CS display)"],
+                [12, "GPIO12 (DC display)"],
+                [13, "GPIO13 (RST display)"],
+                [14, "GPIO14 (BUSY display)"],
+                [15, "GPIO15"],
+                [16, "GPIO16"],
+                [17, "GPIO17"],
+                [18, "GPIO18"],
+                [19, "GPIO19 ({#PIN_DONT_USE} - USB-)"],
+                [20, "GPIO20 ({#PIN_DONT_USE} - USB+)"],
+                [21, "GPIO21 (CMT FCSB)"],
+                [26, "GPIO26 (PSRAM - {#PIN_NOT_AVAIL})"],
+                [27, "GPIO27 (FLASH - {#PIN_NOT_AVAIL})"],
+                [28, "GPIO28 (FLASH - {#PIN_NOT_AVAIL})"],
+                [29, "GPIO29 (FLASH - {#PIN_NOT_AVAIL})"],
+                [30, "GPIO30 (FLASH - {#PIN_NOT_AVAIL})"],
+                [31, "GPIO31 (FLASH - {#PIN_NOT_AVAIL})"],
+                [32, "GPIO32 (FLASH - {#PIN_NOT_AVAIL})"],
+                [33, "GPIO33 (not exposed on S3-WROOM modules)"],
+                [34, "GPIO34 (not exposed on S3-WROOM modules)"],
+                [35, "GPIO35 (MOSI NRF24)"],
+                [36, "GPIO36 (SCK NRF24)"],
+                [37, "GPIO37 (CSN NRF24)"],
+                [38, "GPIO38 (CE NRF24)"],
+                [39, "GPIO39 (SCK ETH)"],
+                [40, "GPIO40 (MOSI ETH)"],
+                [41, "GPIO41 (MISO ETH)"],
+                [42, "GPIO42 (CS ETH)"],
+                [43, "GPIO43 (RST ETH)"],
+                [44, "GPIO44 (INT ETH)"],
+                [45, "GPIO45 ({#PIN_DONT_USE} - STRAPPING PIN)"],
+                [46, "GPIO46 ({#PIN_DONT_USE} - STRAPPING PIN)"],
+                [47, "GPIO47 (IRQ NRF24)"],
+                [48, "GPIO48 (MISO NRF24)"],
+            ];
+            /*ENDIF_ESP32-S3*/
+            /*IF_ESP32-C3*/
             var esp32c3pins = [
                 [255, "off / default"],
                 [0,  "GPIO0"],
@@ -469,6 +526,7 @@
                 [20, "GPIO20 (RX)"],
                 [21, "GPIO21 (TX)"],
             ];
+            /*ENDIF_ESP32-C3*/
             /*ENDIF_ESP32*/
             var nrfPa = [
                 [0, "MIN ({#PIN_RECOMMENDED})"],
@@ -549,12 +607,6 @@
                 setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000)
             }
 
-            function scan() {
-                var obj = {cmd: "scan_wifi", token: "*"}
-                getAjax("/api/setup", apiCbWifi, "POST", JSON.stringify(obj));
-                setTimeout(function() {getAjax('/api/setup/networks', listNetworks)}, 5000);
-            }
-
             function syncTime() {
                 var obj = {cmd: "sync_ntp", token: "*"}
                 getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj))
@@ -565,6 +617,22 @@
                 var obj = {cmd: "discovery_cfg", token: "*"}
                 getAjax("/api/setup", apiCbMqtt, "POST", JSON.stringify(obj));
             }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const fileInput = document.querySelector('#importFileInput');
+                const button = document.querySelector('#importButton');
+                button.disabled = true;
+                button.title = "Please select a file first";
+                fileInput.addEventListener('change', () => {
+                    if (fileInput.value) {
+                        button.disabled = false;
+                        button.title = "";
+                    } else {
+                        button.disabled = true;
+                        button.title = "Please select a file first";
+                    }
+                });
+            });
 
             function hide() {
                 document.getElementById("form").submit();
@@ -605,31 +673,48 @@
             }
 
             function ivGlob(obj) {
-                for(var i of [["invInterval", "interval"], ["yldEff", "yldEff"]])
+                for(var i of [["invInterval", "interval"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
-                for(var i of ["Mid", "ComStop", "NotAvail", "MaxMid"])
+                for(var i of ["Mid", "ComStop", "ComStart", "NotAvail", "MaxMid"])
                     document.getElementsByName("invRst"+i)[0].checked = obj["rst" + i];
                 document.getElementsByName("strtWthtTm")[0].checked = obj["strtWthtTm"];
                 document.getElementsByName("rdGrid")[0].checked = obj["rdGrid"];
             }
 
             function parseSys(obj) {
-                for(var i of [["device", "device_name"], ["ssid", "ssid"], ["ap_pwd", "ap_pwd"]])
-                    document.getElementsByName(i[0])[0].value = obj[i[1]];
-                document.getElementsByName("hidd")[0].checked = obj["hidd"];
-                document.getElementsByName("darkMode")[0].checked = obj["dark_mode"];
-                document.getElementsByName("schedReboot")[0].checked = obj["sched_reboot"];
+                document.getElementsByName("device")[0].value = obj.device_name;
+                for(var i of [["ssid", "ssid"], ["ap_pwd", "ap_pwd"]])
+                    document.getElementsByName(i[0])[0].value = obj.network[i[1]];
+                document.getElementsByName("hidd")[0].checked = obj.network.hidd;
+
+                document.getElementsByName("darkMode")[0].checked = obj.dark_mode;
+                document.getElementsByName("schedReboot")[0].checked = obj.sched_reboot;
                 e = document.getElementsByName("adminpwd")[0];
-                if(!obj["pwd_set"])
+                if(!obj.pwd_set)
                     e.value = "";
                 var d = document.getElementById("prot_mask");
                 var a = ["Index", "{#NAV_LIVE}", "{#NAV_WEBSERIAL}", "{#NAV_SETTINGS}", "Update", "System", "{#NAV_HISTORY}"];
                 var el = [];
                 for(var i = 0; i < 7; i++) {
-                    var chk = ((obj["prot_mask"] & (1 << i)) == (1 << i));
+                    var chk = ((obj.prot_mask & (1 << i)) == (1 << i));
                     el.push(mlCb("protMask" + i, a[i], chk))
                 }
                 d.append(...el);
+            }
+
+            function parseGeneric(obj) {
+                parseNav(obj)
+                parseESP(obj)
+                parseRssi(obj)
+                parseTitle(obj)
+
+                if(0 != obj.cst_lnk.length) {
+                    document.getElementsByName("cstLnk")[0].value = obj.cst_lnk
+                    document.getElementsByName("cstLnkTxt")[0].value = obj.cst_lnk_txt
+                }
+
+                ts = obj.ts_now;
+                window.setInterval("tick()", 1000);
 
                 var tz = []
                 for(i = 0; i < 24; i += 0.5)
@@ -637,21 +722,6 @@
                 document.getElementById("timezone").append(sel("timezone", tz, obj.timezone + 12))
                 var region = [[0, "Europe (860 - 870 MHz)"], [1, "USA, Indonesia (905 - 925 MHz)"], [2, "Brazil (915 - 928 MHz)"]]
                 document.getElementById("region").append(sel("region", region, obj.region))
-
-            }
-
-            function parseGeneric(obj) {
-                parseNav(obj);
-                parseESP(obj);
-                parseRssi(obj);
-
-                if(0 != obj.cst_lnk.length) {
-                    document.getElementsByName("cstLnk")[0].value = obj.cst_lnk
-                    document.getElementsByName("cstLnkTxt")[0].value = obj.cst_lnk_txt
-                }
-
-                ts = obj["ts_now"];
-                window.setInterval("tick()", 1000);
             }
 
             function parseStaticIp(obj) {
@@ -730,7 +800,7 @@
                 cbEn.checked = (obj.enabled);
                 cbDisNightCom.checked = (obj.disnightcom);
 
-                var ser = ml("input", {name: "ser", class: "text", type: "number", max: 138999999999, value: obj.serial}, null);
+                var ser = ml("input", {name: "ser", class: "text", type: "text", pattern: "[0-9a-fA-F]{12}", value: obj.serial}, null);
                 var html = ml("div", {}, [
                     tabs(["{#TAB_GENERAL}", "{#TAB_INPUTS}", "{#TAB_RADIO}", "{#TAB_ADVANCED}"]),
                     ml("div", {id: "div{#TAB_GENERAL}", class: "tab-content"}, [
@@ -786,7 +856,8 @@
                             case 0x1000: nrf = true; break;
                             case 0x1100:
                                 switch(sn & 0x000f) {
-                                    case 0x0004: nrf = false; break;
+                                    case 0x0004:
+                                    case 0x0005: nrf = false; break;
                                     default:     nrf = true; break;
                                 }
                                 break;
@@ -802,11 +873,16 @@
                 ser.dispatchEvent(new Event('change'));
 
                 function ivSave() {
-                    var o = new Object();
+                    var o = {}
                     o.cmd  = "save_iv"
                     o.token = "*"
                     o.id   = obj.id
-                    o.ser  = parseInt(document.getElementsByName("ser")[0].value, 16);
+
+                    let sn = document.getElementsByName("ser")[0].value
+                    if(sn[0] == 'A')
+                        sn = convHerf(sn)
+                    o.ser  = parseInt(sn, 16)
+
                     o.name = document.getElementsByName("name")[0].value;
                     o.en   = document.getElementsByName("enable")[0].checked;
                     o.ch = [];
@@ -824,6 +900,30 @@
                     o.freq = document.getElementsByName("freq")[0].value;
                     o.disnightcom = document.getElementsByName("disnightcom")[0].checked;
                     getAjax("/api/setup", cb, "POST", JSON.stringify(o));
+                }
+
+                function convHerf(sn) {
+                    let sn_int = 0n;
+                    const CHARS = "0123456789ABCDEFGHJKLMNPRSTUVWXY";
+
+                    for (let i = 0; i < 9; ++i) {
+                        const pos = CHARS.indexOf(sn[i])
+                        const shift = 42 - 5 * i - (i <= 2 ? 0 : 2)
+                        sn_int |= BigInt(pos) << BigInt(shift)
+                    }
+
+                    let first4Hex = (sn_int >> 32n) & 0xFFFFn
+
+                    if (first4Hex === 0x2841n)
+                        first4Hex = 0x1121n
+                    else if (first4Hex === 0x2821n)
+                        first4Hex = 0x1141n
+                    else if (first4Hex === 0x2801n)
+                        first4Hex = 0x1161n
+
+                    sn_int = (sn_int & ~(0xFFFFn << 32n)) | (first4Hex << 32n);
+
+                    return sn_int.toString(16)
                 }
 
                 function cb(obj2) {
@@ -847,6 +947,7 @@
                 function del() {
                     var o = new Object();
                     o.cmd  = "save_iv";
+                    o.token = "*"
                     o.id   = obj.id;
                     o.ser  = 0;
                     o.name = "";
@@ -873,6 +974,8 @@
             function parseMqtt(obj) {
                 for(var i of [["Addr", "broker"], ["Port", "port"], ["ClientId", "clientId"], ["User", "user"], ["Pwd", "pwd"], ["Topic", "topic"], ["Interval", "interval"]])
                     document.getElementsByName("mqtt"+i[0])[0].value = obj[i[1]];
+                document.getElementsByName("mqttJson")[0].checked = obj["json"];
+                document.getElementsByName("retain")[0].checked = obj.retain
             }
 
             function parseNtp(obj) {
@@ -891,13 +994,21 @@
                 }
             }
 
-            function parsePinout(obj, type, system) {
+            function parsePinout(obj) {
                 var e = document.getElementById("pinout");
-                var pinList = esp8266pins;
                 /*IF_ESP32*/
                 var pinList = esp32pins;
-                if ("ESP32-S3" == system.chip_model || "ESP32-S2" == system.chip_model) pinList = esp32sXpins;
-                else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
+                /*IF_ESP32-S2*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S2*/
+                /*IF_ESP32-S3*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S3*/
+                /*IF_ESP32-C3*/
+                pinList = esp32c3pins;
+                /*ENDIF_ESP32-C3*/
+                /*ELSE*/
+                var pinList = esp8266pins;
                 /*ENDIF_ESP32*/
                 pins = [['led0', 'pinLed0', '{#LED_AT_LEAST_ONE_PRODUCING}'], ['led1', 'pinLed1', '{#LED_MQTT_CONNECTED}'], ['led2', 'pinLed2', '{#LED_NIGHT_TIME}']];
                 for(p of pins) {
@@ -924,16 +1035,24 @@
                 )
             }
 
-            function parseNrfRadio(obj, objPin, type, system) {
+            function parseNrfRadio(obj, objPin) {
                 var e = document.getElementById("rf24");
                 var en = inp("nrfEnable", null, null, ["cb"], "nrfEnable", "checkbox");
                 en.checked = obj["en"];
 
-                var pinList = esp8266pins;
                 /*IF_ESP32*/
                 var pinList = esp32pins;
-                if ("ESP32-S3" == system.chip_model || "ESP32-S2" == system.chip_model) pinList = esp32sXpins;
-                else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
+                /*IF_ESP32-S2*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S2*/
+                /*IF_ESP32-S3*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S3*/
+                /*IF_ESP32-C3*/
+                pinList = esp32c3pins;
+                /*ENDIF_ESP32-C3*/
+                /*ELSE*/
+                var pinList = esp8266pins;
                 /*ENDIF_ESP32*/
 
                 e.replaceChildren (
@@ -943,11 +1062,11 @@
                     ])
                 );
 
-                if ("ESP8266" == type) {
-                    pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq']];
-                } else {
-                    pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['sclk', 'pinSclk'], ['mosi', 'pinMosi'], ['miso', 'pinMiso']];
-                }
+                /*IF_ESP32*/
+                var pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['sclk', 'pinSclk'], ['mosi', 'pinMosi'], ['miso', 'pinMiso']];
+                /*ELSE*/
+                var pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq']];
+                /*ENDIF_ESP32*/
                 for(p of pins) {
                     e.append(
                         ml("div", {class: "row mb-3"}, [
@@ -961,15 +1080,21 @@
             }
 
             /*IF_ESP32*/
-            function parseCmtRadio(obj, type, system) {
+            function parseCmtRadio(obj) {
                 var e = document.getElementById("cmt");
                 var en = inp("cmtEnable", null, null, ["cb"], "cmtEnable", "checkbox");
                 var pinList = esp32pins;
-                if ("ESP32-S3" == system.chip_model || "ESP32-S2" == system.chip_model) pinList = esp32sXpins;
-                else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
+                /*IF_ESP32-S2*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S2*/
+                /*IF_ESP32-S3*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S3*/
+                /*IF_ESP32-C3*/
+                pinList = esp32c3pins;
+                /*ENDIF_ESP32-C3*/
 
                 en.checked = obj["en"];
-
                 e.replaceChildren (
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-8 col-sm-3 my-2"}, "{#CMT_ENABLE}"),
@@ -996,6 +1121,42 @@
             }
             /*ENDIF_ESP32*/
 
+            /*IF_ETHERNET*/
+            function parseEth(obj) {
+                var e = document.getElementById("eth");
+                var en = inp("ethEn", null, null, ["cb"], "ethEn", "checkbox");
+                var pinList = esp32pins;
+                /*IF_ESP32-S2*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S2*/
+                /*IF_ESP32-S3*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S3*/
+                /*IF_ESP32-C3*/
+                pinList = esp32c3pins;
+                /*ENDIF_ESP32-C3*/
+
+                en.checked = obj["en"];
+                e.replaceChildren (
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-8 col-sm-3 my-2"}, "{#ETH_ENABLE}"),
+                        ml("div", {class: "col-4 col-sm-9"}, en)
+                    ])
+                );
+                pins = [['cs', 'ethCs'], ['sclk', 'ethSclk'], ['miso', 'ethMiso'], ['mosi', 'ethMosi'], ['irq', 'ethIrq'], ['reset', 'ethRst']];
+                for(p of pins) {
+                    e.append(
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
+                            ml("div", {class: "col-12 col-sm-9"},
+                                sel(p[1], pinList, obj[p[0]])
+                            )
+                        ])
+                    );
+                }
+            }
+            /*ENDIF_ETHERNET*/
+
             function parseSerial(obj) {
                 var e = document.getElementById("serialCb")
                 var l = [["serEn", "show_live_data", "{#LOG_PRINT_INVERTER_DATA}"], ["serDbg", "debug", "{#LOG_SERIAL_DEBUG}"], ["priv", "priv", "{#LOG_PRIVACY_MODE}"], ["wholeTrace", "wholeTrace", "{#LOG_PRINT_TRACES}"], ["log2mqtt", "log2mqtt", "{#LOG_TO_MQTT}"]]
@@ -1011,12 +1172,21 @@
                 }
             }
 
+            /*IF_PLUGIN_DISPLAY*/
             function parseDisplay(obj, type, system) {
-                var pinList = esp8266pins;
                 /*IF_ESP32*/
                 var pinList = esp32pins;
-                if ("ESP32-S3" == system.chip_model || "ESP32-S2" == system.chip_model) pinList = esp32sXpins;
-                else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
+                /*IF_ESP32-S2*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S2*/
+                /*IF_ESP32-S3*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S3*/
+                /*IF_ESP32-C3*/
+                pinList = esp32c3pins;
+                /*ENDIF_ESP32-C3*/
+                /*ELSE*/
+                var pinList = esp8266pins;
                 /*ENDIF_ESP32*/
 
                 for(var i of ["disp_pwr"])
@@ -1152,6 +1322,7 @@
                 setHide("screenSaver",     !optionsMap.get(dispType)[2]);
                 setHide("pirPin",          !(optionsMap.get(dispType)[2] && (screenSaver==2))); // show pir pin only for motion screensaver
             }
+            /*ENDIF_PLUGIN_DISPLAY*/
 
             function tick() {
                 document.getElementById("date").innerHTML = toIsoDateStr((new Date((++ts) * 1000)));
@@ -1159,40 +1330,26 @@
 
             function parse(root) {
                 if(null != root) {
-                    parseGeneric(root["generic"]);
-                    parseSys(root["system"]);
-                    parseStaticIp(root["static_ip"]);
-                    parseMqtt(root["mqtt"]);
-                    parseNtp(root["ntp"]);
-                    parseSun(root["sun"]);
-                    parsePinout(root["pinout"], root["system"]["esp_type"], root["system"]);
-                    parseNrfRadio(root["radioNrf"], root["pinout"], root["system"]["esp_type"], root["system"]);
+                    parseGeneric(root.generic);
+                    parseSys(root.system);
+                    parseStaticIp(root.static_ip);
+                    parseMqtt(root.mqtt);
+                    parseNtp(root.ntp);
+                    parseSun(root.sun);
+                    parsePinout(root.pinout);
+                    parseNrfRadio(root.radioNrf, root.pinout);
                     /*IF_ESP32*/
-                    parseCmtRadio(root["radioCmt"], root["system"]["esp_type"], root["system"]);
+                    parseCmtRadio(root.radioCmt);
                     /*ENDIF_ESP32*/
-                    parseSerial(root["serial"]);
-                    parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
+                    /*IF_ETHERNET*/
+                    parseEth(root.eth)
+                    /*ENDIF_ETHERNET*/
+                    parseSerial(root.serial);
+                    /*IF_PLUGIN_DISPLAY*/
+                    parseDisplay(root.display, root.system.esp_type, root.system);
+                    /*ENDIF_PLUGIN_DISPLAY*/
                     getAjax("/api/inverter/list", parseIv);
                 }
-            }
-
-            function listNetworks(root) {
-                var s = document.getElementById("networks");
-                selDelAllOpt(s);
-                if(root["networks"].length > 0) {
-                    s.appendChild(opt("-1", "{#NETWORK_PLEASE_SELECT}"));
-                    for(i = 0; i < root["networks"].length; i++) {
-                        s.appendChild(opt(root["networks"][i]["ssid"], root["networks"][i]["ssid"] + " (" + root["networks"][i]["rssi"] + " dBm)"));
-                    }
-                } else
-                    s.appendChild(opt("-1", "{#NO_NETWORK_FOUND}"));
-            }
-
-            function selNet() {
-                var s = document.getElementById("networks");
-                var e = document.getElementsByName("ssid")[0];
-                if(-1 != s.value)
-                    e.value = s.value;
             }
 
             getAjax("/api/setup", parse);

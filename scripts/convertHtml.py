@@ -7,8 +7,58 @@ import json
 from datetime import date
 from pathlib import Path
 import subprocess
+import configparser
 Import("env")
+build_flags = []
 
+import htmlPreprocessorDefines as prepro
+
+def getFlagsOfEnv(env):
+    config = configparser.ConfigParser()
+    config.read('platformio.ini')
+    global build_flags
+    flags = config[env]['build_flags'].split('\n')
+
+    for i in range(len(flags)):
+        if flags[i][:2] == "-D" or flags[i][:2] == "${":
+            flags[i] = flags[i][2:]
+        if flags[i][-13:-1] == ".build_flags":
+            getFlagsOfEnv(flags[i].split(".build_flags")[0])
+        elif len(flags[i]) > 0:
+            build_flags = build_flags + [flags[i]]
+
+def parseDefinesH():
+    global build_flags
+    pattern = r'^\s*#\s*define\s+(\w+)'
+
+    with open("defines.h", "r") as f:
+        for line in f:
+            match = re.match(pattern, line)
+            if match:
+                build_flags += [match.group(1)]
+
+
+def get_build_flags():
+    getFlagsOfEnv("env:" + env['PIOENV'])
+    config = configparser.ConfigParser()
+    config.read('platformio.ini')
+    parseDefinesH()
+
+    # translate board
+    board = config["env:" + env['PIOENV']]['board']
+    if board == "esp12e" or board == "esp8285":
+        build_flags.append("ESP8266")
+    elif board == "lolin_d32":
+        build_flags.append("ESP32")
+    elif board == "lolin_s2_mini":
+        build_flags.append("ESP32")
+        build_flags.append("ESP32-S2")
+    elif board == "lolin_c3_mini":
+        build_flags.append("ESP32")
+        build_flags.append("ESP32-C3")
+    elif board == "esp32-s3-devkitc-1":
+        build_flags.append("ESP32")
+        build_flags.append("ESP32-S3")
 
 def get_git_sha():
     try:
@@ -50,38 +100,46 @@ def readVersionFull(path):
     return version
 
 def htmlParts(file, header, nav, footer, versionPath, lang):
-    p = "";
     f = open(file, "r")
     lines = f.readlines()
     f.close();
 
     f = open(header, "r")
-    h = f.read().strip()
+    h = f.readlines()
     f.close()
 
     f = open(nav, "r")
-    n = f.read().strip()
+    n = f.readlines()
     f.close()
 
     f = open(footer, "r")
-    fo = f.read().strip()
+    fo = f.readlines()
     f.close()
 
+    linesExt = []
     for line in lines:
-        line = line.replace("{#HTML_HEADER}", h)
-        line = line.replace("{#HTML_NAV}", n)
-        line = line.replace("{#HTML_FOOTER}", fo)
-        p += line
+        if line.find("{#HTML_HEADER}") != -1:
+            linesExt.extend(h)
+        elif line.find("{#HTML_NAV}") != -1:
+            linesExt.extend(n)
+        elif line.find("{#HTML_FOOTER}") != -1:
+            linesExt.extend(fo)
+        else:
+            linesExt.append(line)
+
+    linesMod = prepro.conv(linesExt, build_flags)
 
     #placeholders
     version = readVersion(versionPath);
     link = '<a target="_blank" href="https://github.com/lumapu/ahoy/commits/' + get_git_sha() + '">GIT SHA: ' + get_git_sha() + ' :: ' + version + '</a>'
+    p = ""
+    for line in linesMod:
+        p += line
+
     p = p.replace("{#VERSION}", version)
     p = p.replace("{#VERSION_FULL}", readVersionFull(versionPath))
     p = p.replace("{#VERSION_GIT}", link)
 
-    # remove if - endif ESP32
-    p = checkIf(p)
     p = translate(file, p, lang)
     p = translate("general", p, lang) # menu / header / footer
 
@@ -89,30 +147,6 @@ def htmlParts(file, header, nav, footer, versionPath, lang):
     f.write(p);
     f.close();
     return p
-
-def checkIf(data):
-    if (env['PIOENV'][0:5] == "esp32") or env['PIOENV'][0:4] == "open":
-        data = data.replace("<!--IF_ESP32-->", "")
-        data = data.replace("<!--ENDIF_ESP32-->", "")
-        data = data.replace("/*IF_ESP32*/", "")
-        data = data.replace("/*ENDIF_ESP32*/", "")
-    else:
-        while 1:
-            start = data.find("<!--IF_ESP32-->")
-            end = data.find("<!--ENDIF_ESP32-->")+18
-            if -1 == start:
-                break
-            else:
-                data = data[0:start] + data[end:]
-        while 1:
-            start = data.find("/*IF_ESP32*/")
-            end = data.find("/*ENDIF_ESP32*/")+15
-            if -1 == start:
-                break
-            else:
-                data = data[0:start] + data[end:]
-
-    return data
 
 def findLang(file):
     with open('../lang.json') as j:
@@ -189,33 +223,41 @@ def convert2Header(inFile, versionPath, lang):
     f.write("#endif /*__{}_{}_H__*/\n".format(define, define2))
     f.close()
 
-# delete all files in the 'h' dir
-wd = 'web/html/h'
 
-if os.path.exists(wd):
-    for f in os.listdir(wd):
-        os.remove(os.path.join(wd, f))
-wd += "/tmp"
-if os.path.exists(wd):
-    for f in os.listdir(wd):
-        os.remove(os.path.join(wd, f))
+def main():
+    get_build_flags()
 
-# grab all files with following extensions
-os.chdir('./web/html')
-types = ('*.html', '*.css', '*.js', '*.ico', '*.json') # the tuple of file types
-files_grabbed = []
-for files in types:
-    files_grabbed.extend(glob.glob(files))
+    # delete all files in the 'h' dir
+    wd = 'web/html/h'
 
-Path("h").mkdir(exist_ok=True)
-Path("tmp").mkdir(exist_ok=True) # created to check if webpages are valid with all replacements
-shutil.copyfile("style.css", "tmp/style.css")
+    if os.path.exists(wd):
+        for f in os.listdir(wd):
+            os.remove(os.path.join(wd, f))
+    wd += "/tmp"
+    if os.path.exists(wd):
+        for f in os.listdir(wd):
+            os.remove(os.path.join(wd, f))
 
-# get language from environment
-lang = "en"
-if env['PIOENV'][-3:] == "-de":
-    lang = "de"
+    # grab all files with following extensions
+    os.chdir('./web/html')
+    types = ('*.html', '*.css', '*.js', '*.ico', '*.json') # the tuple of file types
+    files_grabbed = []
+    for files in types:
+        files_grabbed.extend(glob.glob(files))
 
-# go throw the array
-for val in files_grabbed:
-    convert2Header(val, "../../defines.h", lang)
+    Path("h").mkdir(exist_ok=True)
+    Path("tmp").mkdir(exist_ok=True) # created to check if webpages are valid with all replacements
+    shutil.copyfile("style.css", "tmp/style.css")
+
+    # get language from environment
+    lang = "en"
+    if env['PIOENV'][-3:] == "-de":
+        lang = "de"
+
+
+    # go throw the array
+    for val in files_grabbed:
+        convert2Header(val, "../../defines.h", lang)
+
+
+main()

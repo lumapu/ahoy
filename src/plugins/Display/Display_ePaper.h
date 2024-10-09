@@ -12,7 +12,11 @@
 #define EPAPER_MAX_TEXT_LEN     35
 
 #include <GxEPD2_BW.h>
+#if defined(SPI_HAL)
+#include "epdHal.h"
+#else
 #include <SPI.h>
+#endif
 
 // FreeFonts from Adafruit_GFX
 #include <Fonts/FreeSans12pt7b.h>
@@ -44,9 +48,9 @@ class DisplayEPaper {
             DONE,
             BLACK,
             WHITE,
-            WAIT,
             PARTITIALS,
-            LOGO
+            LOGO,
+            LOGO_WAIT
         };
 
         uint8_t mDisplayRotation;
@@ -58,8 +62,13 @@ class DisplayEPaper {
         uint32_t* mUtcTs;
         bool mEnPowerSave;
         const char* _version;
-        RefreshStatus mRefreshState, mNextRefreshState;
+        RefreshStatus mRefreshState;
+
         uint8_t mSecondCnt;
+        bool mLogoDisplayed;
+        #if defined(SPI_HAL)
+        epdHal hal;
+        #endif
 };
 
 #endif  // ESP32

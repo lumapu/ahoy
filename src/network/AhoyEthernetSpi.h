@@ -1,10 +1,8 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://ahoydtu.de
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
-
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
 #if defined(ETHERNET)
 #ifndef __ETH_SPI_H__
 #define __ETH_SPI_H__
@@ -14,23 +12,25 @@
 #include <Arduino.h>
 #include <esp_netif.h>
 #include <WiFiGeneric.h>
-#include <driver/spi_master.h>
+#include "../utils/spiPatcher.h"
 
 // Functions from WiFiGeneric
 void tcpipInit();
 void add_esp_interface_netif(esp_interface_t interface, esp_netif_t* esp_netif);
 
-class EthSpi {
+class AhoyEthernetSpi {
     public:
 
-        EthSpi() :
+        AhoyEthernetSpi() :
             eth_handle(nullptr),
             eth_netif(nullptr) {}
 
         void begin(int8_t pin_miso, int8_t pin_mosi, int8_t pin_sclk, int8_t pin_cs, int8_t pin_int, int8_t pin_rst) {
-            gpio_reset_pin(static_cast<gpio_num_t>(pin_rst));
-            gpio_set_direction(static_cast<gpio_num_t>(pin_rst), GPIO_MODE_OUTPUT);
-            gpio_set_level(static_cast<gpio_num_t>(pin_rst), 0);
+            if(-1 != pin_rst) {
+                gpio_reset_pin(static_cast<gpio_num_t>(pin_rst));
+                gpio_set_direction(static_cast<gpio_num_t>(pin_rst), GPIO_MODE_OUTPUT);
+                gpio_set_level(static_cast<gpio_num_t>(pin_rst), 0);
+            }
 
             gpio_reset_pin(static_cast<gpio_num_t>(pin_sclk));
             gpio_reset_pin(static_cast<gpio_num_t>(pin_mosi));
@@ -44,22 +44,14 @@ class EthSpi {
             gpio_reset_pin(static_cast<gpio_num_t>(pin_int));
             gpio_set_pull_mode(static_cast<gpio_num_t>(pin_int), GPIO_PULLUP_ONLY);
 
-            spi_bus_config_t buscfg = {
-                .mosi_io_num = pin_mosi,
-                .miso_io_num = pin_miso,
-                .sclk_io_num = pin_sclk,
-                .quadwp_io_num = -1,
-                .quadhd_io_num = -1,
-                .data4_io_num = -1,
-                .data5_io_num = -1,
-                .data6_io_num = -1,
-                .data7_io_num = -1,
-                .max_transfer_sz = 0, // uses default value internally
-                .flags = 0,
-                .intr_flags = 0
-            };
+            #if defined(CONFIG_IDF_TARGET_ESP32S3)
+            mHostDevice = SPI3_HOST;
+            #else
+            mHostDevice = (14 == pin_sclk) ? SPI2_HOST : SPI3_HOST;
+            #endif
 
-            ESP_ERROR_CHECK(spi_bus_initialize(SPI3_HOST, &buscfg, SPI_DMA_CH_AUTO));
+            mSpiPatcher = SpiPatcher::getInstance(mHostDevice, false);
+            mSpiPatcher->initBus(pin_mosi, pin_miso, pin_sclk, SPI_DMA_CH_AUTO);
 
             spi_device_interface_config_t devcfg = {
                 .command_bits = 16, // actually address phase
@@ -78,13 +70,14 @@ class EthSpi {
                 .post_cb = nullptr
             };
 
-            spi_device_handle_t spi;
-            ESP_ERROR_CHECK(spi_bus_add_device(SPI3_HOST, &devcfg, &spi));
+            mSpiPatcher->addDevice(mHostDevice, &devcfg, &spi);
 
             // Reset sequence
-            delayMicroseconds(500);
-            gpio_set_level(static_cast<gpio_num_t>(pin_rst), 1);
-            delayMicroseconds(1000);
+            if(-1 != pin_rst) {
+                delayMicroseconds(500);
+                gpio_set_level(static_cast<gpio_num_t>(pin_rst), 1);
+                delayMicroseconds(1000);
+            }
 
             // Arduino function to start networking stack if not already started
             tcpipInit();
@@ -123,10 +116,14 @@ class EthSpi {
         }
 
         String macAddress() {
-            uint8_t mac_addr[6] = {0, 0, 0, 0, 0, 0};
+            uint8_t mac_addr[6];
             esp_eth_ioctl(eth_handle, ETH_CMD_G_MAC_ADDR, mac_addr);
-            char mac_addr_str[24];
-            snprintf(mac_addr_str, sizeof(mac_addr_str), "%02X:%02X:%02X:%02X:%02X:%02X", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+            char mac_addr_str[19];
+            for(uint8_t i = 0; i < 6; i++) {
+                snprintf(&mac_addr_str[i*3], sizeof(mac_addr_str), "%02X", mac_addr[i]);
+                mac_addr_str[i*3+2] = ':';
+            }
+            mac_addr_str[17] = '\0';
             return String(mac_addr_str);
         }
 
@@ -134,8 +131,10 @@ class EthSpi {
     private:
         esp_eth_handle_t eth_handle;
         esp_netif_t *eth_netif;
+        spi_host_device_t mHostDevice;
+        spi_device_handle_t spi;
+        SpiPatcher *mSpiPatcher;
 };
 
 #endif /*__ETH_SPI_H__*/
 #endif /*ETHERNET*/
-#endif /*CONFIG_IDF_TARGET_ESP32S3*/

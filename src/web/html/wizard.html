@@ -4,7 +4,7 @@
         <title>{#NAV_WIZARD}</title>
         {#HTML_HEADER}
     </head>
-    <body>
+    <body onload="init()">
         <div id="wrapper">
             <div class="container d-flex aic jc">
                 <div id="con"></div>
@@ -14,6 +14,166 @@
             var v;
             var found = false;
             var c = document.getElementById("con");
+            var redirIp = "http://192.168.4.1/index"
+
+            /*IF_ESP32*/
+            var pinList = [
+                [255, "{#PIN_OFF}"],
+                [0,  "GPIO0"],
+                [1,  "TX (GPIO1)"],
+                [2,  "GPIO2 (LED)"],
+                [3,  "RX (GPIO3)"],
+                [4,  "GPIO4"],
+                [5,  "GPIO5"],
+                [12, "GPIO12 (HSPI MISO)"],
+                [13, "GPIO13 (HSPI MOSI)"],
+                [14, "GPIO14 (HSPI SCLK)"],
+                [15, "GPIO15"],
+                [16, "GPIO16"],
+                [17, "GPIO17"],
+                [18, "GPIO18 (VSPI SCLK)"],
+                [19, "GPIO19 (VSPI MISO)"],
+                [21, "GPIO21 (SDA)"],
+                [22, "GPIO22 (SCL)"],
+                [23, "GPIO23 (VSPI MOSI)"],
+                [25, "GPIO25"],
+                [26, "GPIO26"],
+                [27, "GPIO27"],
+                [32, "GPIO32"],
+                [33, "GPIO33"],
+                [34, "GPIO34 ({#PIN_INPUT_ONLY})"],
+                [35, "GPIO35 ({#PIN_INPUT_ONLY})"],
+                [36, "VP (GPIO36, {#PIN_INPUT_ONLY})"],
+                [39, "VN (GPIO39, {#PIN_INPUT_ONLY})"]
+            ];
+            /*IF_ESP32-S2*/
+            pinList = [
+                [255, "off / default"],
+                [0,  "GPIO0 ({#PIN_DONT_USE} - BOOT)"],
+                [1,  "GPIO1"],
+                [2,  "GPIO2"],
+                [3,  "GPIO3"],
+                [4,  "GPIO4"],
+                [5,  "GPIO5"],
+                [6,  "GPIO6"],
+                [7,  "GPIO7"],
+                [8,  "GPIO8"],
+                [9,  "GPIO9"],
+                [10, "GPIO10"],
+                [11, "GPIO11"],
+                [12, "GPIO12"],
+                [13, "GPIO13"],
+                [14, "GPIO14"],
+                [15, "GPIO15"],
+                [16, "GPIO16"],
+                [17, "GPIO17"],
+                [18, "GPIO18"],
+                [19, "GPIO19 ({#PIN_DONT_USE} - USB-)"],
+                [20, "GPIO20 ({#PIN_DONT_USE} - USB+)"],
+                [21, "GPIO21"],
+                [26, "GPIO26 (PSRAM - {#PIN_NOT_AVAIL})"],
+                [27, "GPIO27 (FLASH - {#PIN_NOT_AVAIL})"],
+                [28, "GPIO28 (FLASH - {#PIN_NOT_AVAIL})"],
+                [29, "GPIO29 (FLASH - {#PIN_NOT_AVAIL})"],
+                [30, "GPIO30 (FLASH - {#PIN_NOT_AVAIL})"],
+                [31, "GPIO31 (FLASH - {#PIN_NOT_AVAIL})"],
+                [32, "GPIO32 (FLASH - {#PIN_NOT_AVAIL})"],
+                [33, "GPIO33 (not exposed on S3-WROOM modules)"],
+                [34, "GPIO34 (not exposed on S3-WROOM modules)"],
+                [35, "GPIO35"],
+                [36, "GPIO36"],
+                [37, "GPIO37"],
+                [38, "GPIO38"],
+                [39, "GPIO39"],
+                [40, "GPIO40"],
+                [41, "GPIO41"],
+                [42, "GPIO42"],
+                [43, "GPIO43"],
+                [44, "GPIO44"],
+                [45, "GPIO45 ({#PIN_DONT_USE} - STRAPPING PIN)"],
+                [46, "GPIO46 ({#PIN_DONT_USE} - STRAPPING PIN)"],
+                [47, "GPIO47"],
+                [48, "GPIO48"],
+            ];
+            /*ENDIF_ESP32-S2*/
+            /*IF_ESP32-S3*/
+            pinList = [
+                [255, "off / default"],
+                [0,  "GPIO0 ({#PIN_DONT_USE} - BOOT)"],
+                [1,  "GPIO1"],
+                [2,  "GPIO2"],
+                [3,  "GPIO3"],
+                [4,  "GPIO4"],
+                [5,  "GPIO5"],
+                [6,  "GPIO6"],
+                [7,  "GPIO7"],
+                [8,  "GPIO8"],
+                [9,  "GPIO9"],
+                [10, "GPIO10"],
+                [11, "GPIO11"],
+                [12, "GPIO12"],
+                [13, "GPIO13"],
+                [14, "GPIO14"],
+                [15, "GPIO15"],
+                [16, "GPIO16"],
+                [17, "GPIO17"],
+                [18, "GPIO18"],
+                [19, "GPIO19 ({#PIN_DONT_USE} - USB-)"],
+                [20, "GPIO20 ({#PIN_DONT_USE} - USB+)"],
+                [21, "GPIO21"],
+                [26, "GPIO26 (PSRAM - {#PIN_NOT_AVAIL})"],
+                [27, "GPIO27 (FLASH - {#PIN_NOT_AVAIL})"],
+                [28, "GPIO28 (FLASH - {#PIN_NOT_AVAIL})"],
+                [29, "GPIO29 (FLASH - {#PIN_NOT_AVAIL})"],
+                [30, "GPIO30 (FLASH - {#PIN_NOT_AVAIL})"],
+                [31, "GPIO31 (FLASH - {#PIN_NOT_AVAIL})"],
+                [32, "GPIO32 (FLASH - {#PIN_NOT_AVAIL})"],
+                [33, "GPIO33 (not exposed on S3-WROOM modules)"],
+                [34, "GPIO34 (not exposed on S3-WROOM modules)"],
+                [35, "GPIO35"],
+                [36, "GPIO36"],
+                [37, "GPIO37"],
+                [38, "GPIO38"],
+                [39, "GPIO39"],
+                [40, "GPIO40"],
+                [41, "GPIO41"],
+                [42, "GPIO42"],
+                [43, "GPIO43"],
+                [44, "GPIO44"],
+                [45, "GPIO45 ({#PIN_DONT_USE} - STRAPPING PIN)"],
+                [46, "GPIO46 ({#PIN_DONT_USE} - STRAPPING PIN)"],
+                [47, "GPIO47"],
+                [48, "GPIO48"],
+            ];
+            /*ENDIF_ESP32-S3*/
+            /*IF_ESP32-C3*/
+            pinList = [
+                [255, "off / default"],
+                [0,  "GPIO0"],
+                [1,  "GPIO1"],
+                [2,  "GPIO2"],
+                [3,  "GPIO3"],
+                [4,  "GPIO4"],
+                [5,  "GPIO5"],
+                [6,  "GPIO6"],
+                [7,  "GPIO7"],
+                [8,  "GPIO8"],
+                [9,  "GPIO9"],
+                [10, "GPIO10"],
+                [11, "GPIO11"],
+                [12, "GPIO12 (PSRAM/FLASH)"],
+                [13, "GPIO13 (PSRAM/FLASH)"],
+                [14, "GPIO14 (PSRAM/FLASH)"],
+                [15, "GPIO15 (PSRAM/FLASH)"],
+                [16, "GPIO16 (PSRAM/FLASH)"],
+                [17, "GPIO17 (PSRAM/FLASH)"],
+                [18, "GPIO18 ({#PIN_DONT_USE} - USB-)"],
+                [19, "GPIO19 ({#PIN_DONT_USE} - USB+)"],
+                [20, "GPIO20 (RX)"],
+                [21, "GPIO21 (TX)"],
+            ];
+            /*ENDIF_ESP32-C3*/
+            /*ENDIF_ESP32*/
 
             function sect(e1, e2) {
                 return ml("div", {class: "row"}, [
@@ -22,7 +182,36 @@
                 ])
             }
 
-            function wifi() {
+            /*IF_ETHERNET*/
+            var pins = ['cs', 'sclk', 'miso', 'mosi', 'irq', 'reset']
+            function step1(obj) {
+                console.log(obj)
+                lst = []
+                for(p of pins) {
+                    lst.push(
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-12 col-sm-3 my-2"}, p.toUpperCase()),
+                            ml("div", {class: "col-12 col-sm-9"},
+                                sel(p, pinList, obj[p])
+                            )
+                        ])
+                    )
+                }
+                let en = inp("en", null, null, ["cb"], "en", "checkbox");
+                en.checked = obj["en"];
+
+                return sect("{#NETWORK_SETUP}", [
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-8"}, "{#ETH_ENABLE}"),
+                        ml("div", {class: "col-4"}, en)
+                    ]),
+                    ...lst,
+                    ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn", value: "{#BTN_REBOOT}", onclick: () => {saveEth()}}, null))),
+                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {onclick: () => {redirect()}}, "{#STOP_WIZARD}")))
+                ])
+            }
+            /*ENDIF_ETHERNET*/
+            function step1Wifi() {
                 return ml("div", {}, [
                     ml("div", {class: "row my-5"}, ml("div", {class: "col"}, ml("span", {class: "fs-1"}, "{#WELCOME}"))),
                     ml("div", {class: "row"}, ml("div", {class: "col"}, ml("span", {class: "fs-5"}, "{#NETWORK_SETUP}"))),
@@ -30,7 +219,7 @@
                     sect("{#WIFI_MANUAL}", ml("input", {id: "man", type: "text"})),
                     sect("{#WIFI_PASSWORD}", ml("input", {id: "pwd", type: "password"})),
                     ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn", value: "{#BTN_NEXT}", onclick: () => {saveWifi()}}, null))),
-                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/"}, "{#STOP_WIZARD}")))
+                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {onclick: () => {redirect()}}, "{#STOP_WIZARD}")))
                 ])
             }
 
@@ -40,23 +229,35 @@
                     ml("div", {class: "row"}, ml("div", {class: "col"}, ml("span", {class: "fs-5"}, "{#TEST_CONNECTION}"))),
                     sect("{#TRY_TO_CONNECT}", ml("span", {id: "state"}, "{#CONNECTING}")),
                     ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn hide", id: "btn", value: "{#BTN_FINISH}", onclick: () => {redirect()}}, null))),
-                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/"}, "{#STOP_WIZARD}")))
+                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {onclick: () => {redirect()}}, "{#STOP_WIZARD}")))
                 )
-                v = setInterval(() => {getAjax('/api/setup/getip', printIp)}, 2500);
+                v = setInterval(() => {getAjax('/api/setup/getip', printIp)}, 1000);
             }
 
             function redirect() {
-                window.location.replace("http://192.168.4.1/")
+                window.location.replace(redirIp)
             }
 
             function printIp(obj) {
-                if("0.0.0.0" != obj["ip"]) {
+                if("0.0.0.0" != obj.ip) {
                     clearInterval(v)
                     setHide("btn", false)
                     document.getElementById("state").innerHTML = "{#NETWORK_SUCCESS}" + obj.ip
                 }
             }
 
+            /*IF_ETHERNET*/
+            function saveEth() {
+                let o = {
+                    cmd: "save_eth",
+                    en: document.getElementsByName("en")[0].checked
+                }
+                for(p of pins) {
+                    o[p] = document.getElementsByName(p)[0].value
+                }
+                getAjax("/api/setup", ((o) => {}), "POST", JSON.stringify(o));
+            }
+            /*ENDIF_ETHERNET*/
             function saveWifi() {
                 var ssid = document.getElementById("net").value;
                 if(-1 == ssid)
@@ -64,24 +265,36 @@
                 getAjax("/api/setup", ((o) => {if(!o.error) checkWifi()}), "POST", JSON.stringify({cmd: "save_wifi", ssid: ssid, pwd: document.getElementById("pwd").value}));
             }
 
-            function nets(obj) {
-                var e = document.getElementById("net");
-                if(obj.networks.length > 0) {
-                    var a = []
-                    a.push(ml("option", {value: -1}, obj.networks.length + " {#NUM_NETWORKS_FOUND}"))
-                    for(n of obj.networks) {
-                        a.push(ml("option", {value: n.ssid}, n.ssid + " (" + n.rssi + "dBm)"))
-                        found = true;
+            function init() {
+                /*IF_ETHERNET*/
+                getAjax("/api/setup", ((o) => c.append(step1(o.eth))));
+                /*ENDIF_ETHERNET*/
+                function nets(obj) {
+                    clearInterval(v)
+                    v = setInterval(() => {getAjax('/api/setup/networks', nets)}, 4000)
+
+                    if(!obj.success)
+                        return;
+
+                    var e = document.getElementById("net");
+                    if(obj.networks.length > 0) {
+                        var a = []
+                        a.push(ml("option", {value: -1}, obj.networks.length + " {#NUM_NETWORKS_FOUND}"))
+                        for(n of obj.networks) {
+                            a.push(ml("option", {value: n.ssid}, n.ssid + " (" + n.rssi + "dBm)"))
+                            found = true;
+                        }
+                        e.replaceChildren(...a)
                     }
-                    e.replaceChildren(...a)
+
+                    if("0.0.0.0" != obj.ip)
+                        redirIp = "http://" + obj.ip + "/index"
                 }
-                getAjax("/api/setup", ((o) => {}), "POST", JSON.stringify({cmd: "scan_wifi"}));
+
+                c.append(step1Wifi())
+                getAjax('/api/setup/networks', nets)
             }
 
-            getAjax("/api/setup", ((o) => {}), "POST", JSON.stringify({cmd: "scan_wifi"}));
-            c.append(wifi())
-
-            v = setInterval(() => {getAjax('/api/setup/networks', nets)}, 2500);
         </script>
     </body>
 </html>

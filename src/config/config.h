@@ -16,9 +16,8 @@
 //-------------------------------------
 
 // Fallback WiFi Info
-#define FB_WIFI_SSID    "YOUR_WIFI_SSID"
-#define FB_WIFI_PWD     "YOUR_WIFI_PWD"
-
+#define FB_WIFI_SSID    ""
+#define FB_WIFI_PWD     ""
 
 // Access Point Info
 // In case there is no WiFi Network or Ahoy can not connect to it, it will act as an Access Point
@@ -28,6 +27,11 @@
 
 // If the next line is uncommented, Ahoy will stay in access point mode all the time
 //#define AP_ONLY
+#if defined(AP_ONLY)
+    #if defined(ENABLE_MQTT)
+        #undef ENABLE_MQTT
+    #endif
+#endif
 
 // timeout for automatic logoff (20 minutes)
 #define LOGOUT_TIMEOUT      (20 * 60)
@@ -76,6 +80,9 @@
     #endif
     #ifndef DEF_ETH_CS_PIN
         #define DEF_ETH_CS_PIN      15
+    #endif
+    #ifndef DEF_ETH_RST_PIN
+        #define DEF_ETH_RST_PIN     DEF_PIN_OFF
     #endif
 #else /* defined(ETHERNET) */
 // time in seconds how long the station info (ssid + pwd) will be tried
@@ -142,7 +149,7 @@
     #ifndef DEF_MOTION_SENSOR_PIN
         #define DEF_MOTION_SENSOR_PIN   DEF_PIN_OFF
     #endif
-#else
+#else // ESP8266
     #ifndef DEF_NRF_CS_PIN
         #define DEF_NRF_CS_PIN          15
     #endif

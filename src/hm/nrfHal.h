@@ -9,18 +9,15 @@
 #pragma once
 
 #include "../utils/spiPatcher.h"
-
 #include <esp_rom_gpio.h>
-#include <RF24_hal.h>
+#include <RF24.h>
 
 #define NRF_MAX_TRANSFER_SZ 64
 #define NRF_DEFAULT_SPI_SPEED 10000000 // 10 MHz
 
 class nrfHal: public RF24_hal, public SpiPatcherHandle {
     public:
-        nrfHal() {
-            mSpiPatcher = SpiPatcher::getInstance(SPI2_HOST);
-        }
+        nrfHal() {}
 
         void patch() override {
             esp_rom_gpio_connect_out_signal(mPinMosi, spi_periph_signal[mHostDevice].spid_out, false, false);
@@ -42,7 +39,13 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
             mPinEn = static_cast<gpio_num_t>(en);
             mSpiSpeed = speed;
 
-            mHostDevice = mSpiPatcher->getDevice();
+            #if defined(CONFIG_IDF_TARGET_ESP32S3)
+            mHostDevice = SPI2_HOST;
+            #else
+            mHostDevice = (14 == sclk) ? SPI2_HOST : SPI_HOST_OTHER;
+            #endif
+
+            mSpiPatcher = SpiPatcher::getInstance(mHostDevice);
 
             gpio_reset_pin(mPinMosi);
             gpio_set_direction(mPinMosi, GPIO_MODE_OUTPUT);
@@ -56,6 +59,7 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
             gpio_set_level(mPinClk, 0);
 
             gpio_reset_pin(mPinCs);
+            request_spi();
             spi_device_interface_config_t devcfg = {
                 .command_bits = 0,
                 .address_bits = 0,
@@ -72,13 +76,13 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
                 .pre_cb = nullptr,
                 .post_cb = nullptr
             };
-            ESP_ERROR_CHECK(spi_bus_add_device(mHostDevice, &devcfg, &spi));
+            mSpiPatcher->addDevice(mHostDevice, &devcfg, &spi);
+            release_spi();
 
             gpio_reset_pin(mPinEn);
             gpio_set_direction(mPinEn, GPIO_MODE_OUTPUT);
             gpio_set_level(mPinEn, 0);
         }
-
 
         bool begin() override {
             return true;

@@ -7,7 +7,7 @@
 #define __HMS_RADIO_H__
 
 #include "cmt2300a.h"
-#include "../hm/radio.h"
+#include "../hm/Radio.h"
 
 //#define CMT_SWITCH_CHANNEL_CYCLE    5
 
@@ -15,25 +15,34 @@ template<uint32_t DTU_SN = 0x81001765>
 class CmtRadio : public Radio {
     typedef Cmt2300a CmtType;
     public:
-        void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb, uint8_t region = 0, bool genDtuSn = true) {
-            mCmt.setup(pinSclk, pinSdio, pinCsb, pinFcsb);
-            reset(genDtuSn, static_cast<RegionCfg>(region));
+        void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, cfgCmt_t *cfg, uint8_t region = 0, bool genDtuSn = true) {
+            mCfg = cfg;
+
+            if(!cfg->enabled)
+                return;
+
             mPrivacyMode = privacyMode;
             mSerialDebug = serialDebug;
             mPrintWholeTrace = printWholeTrace;
             mTxBuf.fill(0);
+
+            mCmt.setup(cfg->pinSclk, cfg->pinSdio, cfg->pinCsb, cfg->pinFcsb);
+            reset(genDtuSn, static_cast<RegionCfg>(region));
         }
 
-        bool loop() override {
+        void loop() override {
+            if(!mCfg->enabled)
+                return;
+
             mCmt.loop();
             if((!mIrqRcvd) && (!mRqstGetRx))
-                return false;
+                return;
             getRx();
             if(CmtStatus::SUCCESS == mCmt.goRx()) {
                 mIrqRcvd   = false;
                 mRqstGetRx = false;
             }
-            return false;
+            return;
         }
 
         bool isChipConnected(void) const override {
@@ -41,6 +50,9 @@ class CmtRadio : public Radio {
         }
 
         void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) override {
+            if(!mCfg->enabled)
+                return;
+
             DPRINT(DBG_INFO, F("sendControlPacket cmd: "));
             DBGHEXLN(cmd);
             initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
@@ -59,6 +71,9 @@ class CmtRadio : public Radio {
         }
 
         bool switchFrequency(Inverter<> *iv, uint32_t fromkHz, uint32_t tokHz) override {
+            if(!isChipConnected())
+                return false;
+
             uint8_t fromCh = mCmt.freq2Chan(fromkHz);
             uint8_t toCh = mCmt.freq2Chan(tokHz);
 
@@ -67,6 +82,8 @@ class CmtRadio : public Radio {
 
         bool switchFrequencyCh(Inverter<> *iv, uint8_t fromCh, uint8_t toCh) override {
             if((0xff == fromCh) || (0xff == toCh))
+                return false;
+            if(!isChipConnected())
                 return false;
 
             mCmt.switchChannel(fromCh);
@@ -183,11 +200,12 @@ class CmtRadio : public Radio {
 
             if(p.packet[9] > ALL_FRAMES) { // indicates last frame
                 setExpectedFrames(p.packet[9] - ALL_FRAMES);
-                mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first get back to rx mode?
+                mRadioWaitTime.startTimeMonitor(2); // let the inverter first get back to rx mode?
             }
         }
 
         CmtType mCmt;
+        cfgCmt_t *mCfg = nullptr;
         bool mCmtAvail = false;
         bool mRqstGetRx = false;
         uint32_t mMillis = 0;

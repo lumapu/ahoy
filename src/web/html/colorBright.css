@@ -12,6 +12,7 @@
 
     --nav-bg: #333;
     --primary: #006ec0;
+    --primary-disabled: #ccc;
     --primary-hover: #044e86;
     --secondary: #0072c8;
     --nav-active: #555;
@@ -30,4 +31,8 @@
     --ch-head-bg: #006ec0;
     --ts-head: #333;
     --ts-bg: #555;
+
+    --chart-cont: #fbfbfb;
+    --chart-bg: #f9f9f9;
+    --chart-text: #000000;
 }

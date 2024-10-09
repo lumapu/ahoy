@@ -35,14 +35,21 @@ namespace ah {
                 mMax        = 0;
                 mPrevMillis = millis();
                 mTsMillis   = mPrevMillis % 1000;
+                mFastTicker = false;
                 resetTicker();
             }
 
             virtual void loop(void) {
                 mMillis = millis();
                 mDiff = mMillis - mPrevMillis;
-                if (mDiff < 1000)
+                if (mDiff < 1000) {
+                    if (mFastTicker) {
+                        mDiffSeconds = 0;
+                        checkTicker();
+                        mFastTicker = false;
+                    }
                     return;
+                }
 
                 mDiffSeconds = 1;
                 if (mDiff < 2000)
@@ -125,8 +132,10 @@ namespace ah {
                         mTicker[i].timeout = timeout;
                         mTicker[i].reload = reload;
                         mTicker[i].isTimestamp = isTimestamp;
-                        memset(mTicker[i].name, 0, 6);
-                        strncpy(mTicker[i].name, name, (strlen(name) < 6) ? strlen(name) : 5);
+                        strncpy(mTicker[i].name, name, 5);
+                        mTicker[i].name[5]=0;
+                        if (timeout == 0 && reload == false)
+                            mFastTicker = true;
                         if(mMax == i)
                             mMax = i + 1;
                         return i;
@@ -162,6 +171,7 @@ namespace ah {
             uint32_t mMillis = 0, mPrevMillis = 0, mDiff = 0;
             uint8_t mDiffSeconds = 0;
             uint8_t mMax = 0;
+            bool mFastTicker;
     };
 }
 
