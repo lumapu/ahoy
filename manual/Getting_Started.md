@@ -199,6 +199,15 @@ This information suits you if you just want to use an easy way.
 
 1. download the flash-tool [nodemcu-pyflasher](https://github.com/marcelstoer/nodemcu-pyflasher)
 2. download latest release bin-file from [ahoy_](https://github.com/grindylow/ahoy/releases)
+
+
+|       FW Tag/Feature       | MqTT  | Display | History/Verlauf | Prometheus |
+|--------------------|-------|---------|-----------------|------------|
+| esp8266            | X     | -       | -               | -          |
+| esp8266-all        | X     | X       | X               | -          |
+| esp8266-minimal    | -     | -       | -               | -          |
+| esp8266-prometheus | X     | X       | X               | X          |
+
 3. open flash-tool and connect the target device to your computer.
 4. Set the correct serial port and select the correct *.bin file
 5. click on "Flash NodeMCU"
