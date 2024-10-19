@@ -14,15 +14,17 @@ const char dayShortNames_P[] PROGMEM = STR_DAYNAME_3_CHAR_LIST;
 
 namespace ah {
     void ip2Arr(uint8_t ip[], const char *ipStr) {
-        uint8_t p = 1;
         memset(ip, 0, 4);
-        for(uint8_t i = 0; i < 16; i++) {
-            if(ipStr[i] == 0)
-                return;
-            if(0 == i)
-                ip[0] = atoi(ipStr);
-            else if(ipStr[i] == '.')
-                ip[p++] = atoi(&ipStr[i+1]);
+        uint8_t p = 0;
+        const char *start = ipStr;
+
+        for (uint8_t i = 0; i < 4; i++) {
+            ip[i] = (uint8_t)strtol(start, (char**)&start, 10);
+            if (*start == '.') {
+                start++;
+            } else if (*start == '\0') {
+                break;
+            }
         }
     }
 
