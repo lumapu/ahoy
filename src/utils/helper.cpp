@@ -6,6 +6,7 @@
 #include "helper.h"
 #include "dbg.h"
 #include "../plugins/plugin_lang.h"
+#include <cmath>
 
 #define dt_SHORT_STR_LEN_i18n  3 // the length of short strings
 static char buffer_i18n[dt_SHORT_STR_LEN_i18n + 1];  // must be big enough for longest string and the terminating null
@@ -37,11 +38,15 @@ namespace ah {
     }
 
     double round1(double value) {
-        return (int)(value * 10 + 0.5) / 10.0;
+        return round(value * 10) / 10.0;
+    }
+
+    double round2(double value) {
+        return round(value * 100) / 100.0;
     }
 
     double round3(double value) {
-        return (int)(value * 1000 + 0.5) / 1000.0;
+        return round(value * 1000) / 1000.0;
     }
 
     String getDateTimeStr(time_t t) {
