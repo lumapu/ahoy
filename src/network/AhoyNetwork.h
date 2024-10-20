@@ -246,22 +246,38 @@ class AhoyNetwork {
             mUdp.write(buf, NTP_PACKET_SIZE);
         }
 
+        /**
+         * @brief Handles an incoming NTP packet and extracts the time.
+         *
+         * This function processes an NTP packet received via UDP. It checks if the packet
+         * is of valid length, extracts the NTP timestamp, and invokes a callback with the
+         * extracted time. If the packet is too small to contain valid NTP data, it signals
+         * an error via the callback.
+         *
+         * @param packet The received UDP packet containing NTP data.
+         */
         void handleNTPPacket(AsyncUDPPacket packet) {
-            char buf[80];
+            if (packet.length() < 48) {
+                // Paket ist zu klein, um gültige NTP-Daten zu enthalten
+                mOnTimeCB(0); // Signalisiert Fehler
+                return;
+            }
 
+            uint8_t buf[48];
             memcpy(buf, packet.data(), sizeof(buf));
 
             unsigned long highWord = word(buf[40], buf[41]);
             unsigned long lowWord = word(buf[42], buf[43]);
 
-            // combine the four bytes (two words) into a long integer
-            // this is NTP time (seconds since Jan 1 1900):
+            // Kombinieren der vier Bytes (zwei Wörter) zu einem langen Integer
+            // Dies ist die NTP-Zeit (Sekunden seit dem 1. Jan 1900):
             unsigned long secsSince1900 = highWord << 16 | lowWord;
 
             mUdp.close();
-            mNtpTimeoutSec = 0; // clear timeout
+            mNtpTimeoutSec = 0; // Timeout zurücksetzen
             mOnTimeCB(secsSince1900 - 2208988800UL);
         }
+
 
     protected:
         enum class NetworkState : uint8_t {
