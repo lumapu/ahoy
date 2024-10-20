@@ -57,81 +57,127 @@ class powermeter {
         return true;
     }
 
-    /** loop
-     * Arbeitsschleife
-     * @param void
-     * @returns void
-     * @todo emergency
+    /**
+     * @brief Main loop function for processing power meter data and publishing to MQTT.
+     *
+     * This function performs the following tasks:
+     * - Checks if the interval since the last execution is sufficient.
+     * - Updates the timestamp of the last execution.
+     * - Checks if the MQTT connection is active.
+     * - Iterates through all configured power meter groups.
+     * - For each group, checks if it is enabled and not in sleep mode.
+     * - Avoids unnecessary calculations if the refresh interval has not passed.
+     * - Depending on the power meter type, retrieves the current power consumption.
+     * - Writes the power data to a buffer and updates the group's power value.
+     * - If MQTT is connected, publishes the power data to the MQTT broker.
+     *
+     * @note This function assumes that the following macros and functions are defined:
+     * - ZEROEXPORT_DEBUG
+     * - ZEROEXPORT_MAX_GROUPS
+     * - ZEROEXPORT_POWERMETER_SHELLY
+     * - ZEROEXPORT_POWERMETER_TASMOTA
+     * - ZEROEXPORT_POWERMETER_HICHI
+     * - ZEROEXPORT_POWERMETER_TIBBER
+     * - ZEROEXPORT_POWERMETER_SHRDZM
+     * - millis()
+     * - DBGPRINTLN()
+     * - getPowermeterWattsShelly()
+     * - getPowermeterWattsTasmota()
+     * - getPowermeterWattsHichi()
+     * - getPowermeterWattsTibber()
+     * - getPowermeterWattsShrdzm()
+     * - bufferWrite()
+     * - ah::round1()
+     *
+     * @param void No parameters.
+     * @return void No return value.
      */
     void loop(void) {
-        if (millis() - mPreviousTsp <= 1000) return;  // skip when it is to fast
-        mPreviousTsp = millis();
+        constexpr uint32_t interval = 1000;  // Konstante für das Intervall
+        constexpr uint8_t bufferSize = 5;    // Puffergröße
+
+        uint32_t currentMillis = millis();   // Einmal die aktuelle Zeit abrufen
+        if (currentMillis - mPreviousTsp <= interval) return;  // Bei zu kurzem Intervall überspringen
+        mPreviousTsp = currentMillis;
 
         #ifdef ZEROEXPORT_DEBUG
             if (mCfg->debug) DBGPRINTLN(F("pm Takt:"));
-        #endif /*ZEROEXPORT_DEBUG*/
+        #endif
 
-        bool result = false;
-        float power = 0.0;
+        // Überprüfen, ob die MQTT-Verbindung einmalig aktiv ist
+        const bool mqttConnected = mMqtt->isConnected();
 
-        for (u_short group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-            if ((!mCfg->groups[group].enabled) || (mCfg->groups[group].sleep)) continue;
+        char topic[64];     // Puffer für das Topic
+        char payload[16];   // Puffer für das Payload
 
-            if ((millis() - mCfg->groups[group].pm_peviousTsp) < ((uint16_t)mCfg->groups[group].pm_refresh * 1000)) continue;
-            mCfg->groups[group].pm_peviousTsp = millis();
+        for (u_short group = 0; group < ZEROEXPORT_MAX_GROUPS; ++group) {
+            auto& groupCfg = mCfg->groups[group];
+            if (!groupCfg.enabled || groupCfg.sleep) continue;
+
+            // Optimierung: Berechnungen vermeiden, wenn keine Aktualisierung nötig ist
+            uint32_t refreshInterval = static_cast<uint32_t>(groupCfg.pm_refresh) * interval;
+            if (currentMillis - groupCfg.pm_peviousTsp < refreshInterval) continue;
+            groupCfg.pm_peviousTsp = currentMillis;
 
             #ifdef ZEROEXPORT_DEBUG
                 if (mCfg->debug) DBGPRINTLN(F("pm Do:"));
-            #endif /*ZEROEXPORT_DEBUG*/
+            #endif
 
-            result = false;
-            power = 0.0;
+            bool result = false;
+            float power = 0.0;
 
-            switch (mCfg->groups[group].pm_type) {
-#if defined(ZEROEXPORT_POWERMETER_SHELLY)
+            // Verwenden von `switch-case`, um abhängig vom Powermeter-Typ zu entscheiden
+            switch (groupCfg.pm_type) {
+    #if defined(ZEROEXPORT_POWERMETER_SHELLY)
                 case zeroExportPowermeterType_t::Shelly:
                     result = getPowermeterWattsShelly(group, &power);
                     break;
-#endif
-#if defined(ZEROEXPORT_POWERMETER_TASMOTA)
+    #endif
+    #if defined(ZEROEXPORT_POWERMETER_TASMOTA)
                 case zeroExportPowermeterType_t::Tasmota:
                     result = getPowermeterWattsTasmota(*mLog, group, &power);
                     break;
-#endif
-#if defined(ZEROEXPORT_POWERMETER_HICHI)
+    #endif
+    #if defined(ZEROEXPORT_POWERMETER_HICHI)
                 case zeroExportPowermeterType_t::Hichi:
                     result = getPowermeterWattsHichi(*mLog, group, &power);
                     break;
-#endif
-#if defined(ZEROEXPORT_POWERMETER_TIBBER)
+    #endif
+    #if defined(ZEROEXPORT_POWERMETER_TIBBER)
                 /*  Anscheinend nutzt bei mir Tibber auch diese Freq.
                     862.75 MHz - keine Verbindung
                     863.00 MHz - geht (standard) jedoch hat Tibber dann Probleme... => 4 & 5 Balken
                     863.25 MHz - geht (ohne Tibber Probleme) => 3 & 4 Balken
                 */
                 case zeroExportPowermeterType_t::Tibber:
-                    if (mCfg->groups[group].pm_refresh < 3) mCfg->groups[group].pm_refresh = 3;
+                    // Mindestens 3 Sekunden Refresh für Tibber
+                    if (groupCfg.pm_refresh < 3) groupCfg.pm_refresh = 3;
                     result = getPowermeterWattsTibber(group, &power);
                     break;
-#endif
-#if defined(ZEROEXPORT_POWERMETER_SHRDZM)
+    #endif
+    #if defined(ZEROEXPORT_POWERMETER_SHRDZM)
                 case zeroExportPowermeterType_t::Shrdzm:
                     result = getPowermeterWattsShrdzm(group, &power);
                     break;
-#endif
+    #endif
+                default:
+                    continue;  // Ungültiger Powermeter-Typ, überspringen
             }
 
             if (result) {
-                bufferWrite(power, group);
-                mCfg->groups[group].power = power;
+                bufferWrite(power, group);  // Power in den Puffer schreiben
+                groupCfg.power = power;     // Aktualisiere die Gruppenleistung
 
-                // MQTT - Powermeter
-                if (mMqtt->isConnected()) {
-                    mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), String(ah::round1(power)).c_str(), false);
+                // Nur wenn MQTT verbunden ist, eine Nachricht senden
+                if (mqttConnected) {
+                    snprintf(topic, sizeof(topic), "zero/state/groups/%d/powermeter/P", group);
+                    snprintf(payload, sizeof(payload), "%.1f", ah::round1(power));
+                    mMqtt->publish(topic, payload, false);
                 }
             }
         }
     }
+
 
     /** getDataAVG
      * Holt die Daten vom Powermeter
