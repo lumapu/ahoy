@@ -16,7 +16,6 @@ const char dayShortNames_P[] PROGMEM = STR_DAYNAME_3_CHAR_LIST;
 namespace ah {
     void ip2Arr(uint8_t ip[], const char *ipStr) {
         memset(ip, 0, 4);
-        uint8_t p = 0;
         const char *start = ipStr;
 
         for (uint8_t i = 0; i < 4; i++) {
