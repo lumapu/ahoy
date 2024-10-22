@@ -9,7 +9,7 @@ import socket
 import logging
 from datetime import datetime, timezone
 from hoymiles.decoders import StatusResponse, HardwareInfoResponse
-from hoymiles import HOYMILES_TRANSACTION_LOGGING, HOYMILES_DEBUG_LOGGING
+from hoymiles import HOYMILES_TRANSACTION_LOGGING, HOYMILES_VERBOSE_LOGGING
 
 class OutputPluginFactory:
     def __init__(self, **params):
@@ -22,7 +22,7 @@ class OutputPluginFactory:
         :type inverter_name: str
         """
 
-        self.inverter_ser = params.get('inverter_ser', '')
+        self.inverter_ser  = params.get('inverter_ser', '')
         self.inverter_name = params.get('inverter_name', None)
 
     def store_status(self, response, **params):
@@ -64,7 +64,7 @@ class InfluxOutputPlugin(OutputPluginFactory):
             print(ErrorText1, ErrorText2)
             logging.error(ErrorText1)
             logging.error(ErrorText2)
-            exit()
+            exit(1)
 
         self._bucket = params.get('bucket', 'hoymiles/autogen')
         self._org = params.get('org', '')
@@ -72,12 +72,15 @@ class InfluxOutputPlugin(OutputPluginFactory):
 
         with InfluxDBClient(url, token, bucket=self._bucket) as self.client:
              self.api = self.client.write_api()
+             if HOYMILES_VERBOSE_LOGGING:
+                logging.info(f"Influx: connect to DB {url} initialized")
 
     def disco(self, **params):
         self.client.close()          # Shutdown the client
         return
 
-    def store_status(self, response, **params):
+    # def store_status(self, response, **params):
+    def store_status(self, data, **params):
         """
         Publish StatusResponse object
 
@@ -89,10 +92,12 @@ class InfluxOutputPlugin(OutputPluginFactory):
         :raises ValueError: when response is not instance of StatusResponse
         """
 
-        if not isinstance(response, StatusResponse):
-            raise ValueError('Data needs to be instance of StatusResponse')
+        # if not isinstance(response, StatusResponse):
+        #    raise ValueError('Data needs to be instance of StatusResponse')
+        if not 'phases' in data or not 'strings' in data:
+           raise ValueError('DICT need key "inverter_ser" and "inverter_name"')
 
-        data = response.__dict__()
+        # data = response.__dict__()     # convert response-parameter into python-dict
 
         measurement = self._measurement + f',location={data["inverter_ser"]}'
 
@@ -108,7 +113,7 @@ class InfluxOutputPlugin(OutputPluginFactory):
         # InfluxDB requires nanoseconds
         ctime = int(utctime.timestamp() * 1e9)
 
-        if HOYMILES_DEBUG_LOGGING:
+        if HOYMILES_VERBOSE_LOGGING:
             logging.info(f'InfluxDB: utctime: {utctime}')
 
         # AC Data
@@ -144,8 +149,8 @@ class InfluxOutputPlugin(OutputPluginFactory):
             data_stack.append(f'{measurement},type=YieldToday value={data["yield_today"]/1000:.3f} {ctime}')
         data_stack.append(f'{measurement},type=Efficiency value={data["efficiency"]:.2f} {ctime}')
 
-        if HOYMILES_DEBUG_LOGGING:
-            #logging.debug(f'INFLUX data to DB: {data_stack}')
+        if HOYMILES_VERBOSE_LOGGING:
+            logging.debug(f'INFLUX data to DB: {data_stack}')
             pass
         self.api.write(self._bucket, self._org, data_stack)
 
@@ -153,7 +158,7 @@ class MqttOutputPlugin(OutputPluginFactory):
     """ Mqtt output plugin """
     client = None
 
-    def __init__(self, config, **params):
+    def __init__(self, config, cb_message, **params):
         """
         Initialize MqttOutputPlugin
 
@@ -177,33 +182,50 @@ class MqttOutputPlugin(OutputPluginFactory):
         super().__init__(**params)
 
         try:
-            import paho.mqtt.client
+            import paho.mqtt.client as mqtt
         except ModuleNotFoundError:
             ErrorText1 = f'Module "paho.mqtt.client" for MQTT-output necessary.'
             ErrorText2 = f'Install module with command: python3 -m pip install paho-mqtt'
             print(ErrorText1, ErrorText2)
             logging.error(ErrorText1)
             logging.error(ErrorText2)
-            exit()
+            exit(1)
 
-        mqtt_client = paho.mqtt.client.Client()
+        # For paho-mqtt 2.0.0, you need to set callback_api_version.
+        # self.client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION1)
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+
         if config.get('useTLS',False):
-           mqtt_client.tls_set()
-           mqtt_client.tls_insecure_set(config.get('insecureTLS',False))
-        mqtt_client.username_pw_set(config.get('user', None), config.get('password', None))
+           self.client.tls_set()
+           self.client.tls_insecure_set(config.get('insecureTLS',False))
+        self.client.username_pw_set(config.get('user', None), config.get('password', None))
 
         last_will = config.get('last_will', None)
         if last_will:
             lw_topic = last_will.get('topic', 'last will hoymiles')
             lw_payload = last_will.get('payload', 'last will')
-            mqtt_client.will_set(str(lw_topic), str(lw_payload))
+            self.client.will_set(str(lw_topic), str(lw_payload))
 
-        mqtt_client.connect(config.get('host', '127.0.0.1'), config.get('port', 1883))
-        mqtt_client.loop_start()
+        self.client.connect(config.get('host', '127.0.0.1'), config.get('port', 1883))
+        self.client.loop_start()
 
-        self.client = mqtt_client
         self.qos = config.get('QoS', 0)         # Quality of Service
         self.ret = config.get('Retain', True)   # Retain Message
+
+        # connect own (PAHO) callback functions
+        self.client.on_connect = self.mqtt_on_connect
+        self.client.on_message = cb_message
+
+    # MQTT(PAHO) callcack method to inform about connection to mqtt broker
+    def mqtt_on_connect(self, client, userdata, flags, reason_code, properties):
+        if flags.session_present:
+           logging.info("flags.session_present")
+        if reason_code == 0:                                   # success connect
+           if HOYMILES_VERBOSE_LOGGING:
+              logging.info(f"MQTT: Connected to Broker: {self.client.host}:{self.client.port} as user {self.client.username}")
+        if reason_code > 0:                                    # error processing
+           logging.error(f'Connect failed: {reason_code}')     # error message
+
 
     def disco(self, **params):
         self.client.loop_stop()    # Stop loop 
@@ -212,10 +234,11 @@ class MqttOutputPlugin(OutputPluginFactory):
 
     def info2mqtt(self, mqtt_topic, mqtt_data):
         for mqtt_key in mqtt_data:
-            self.client.publish(f'{mqtt_topic["topic"]}/{mqtt_key}', mqtt_data[mqtt_key], self.qos, self.ret)
+            self.client.publish(f'{mqtt_topic}/{mqtt_key}', mqtt_data[mqtt_key], self.qos, self.ret)
         return
 
-    def store_status(self, response, **params):
+    # def store_status(self, response, **params):
+    def store_status(self, data, **params):
         """
         Publish StatusResponse object
 
@@ -226,20 +249,20 @@ class MqttOutputPlugin(OutputPluginFactory):
         :raises ValueError: when response is not instance of StatusResponse
         """
 
-        data = response.__dict__()
+        # data = response.__dict__()       # convert response-parameter into python-dict
 
         if data is None:
-            logging.warn("received data object is empty")
+            logging.warn("OUTPUT-MQTT: received data object is empty")
             return
 
-        topic = params.get('topic', None)
-        if not topic:
-            topic = f'{data.get("inverter_name", "hoymiles")}/{data.get("inverter_ser", None)}'
+        topic = f'{data.get("inverter_name", "hoymiles")}/{data.get("inverter_ser", None)}'
 
-        if HOYMILES_DEBUG_LOGGING:
-            logging.info(f'MQTT-topic: {topic} data-type: {type(response)}')
+        if HOYMILES_TRANSACTION_LOGGING:
+           logging.info(f'MQTT topic  : {topic}')
+           logging.info(f'MQTT payload: {data}')
 
-        if isinstance(response, StatusResponse):
+        # if isinstance(response, StatusResponse):
+        if 'phases' in data and 'strings' in data:
 
             # Global Head
             if data['time'] is not None:
@@ -290,38 +313,35 @@ class MqttOutputPlugin(OutputPluginFactory):
                 self.client.publish(f'{topic}/Efficiency', data['efficiency'], self.qos, self.ret)
 
 
-        elif isinstance(response, HardwareInfoResponse):
-            if data["FW_ver_maj"] is not None and data["FW_ver_min"] is not None and data["FW_ver_pat"] is not None:
-                self.client.publish(f'{topic}/Firmware/Version',\
-                    f'{data["FW_ver_maj"]}.{data["FW_ver_min"]}.{data["FW_ver_pat"]}', self.qos, self.ret)
+        # elif isinstance(response, HardwareInfoResponse):
+        elif 'FW_ver_maj' in data and 'FW_ver_min' in data and 'FW_ver_pat' in data:
+            payload = f'{data["FW_ver_maj"]}.{data["FW_ver_min"]}.{data["FW_ver_pat"]}'
+            self.client.publish(f'{topic}/Firmware/Version', payload , self.qos, self.ret)
 
-            if data["FW_build_dd"] is not None and data["FW_build_mm"] is not None and data["FW_build_yy"] is not None and data["FW_build_HH"] is not None and data["FW_build_MM"] is not None:
-                self.client.publish(f'{topic}/Firmware/Build_at',\
-                    f'{data["FW_build_dd"]}/{data["FW_build_mm"]}/{data["FW_build_yy"]}T{data["FW_build_HH"]}:{data["FW_build_MM"]}',\
-                    self.qos, self.ret)
+            payload = f'{data["FW_build_dd"]}/{data["FW_build_mm"]}/{data["FW_build_yy"]}T{data["FW_build_HH"]}:{data["FW_build_MM"]}'
+            self.client.publish(f'{topic}/Firmware/Build_at', payload, self.qos, self.ret)
 
-            if data["FW_HW_ID"] is not None:
-                self.client.publish(f'{topic}/Firmware/HWPartId',\
-                    f'{data["FW_HW_ID"]}', self.qos, self.ret)
+            payload = f'{data["FW_HW_ID"]}'
+            self.client.publish(f'{topic}/Firmware/Build_at', payload, self.qos, self.ret)
 
         else:
              raise ValueError('Data needs to be instance of StatusResponse or a instance of HardwareInfoResponse')
 
 class VzInverterOutput:
-    def __init__(self, config, session):
-        self.session = session
-        self.serial = config.get('serial')
-        self.baseurl = config.get('url', 'http://localhost/middleware/')
+    def __init__(self, vz_inverter_config, session):
+        self.session  = session
+        self.serial   = vz_inverter_config.get('serial')
+        self.baseurl  = vz_inverter_config.get('url', 'http://localhost/middleware/')
         self.channels = dict()
 
-        for channel in config.get('channels', []):
-            uid = channel.get('uid', None)
+        for channel in vz_inverter_config.get('channels', []):
             ctype = channel.get('type')
+            uid   = channel.get('uid', None)
             # if uid and ctype:
             if ctype:
                 self.channels[ctype] = uid
 
-    def store_status(self, data, session):
+    def store_status(self, data):
         """
         Publish StatusResponse object
 
@@ -329,63 +349,74 @@ class VzInverterOutput:
 
         :raises ValueError: when response is not instance of StatusResponse
         """
+
         if len(self.channels) == 0:
-            return
+           logging.debug('no channels configured - no data to send')
+           return
 
         ts = int(round(data['time'].timestamp() * 1000))
 
-        if HOYMILES_DEBUG_LOGGING:
-            logging.info(f'Volkszaehler-Timestamp: {ts}')
-
         # AC Data
         phase_id = 0
-        for phase in data['phases']:
-            self.try_publish(ts, f'ac_voltage{phase_id}', phase['voltage'])
-            self.try_publish(ts, f'ac_current{phase_id}', phase['current'])
-            self.try_publish(ts, f'ac_power{phase_id}', phase['power'])
+        if 'phases' in data:
+          for phase in data['phases']:
+            self.try_publish(ts, f'ac_voltage{phase_id}',        phase['voltage'])
+            self.try_publish(ts, f'ac_current{phase_id}',        phase['current'])
+            self.try_publish(ts, f'ac_power{phase_id}',          phase['power'])
             self.try_publish(ts, f'ac_reactive_power{phase_id}', phase['reactive_power'])
-            self.try_publish(ts, f'ac_frequency{phase_id}', phase['frequency'])
+            self.try_publish(ts, f'ac_frequency{phase_id}',      phase['frequency'])
             phase_id = phase_id + 1
 
         # DC Data
         string_id = 0
-        for string in data['strings']:
-            self.try_publish(ts, f'dc_voltage{string_id}', string['voltage'])
-            self.try_publish(ts, f'dc_current{string_id}', string['current'])
-            self.try_publish(ts, f'dc_power{string_id}', string['power'])
+        if 'strings' in data:
+          for string in data['strings']:
+            self.try_publish(ts, f'dc_voltage{string_id}',      string['voltage'])
+            self.try_publish(ts, f'dc_current{string_id}',      string['current'])
+            self.try_publish(ts, f'dc_power{string_id}',        string['power'])
             self.try_publish(ts, f'dc_energy_daily{string_id}', string['energy_daily'])
             self.try_publish(ts, f'dc_energy_total{string_id}', string['energy_total'])
-            self.try_publish(ts, f'dc_irradiation{string_id}', string['irradiation'])
+            self.try_publish(ts, f'dc_irradiation{string_id}',  string['irradiation'])
             string_id = string_id + 1
 
         # Global
-        if data['event_count'] is not None:
+        if 'event_count' in data:
             self.try_publish(ts, f'event_count', data['event_count'])
-        if data['powerfactor'] is not None:
+        if 'powerfactor' in data:
             self.try_publish(ts, f'powerfactor', data['powerfactor'])
-        self.try_publish(ts, f'temperature', data['temperature'])
-        if data['yield_total'] is not None:
+        if 'temperature' in data:
+            self.try_publish(ts, f'temperature', data['temperature'])
+        if 'yield_total' in data:
             self.try_publish(ts, f'yield_total', data['yield_total'])
-        if data['yield_today'] is not None:
+        if 'yield_today' in data:
             self.try_publish(ts, f'yield_today', data['yield_today'])
-        self.try_publish(ts, f'efficiency', data['efficiency'])
+        if 'efficiency' in data:
+            self.try_publish(ts, f'efficiency',  data['efficiency'])
+
+        # eBZ = elektronischer Basiszähler (Stromzähler)
+        if '1_8_0' in data:
+            self.try_publish(ts, f'eBZ-import', data['1_8_0'])
+        if '2_8_0' in data:
+            self.try_publish(ts, f'eBZ-export', data['2_8_0'])
+        if '16_7_0' in data:
+            self.try_publish(ts, f'eBZ-power',  data['16_7_0'])
+
         return
 
     def try_publish(self, ts, ctype, value):
         if not ctype in self.channels:
-            if HOYMILES_DEBUG_LOGGING:
-                logging.warning(f'ctype \"{ctype}\" not found in ahoy.yml')
+            logging.debug(f'ctype \"{ctype}\" not found in ahoy.yml')
             return
 
         uid = self.channels[ctype]
         url = f'{self.baseurl}/data/{uid}.json?operation=add&ts={ts}&value={value}'
         if uid == None:
-            if HOYMILES_DEBUG_LOGGING:
-                logging.debug(f'ctype \"{ctype}\" has no configured uid-value in ahoy.yml')
+            logging.debug(f'ctype \"{ctype}\" has no configured uid-value in ahoy.yml')
             return
 
-        if HOYMILES_DEBUG_LOGGING:
-            logging.debug(f'VZ-url: {url}')
+        # if HOYMILES_VERBOSE_LOGGING:
+        if HOYMILES_TRANSACTION_LOGGING:
+            logging.info(f'VZ-url: {url}')
 
         try:
             r = self.session.get(url)
@@ -400,36 +431,44 @@ class VzInverterOutput:
         return
 
 class VolkszaehlerOutputPlugin(OutputPluginFactory):
-    def __init__(self, config, **params):
+    def __init__(self, vz_config, **params):
         """
-        Initialize VolkszaehlerOutputPlugin
+        Initialize VolkszaehlerOutputPlugin with VZ-config
+
+        Python Requests Module:
+        Make a request to a web page, and print the response text
+        https://requests.readthedocs.io/en/latest/user/advanced/
         """
         super().__init__(**params)
 
         try:
             import requests
-            import time
         except ModuleNotFoundError:
-            ErrorText1 = f'Module "requests" and "time" for VolkszaehlerOutputPlugin necessary.'
+            # ErrorText1 = f'Module "requests" and "time" for VolkszaehlerOutputPlugin necessary.'
+            ErrorText1 = f'Module "requests" for VolkszaehlerOutputPlugin necessary.'
             ErrorText2 = f'Install module with command: python3 -m pip install requests'
             print(ErrorText1, ErrorText2)
             logging.error(ErrorText1)
             logging.error(ErrorText2)
             exit(1)
 
+        # The Session object allows you to persist certain parameters across requests.
         self.session = requests.Session()
 
-        self.inverters = dict()
-        for inverterconfig in config.get('inverters', []):
-            serial = inverterconfig.get('serial')
-            output = VzInverterOutput(inverterconfig, self.session)
-            self.inverters[serial] = output
+        self.vz_inverters = dict()
+        for inverter_in_vz_config in vz_config.get('inverters', []):
+            url    = inverter_in_vz_config.get('url')
+            serial = inverter_in_vz_config.get('serial')
+            # create class object with parameter "inverter_in_vz_config" and "requests.Session" object
+            self.vz_inverters[serial] = VzInverterOutput(inverter_in_vz_config, self.session)
+            if HOYMILES_VERBOSE_LOGGING:
+               logging.info(f"Volkszaehler: init connection object to host: {url}/{serial}")
 
     def disco(self, **params):
         self.session.close()            # closing the connection
         return
 
-    def store_status(self, response, **params):
+    def store_status(self, data, **params):
         """
         Publish StatusResponse object
 
@@ -437,20 +476,44 @@ class VolkszaehlerOutputPlugin(OutputPluginFactory):
 
         :raises ValueError: when response is not instance of StatusResponse
         """
+  
+        if len(self.vz_inverters) == 0:     # check list of inverters
+           logging.error('VolkszaehlerOutputPlugin:store_status: No inverters configured')
+           return
 
-        # check decoder object for output
-        if not isinstance(response, StatusResponse):
-            raise ValueError('Data needs to be instance of StatusResponse')
+        # prep variables for output
+        if 'phases' in data and 'strings' in data:
+           serial = data["inverter_ser"]    # extract "inverter-serial-number" from "response-data"
 
-        if len(self.inverters) == 0:
+        elif 'Time' in data:
+            __data = dict()        # create empty dict
+            for key in data:
+                if key == "Time":
+                   __data['time'] = datetime.strptime(data[key], '%Y-%m-%dT%H:%M:%S')
+                elif isinstance(data[key], dict):
+                   __data |= {'key' : key}
+                   __data |= data[key]
+
+            if not 'key' in __data:
+               raise ValueError(f"no 'key' in data - no output is sent: {__data}")
+               return
+
+            data = __data
+            if HOYMILES_VERBOSE_LOGGING:
+               # eBZ = elektronischer Basiszähler (Stromzähler)
+               serial = data['96_1_0'] 
+               logging.info(f"{data['key']}: {serial}" 
+                            f" - import:{data['1_8_0']:>8} kWh"
+                            f" - export:{data['2_8_0']:>5} kWh"
+                            f" - power:{data['16_7_0']:>8} W")
+        else:
+            raise ValueError(f"Unknown instance type - no output is sent: {data}")
             return
 
-        data = response.__dict__()
-        serial = data["inverter_ser"]
-        if serial in self.inverters:
-            output = self.inverters[serial]
-            try:
-                output.store_status(data, self.session)
-            except ValueError as e:
-                logging.warning('Could not send data to volkszaehler instance: %s' % e)
-        return
+        if serial in self.vz_inverters:      # check, if inverter-serial-number in list of vz_inverters
+           try:
+              # call method VzInverterOutput.store_status with parameter "data"
+              self.vz_inverters[serial].store_status(data)
+           except ValueError as e:
+              logging.warning('Could not send data to volkszaehler instance: %s' % e)
+
