@@ -218,6 +218,10 @@ void app::onNtpUpdate(uint32_t utcTimestamp) {
         mTimestamp = utcTimestamp;
         DPRINTLN(DBG_INFO, "[NTP]: " + ah::getDateTimeStr(mTimestamp) + " UTC");
 
+        CEST.offset = mConfig->sys.timezone * 60 + 1;
+        CET.offset = mConfig->sys.timezone * 60;
+        gTimezone.setRules(CEST, CET);
+
         uint32_t localTime = gTimezone.toLocal(mTimestamp);
         uint32_t midTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
         resetTickerByName("midNi");
