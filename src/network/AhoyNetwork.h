@@ -13,6 +13,9 @@
 #include "AsyncJson.h"
 #include <lwip/dns.h>
 
+#include <vector>
+#include <algorithm>
+
 #define NTP_PACKET_SIZE 48
 class AhoyNetwork {
     public:
@@ -91,6 +94,7 @@ class AhoyNetwork {
 
             ip_addr_t ipaddr;
             mNtpIp = WiFi.gatewayIP();
+
             // dns_gethostbyname runs asynchronous and sets the member mNtpIp which is then checked on
             // next call of updateNtpTime
             err_t err = dns_gethostbyname(mConfig->ntp.addr, &ipaddr, dnsCallback, this);
@@ -102,14 +106,19 @@ class AhoyNetwork {
                 mNtpIp = ipaddr.addr;
                 #endif
                 startNtpUpdate();
-            }
+            } else if (err != ERR_INPROGRESS) {
+            // Handle DNS error (other than ERR_INPROGRESS)
+            DPRINTLN(DBG_ERROR, F("DNS lookup failed"));
+            mOnTimeCB(0); // Signal failure
         }
+    }
 
     protected:
         void startNtpUpdate() {
             DPRINTLN(DBG_INFO, F("get time from: ") + mNtpIp.toString());
             if (!mUdp.connected()) {
                 if (!mUdp.connect(mNtpIp, mConfig->ntp.port)) {
+                    DPRINTLN(DBG_ERROR, F("UDP connection failed"));
                     mOnTimeCB(0);
                     return;
                 }
@@ -224,14 +233,29 @@ class AhoyNetwork {
             }
         }
 
-        void sortRSSI(int *sort, int n) {
-            for (int i = 0; i < n; i++)
-                sort[i] = i;
-            for (int i = 0; i < n; i++)
-                for (int j = i + 1; j < n; j++)
-                    if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
-                        std::swap(sort[i], sort[j]);
+    /**
+     * @brief Sorts the indices of WiFi networks based on their RSSI values in descending order.
+     *
+     * This function takes an array of integers and its size, and sorts the array such that
+     * the indices correspond to WiFi networks sorted by their RSSI values from highest to lowest.
+     *
+     * @param sort Pointer to an array of integers where the sorted indices will be stored.
+     * @param n The number of WiFi networks (size of the array).
+     */
+    void sortRSSI(int *sort, int n) {
+        std::vector<int> indices(n);
+        for (int i = 0; i < n; ++i) {
+            indices[i] = i;
         }
+
+        std::sort(indices.begin(), indices.end(), [](int a, int b) {
+            return WiFi.RSSI(a) > WiFi.RSSI(b);
+        });
+
+        for (int i = 0; i < n; ++i) {
+            sort[i] = indices[i];
+        }
+    }
 
     protected:
         void sendNTPpacket(void) {
@@ -246,13 +270,21 @@ class AhoyNetwork {
             mUdp.write(buf, NTP_PACKET_SIZE);
         }
 
+        /**
+         * @brief Handles an incoming NTP packet and extracts the time.
+         *
+         * This function processes an NTP packet received via UDP. It checks if the packet
+         * is of valid length, extracts the NTP timestamp, and invokes a callback with the
+         * extracted time. If the packet is too small to contain valid NTP data, it signals
+         * an error via the callback.
+         *
+         * @param packet The received UDP packet containing NTP data.
+         */
         void handleNTPPacket(AsyncUDPPacket packet) {
-            char buf[80];
+            const uint8_t* data = packet.data();
 
-            memcpy(buf, packet.data(), sizeof(buf));
-
-            unsigned long highWord = word(buf[40], buf[41]);
-            unsigned long lowWord = word(buf[42], buf[43]);
+            unsigned long highWord = word(data[40], data[41]);
+            unsigned long lowWord = word(data[42], data[43]);
 
             // combine the four bytes (two words) into a long integer
             // this is NTP time (seconds since Jan 1 1900):

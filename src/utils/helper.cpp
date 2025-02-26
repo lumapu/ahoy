@@ -6,6 +6,7 @@
 #include "helper.h"
 #include "dbg.h"
 #include "../plugins/plugin_lang.h"
+#include <cmath>
 
 #define dt_SHORT_STR_LEN_i18n  3 // the length of short strings
 static char buffer_i18n[dt_SHORT_STR_LEN_i18n + 1];  // must be big enough for longest string and the terminating null
@@ -14,15 +15,16 @@ const char dayShortNames_P[] PROGMEM = STR_DAYNAME_3_CHAR_LIST;
 
 namespace ah {
     void ip2Arr(uint8_t ip[], const char *ipStr) {
-        uint8_t p = 1;
         memset(ip, 0, 4);
-        for(uint8_t i = 0; i < 16; i++) {
-            if(ipStr[i] == 0)
-                return;
-            if(0 == i)
-                ip[0] = atoi(ipStr);
-            else if(ipStr[i] == '.')
-                ip[p++] = atoi(&ipStr[i+1]);
+        const char *start = ipStr;
+
+        for (uint8_t i = 0; i < 4; i++) {
+            ip[i] = (uint8_t)strtol(start, (char**)&start, 10);
+            if (*start == '.') {
+                start++;
+            } else if (*start == '\0') {
+                break;
+            }
         }
     }
 
@@ -35,11 +37,15 @@ namespace ah {
     }
 
     double round1(double value) {
-        return (int)(value * 10 + 0.5) / 10.0;
+        return round(value * 10) / 10.0;
+    }
+
+    double round2(double value) {
+        return round(value * 100) / 100.0;
     }
 
     double round3(double value) {
-        return (int)(value * 1000 + 0.5) / 1000.0;
+        return round(value * 1000) / 1000.0;
     }
 
     String getDateTimeStr(time_t t) {
