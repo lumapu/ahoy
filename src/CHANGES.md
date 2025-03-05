@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.153 - 2025-03-05
+* added update warning once 0.9.x should be installed -> not possible using OTA because of changed partition layout
+* improved CMT communication
+
 ## 0.8.152 - 2024-10-07
 * patching MqTT library to prevent raise conditions while using semaphores
 * update ESP32 espressif platform to `0.6.9`

@@ -1334,6 +1334,11 @@
                     "de": "Die ausgew&auml;hlte Firmware passt u.U. nicht zum Chipsatz!"
                 },
                 {
+                    "token": "ERROR_UPGRADE_NOT_POSSIBLE",
+                    "en": "OTA updade to version 0.9.x not possible, partition layout changed",
+                    "de": "Aktualisierung auf Version 0.9.x nicht per Update m&ouml;glich (Partition Layout ge&auml;ndert), bitte per Websinstaller neu installieren"
+                },
+                {
                     "token": "CONTIUE",
                     "en": "continue",
                     "de": "fortfahren"

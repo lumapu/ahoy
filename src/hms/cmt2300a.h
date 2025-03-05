@@ -168,8 +168,13 @@ enum class CmtStatus : uint8_t {
 #define CMT2300A_MASK_PKT_OK_FLG        0x01
 
 class Cmt2300a {
+    private: /*types*/
+        static constexpr uint8_t CmtTimeoutMs = 40;
+
     public:
-        Cmt2300a() {}
+        Cmt2300a()
+            : lastMillis {0}
+        {}
 
         void setup(uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb) {
             mSpi.init(pinSdio, pinSclk, pinCsb, pinFcsb);
@@ -182,6 +187,7 @@ class Cmt2300a {
                 if(CMT2300A_MASK_TX_DONE_FLG == mSpi.readReg(CMT2300A_CUS_INT_CLR1)) {
                     if(cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY)) {
                         mTxPending = false;
+                        lastMillis = 0;
                         goRx();
                     }
                 }
@@ -226,9 +232,6 @@ class Cmt2300a {
         }
 
         CmtStatus getRx(uint8_t buf[], uint8_t *rxLen, uint8_t maxlen, int8_t *rssi) {
-            if(mTxPending)
-                return CmtStatus::ERR_TX_PENDING;
-
             if(0x1b != (mSpi.readReg(CMT2300A_CUS_INT_FLAG) & 0x1b))
                 return CmtStatus::FIFO_EMPTY;
 
@@ -252,8 +255,19 @@ class Cmt2300a {
         }
 
         CmtStatus tx(uint8_t buf[], uint8_t len) {
-            if(mTxPending)
-                return CmtStatus::ERR_TX_PENDING;
+            if(mTxPending) {
+                if(CmtTimeoutMs < (millis() - lastMillis)) {
+                    DPRINT(DBG_ERROR, "CMT, last TX timeout: ");
+                    DBGPRINT(String(millis() - lastMillis));
+                    DBGPRINTLN("ms");
+                }
+
+                while(mTxPending && (CmtTimeoutMs > (millis() - lastMillis))) {
+                    vTaskDelay(10);
+                }
+                mTxPending = false;
+                goRx();
+            }
 
             if(mInRxMode) {
                 mInRxMode = false;
@@ -284,6 +298,7 @@ class Cmt2300a {
 
             if(!cmtSwitchStatus(CMT2300A_GO_TX, CMT2300A_STA_TX))
                 return CmtStatus::ERR_SWITCH_STATE;
+            lastMillis = millis();
 
             // wait for tx done
             mTxPending = true;
@@ -560,6 +575,8 @@ class Cmt2300a {
         uint8_t mCusIntFlag = 0;
         uint8_t mRqstCh = 0, mCurCh = 0;
         RegionCfg mRegionCfg = RegionCfg::EUROPE;
+
+        uint32_t lastMillis;
 };
 
 #endif /*__CMT2300A_H__*/
