@@ -208,8 +208,11 @@
                 if(obj.rssi > -127) {
                     if(obj.generation < 2)
                         ageInfo += " (RSSI: " + ((obj.rssi == -64) ? "&gt;=" : "&lt;") + " -64&nbsp;dBm)";
-                    else
+                    else {
+                        if(obj.rssi == 0)
+                            obj.rssi = "--";
                         ageInfo += " (RSSI: " + obj.rssi + "&nbsp;dBm)";
+                    }
                 }
 
                 return ml("div", {class: "mb-5"}, [

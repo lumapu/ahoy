@@ -50,7 +50,9 @@
             }
 
             function hide() {
-                var bin = document.getElementsByName("update")[0].value.slice(-env.length-4, -4)
+                let fw = document.getElementsByName("update")[0].value
+                var bin = fw.slice(-env.length-4, -4)
+                let ver = fw.split("_")[2].split(".")
                 if (bin !== env) {
                     var html = ml("div", {class: "row"}, [
                         ml("div", {class: "row my-3"}, "{#WARN_DIFF_ENV}"),
@@ -60,8 +62,20 @@
                         ])
                     ])
                     modal("{#UPDATE_MODAL}", html)
-                } else
-                    start()
+                } else {
+                    if(ver[1] != "9")
+                        start()
+                    else {
+                        var html = ml("div", {class: "row"}, [
+                            ml("div", {class: "row my-3"}, "{#ERROR_UPGRADE_NOT_POSSIBLE}"),
+                            ml("div", {class: "row"}, [
+                                ml("div", {class: "col-6"}, ml("input", {type: "button", class: "btn", value: "{#CANCEL}", onclick: function() { modalClose(); }}, null))
+                            ])
+                        ])
+                        modal("{#UPDATE_MODAL}", html)
+                    }
+                }
+
             }
 
             function start() {

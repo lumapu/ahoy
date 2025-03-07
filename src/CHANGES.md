@@ -1,4 +1,4 @@
-Changelog v0.8.154
+Changelog v0.8.155
 
 * fix display IP in ePaper display (ETH or WiFi, static or DHCP)
 * fix German translation

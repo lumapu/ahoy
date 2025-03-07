@@ -339,6 +339,7 @@ p {
     .fs-sm-8 { font-size: 1rem; }
 
     .d-sm-block { display: block !important;}
+    .d-sm-cell { display: table-cell !important;}
     .d-sm-none { display: none !important; }
 }
 

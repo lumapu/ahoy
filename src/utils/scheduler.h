@@ -73,25 +73,32 @@ namespace ah {
 
             }
 
-            void once(scdCb c, uint32_t timeout, const char *name)     { addTicker(c, timeout, 0, false, name); }
-            void onceAt(scdCb c, uint32_t timestamp, const char *name) { addTicker(c, timestamp, 0, true, name); }
-            uint8_t every(scdCb c, uint32_t interval, const char *name){ return addTicker(c, interval, interval, false, name); }
+            uint8_t once(scdCb c, uint32_t timeout, const char *name)     { return addTicker(c, timeout, 0, false, name); }
+            uint8_t onceAt(scdCb c, uint32_t timestamp, const char *name) { return addTicker(c, timestamp, 0, true, name); }
+            uint8_t every(scdCb c, uint32_t interval, const char *name)   { return addTicker(c, interval, interval, false, name); }
 
-            void everySec(scdCb c, const char *name)  { every(c, SCD_SEC, name);  }
-            void everyMin(scdCb c, const char *name)  { every(c, SCD_MIN, name);  }
-            void everyHour(scdCb c, const char *name) { every(c, SCD_HOUR, name); }
-            void every12h(scdCb c, const char *name)  { every(c, SCD_12H, name);  }
-            void everyDay(scdCb c, const char *name)  { every(c, SCD_DAY, name);  }
+            uint8_t everySec(scdCb c, const char *name)  { return every(c, SCD_SEC, name); }
+            uint8_t everyMin(scdCb c, const char *name)  { return every(c, SCD_MIN, name); }
+            uint8_t everyHour(scdCb c, const char *name) { return every(c, SCD_HOUR, name); }
+            uint8_t every12h(scdCb c, const char *name)  { return every(c, SCD_12H, name); }
+            uint8_t everyDay(scdCb c, const char *name)  { return every(c, SCD_DAY, name); }
 
             virtual void setTimestamp(uint32_t ts) {
                 mTimestamp = ts;
             }
 
-            bool resetEveryById(uint8_t id) {
-                if (mTickerInUse[id] == false)
-                    return false;
-                mTicker[id].timeout = mTicker[id].reload;
-                return true;
+            bool resetTickerByName(const char* name) {
+                for (uint8_t id = 0; id < MAX_NUM_TICKER; id++) {
+                    if (mTickerInUse[id]) {
+                        if(strncmp(name, mTicker[id].name, strlen(name)) == 0) {
+                            mTicker[id].timeout = mTicker[id].reload;
+                            mTickerInUse[id] = false;
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
             }
 
             uint32_t getUptime(void) {

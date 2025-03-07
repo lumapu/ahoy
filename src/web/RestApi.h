@@ -7,11 +7,6 @@
 #define __WEB_API_H__
 
 #include "../utils/dbg.h"
-#ifdef ESP32
-#include "AsyncTCP.h"
-#else
-#include "ESPAsyncTCP.h"
-#endif
 #include "../appInterface.h"
 #include "../hm/hmSystem.h"
 #include "../utils/helper.h"
@@ -674,15 +669,15 @@ class RestApi {
             // find oldest alarm
             uint8_t offset = 0;
             uint32_t oldestStart = 0xffffffff;
-            for(uint8_t i = 0; i < 10; i++) {
+            for(uint8_t i = 0; i < Inverter<>::MaxAlarmNum; i++) {
                 if((iv->lastAlarm[i].start != 0) && (iv->lastAlarm[i].start < oldestStart)) {
                     offset = i;
                     oldestStart = iv->lastAlarm[i].start;
                 }
             }
 
-            for(uint8_t i = 0; i < 10; i++) {
-                uint8_t pos = (i + offset) % 10;
+            for(uint8_t i = 0; i < Inverter<>::MaxAlarmNum; i++) {
+                uint8_t pos = (i + offset) % Inverter<>::MaxAlarmNum;
                 alarm[pos][F("code")]  = iv->lastAlarm[pos].code;
                 alarm[pos][F("str")]   = iv->getAlarmStr(iv->lastAlarm[pos].code);
                 alarm[pos][F("start")] = iv->lastAlarm[pos].start;
@@ -822,7 +817,9 @@ class RestApi {
         void getChipInfo(JsonObject obj) {
             obj[F("cpu_freq")]     = ESP.getCpuFreqMHz();
             obj[F("sdk")]          = ESP.getSdkVersion();
+
             #if defined(ESP32)
+                obj[F("temp_sensor_c")] = ah::readTemperature();
                 obj[F("revision")] = ESP.getChipRevision();
                 obj[F("model")]    = ESP.getChipModel();
                 obj[F("cores")]    = ESP.getChipCores();
@@ -1134,6 +1131,11 @@ class RestApi {
                 iv->setDevCommand(jsonIn[F("val")].as<int>());
             } else if(F("restart_ahoy") == jsonIn[F("cmd")]) {
                 mApp->setRebootFlag();
+            } else if(F("cmt_search") == jsonIn[F("cmd")]) {
+                if(!mApp->cmtSearch(jsonIn[F("id")], jsonIn[F("to_ch")])) {
+                    jsonOut[F("error")] = F("ERR_INVERTER_NOT_FOUND");
+                    return false;
+                }
             } else {
                 jsonOut[F("error")] = F("ERR_UNKNOWN_CMD");
                 return false;

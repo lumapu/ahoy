@@ -1,7 +1,6 @@
 #include "Display_ePaper.h"
 
 #if defined(ESP32)
-#include <WiFi.h>
 #include "../../utils/helper.h"
 #include "imagedata.h"
 #include "defines.h"
@@ -13,7 +12,9 @@ static const uint32_t spiClk = 4000000;  // 4 MHz
 SPIClass hspi(HSPI);
 #endif
 
-DisplayEPaper::DisplayEPaper() {
+DisplayEPaper::DisplayEPaper()
+    : mNetworkConnected {false}
+{
     mDisplayRotation = 2;
     mHeadFootPadding = 16;
     memset(_fmtText, 0, EPAPER_MAX_TEXT_LEN);
@@ -122,8 +123,8 @@ void DisplayEPaper::headlineIP() {
     _display->fillScreen(GxEPD_BLACK);
 
     do {
-        if ((WiFi.isConnected() == true) && (WiFi.localIP() > 0)) {
-            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "%s", WiFi.localIP().toString().c_str());
+        if (mNetworkConnected == true) {
+            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "%s", _settedIP.c_str());
         } else {
             snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, STR_NO_WIFI);
         }
@@ -289,14 +290,15 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
     } while (_display->nextPage());
 }
 //***************************************************************************
-void DisplayEPaper::loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
+void DisplayEPaper::loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod, String ip, bool networkConnected) {
+    mNetworkConnected = networkConnected;
     if(RefreshStatus::DONE != mRefreshState)
         return;
 
     // check if the IP has changed
-    if (_settedIP != WiFi.localIP().toString()) {
+    if (_settedIP != ip) {
         // save the new IP and call the Headline Function to adapt the Headline
-        _settedIP = WiFi.localIP().toString();
+        _settedIP = ip;
         headlineIP();
     }
 

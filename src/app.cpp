@@ -13,7 +13,11 @@
 
 
 //-----------------------------------------------------------------------------
-app::app() : ah::Scheduler {} {
+app::app()
+    : ah::Scheduler {}
+    , mSunrise {0}
+    , mSunset  {0}
+{
     memset(mVersion, 0, sizeof(char) * 12);
     memset(mVersionModules, 0, sizeof(char) * 12);
 }
@@ -51,7 +55,7 @@ void app::setup() {
     #else
         mNetwork = static_cast<AhoyNetwork*>(new AhoyWifi());
     #endif
-    mNetwork->setup(mConfig, &mTimestamp, [this](bool gotIp) { this->onNetwork(gotIp); }, [this](bool gotTime) { this->onNtpUpdate(gotTime); });
+    mNetwork->setup(mConfig, [this](bool gotIp) { this->onNetwork(gotIp); }, [this](uint32_t gotTime) { this->onNtpUpdate(gotTime); });
     mNetwork->begin();
 
     esp_task_wdt_reset();
@@ -78,7 +82,7 @@ void app::setup() {
     mMqttEnabled = (mConfig->mqtt.broker[0] > 0);
     if (mMqttEnabled) {
         mMqtt.setup(this, &mConfig->mqtt, mConfig->sys.deviceName, mVersion, &mSys, &mTimestamp, &mUptime);
-        mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
+        mMqtt.setSubscriptionCb([this](JsonObject obj) { mqttSubRxCb(obj); });
         mCommunication.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
     }
     #endif
@@ -148,99 +152,88 @@ void app::loop(void) {
 }
 
 //-----------------------------------------------------------------------------
-void app::onNetwork(bool gotIp) {
-    mNetworkConnected = gotIp;
-    if(gotIp) {
-        ah::Scheduler::resetTicker();
-        regularTickers(); //reinstall regular tickers
-        every(std::bind(&app::tickSend, this), mConfig->inst.sendInterval, "tSend");
-        mTickerInstallOnce = true;
-        mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
-        once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
+void app::onNetwork(bool connected) {
+    mNetworkConnected = connected;
+    #if defined(ENABLE_MQTT)
+    if (mMqttEnabled) {
+        resetTickerByName("mqttS");
+        resetTickerByName("mqttM");
+    }
+    #endif
+
+    if(connected) {
+        mNetwork->updateNtpTime();
+
+        resetTickerByName("tSend");
+        every([this]() { tickSend(); }, mConfig->inst.sendInterval, "tSend");
+
+        #if defined(ENABLE_MQTT)
+        if (mMqttEnabled) {
+            everySec([this]() { mMqtt.tickerSecond(); }, "mqttS");
+            everyMin([this]() { mMqtt.tickerMinute(); }, "mqttM");
+        }
+        #endif /*ENABLE_MQTT*/
     }
 }
 
 //-----------------------------------------------------------------------------
 void app::regularTickers(void) {
     DPRINTLN(DBG_DEBUG, F("regularTickers"));
-    everySec(std::bind(&WebType::tickSecond, &mWeb), "webSc");
+    everySec([this]() { mWeb.tickSecond(); }, "webSc");
     everySec([this]() { mProtection->tickSecond(); }, "prot");
-    everySec([this]() {mNetwork->tickNetworkLoop(); }, "net");
+    everySec([this]() { mNetwork->tickNetworkLoop(); }, "net");
 
-    if(mConfig->inst.startWithoutTime && !mNetworkConnected)
-        every(std::bind(&app::tickSend, this), mConfig->inst.sendInterval, "tSend");
+    if(mConfig->inst.startWithoutTime)
+        every([this]() { tickSend(); }, mConfig->inst.sendInterval, "tSend");
+
+
+    every([this]() { mNetwork->updateNtpTime(); }, mConfig->ntp.interval * 60, "ntp");
+
+    if (mConfig->inst.rstValsNotAvail)
+        everyMin([this]() { tickMinute(); }, "tMin");
 
     // Plugins
     #if defined(PLUGIN_DISPLAY)
     if (DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
-        everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
+        everySec([this]() { mDisplay.tickerSecond(); }, "disp");
     #endif
-    every(std::bind(&PubSerialType::tick, &mPubSerial), 5, "uart");
+    every([this]() { mPubSerial.tick(); }, 5, "uart");
     //everySec([this]() { mImprov.tickSerial(); }, "impro");
 
     #if defined(ENABLE_HISTORY)
-    everySec(std::bind(&HistoryType::tickerSecond, &mHistory), "hist");
+    everySec([this]() { mHistory.tickerSecond(); }, "hist");
     #endif /*ENABLE_HISTORY*/
 
     #if defined(ENABLE_SIMULATOR)
-    every(std::bind(&SimulatorType::tick, &mSimulator), 5, "sim");
+    every([this]() {mSimulator->tick(); }, 5, "sim");
     #endif /*ENABLE_SIMULATOR*/
 }
 
 //-----------------------------------------------------------------------------
-void app::onNtpUpdate(bool gotTime) {
-    mNtpReceived = true;
-    if ((0 == mSunrise) && (0.0 != mConfig->sun.lat) && (0.0 != mConfig->sun.lon)) {
-        mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
-        tickCalcSunrise();
-    }
+void app::onNtpUpdate(uint32_t utcTimestamp) {
+    if(0 == utcTimestamp) {
+        // try again in 5s
+        once([this]() { mNetwork->updateNtpTime(); }, 5, "ntp");
+    } else {
+        mTimestamp = utcTimestamp;
+        DPRINTLN(DBG_INFO, "[NTP]: " + ah::getDateTimeStr(mTimestamp) + " UTC");
 
-    if (mTickerInstallOnce) {
-        mTickerInstallOnce = false;
-        #if defined(ENABLE_MQTT)
-        if (mMqttEnabled) {
-            mMqtt.tickerSecond();
-            everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt), "mqttS");
-            everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt), "mqttM");
+        uint32_t localTime = gTimezone.toLocal(mTimestamp);
+        uint32_t midTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
+        resetTickerByName("midNi");
+        onceAt([this]() { tickMidnight(); }, midTrig, "midNi");
+
+        if (mConfig->sys.schedReboot) {
+            uint32_t rebootTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86410);  // reboot 10 secs after midnght
+            resetTickerByName("midRe");
+            onceAt([this]() { tickReboot(); }, rebootTrig, "midRe");
         }
-        #endif /*ENABLE_MQTT*/
 
-        if (mConfig->inst.rstValsNotAvail)
-            everyMin(std::bind(&app::tickMinute, this), "tMin");
-
-        if(mNtpReceived) {
-            uint32_t localTime = gTimezone.toLocal(mTimestamp);
-            uint32_t midTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
-            onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
-
-            if (mConfig->sys.schedReboot) {
-                uint32_t rebootTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86410);  // reboot 10 secs after midnght
-                onceAt(std::bind(&app::tickReboot, this), rebootTrig, "midRe");
-            }
+        if ((0 == mSunrise) && (0.0 != mConfig->sun.lat) && (0.0 != mConfig->sun.lon)) {
+            mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
+            tickCalcSunrise();
         }
     }
-}
-
-//-----------------------------------------------------------------------------
-void app::updateNtp(void) {
-    if(mNtpReceived)
-        onNtpUpdate(true);
-}
-
-//-----------------------------------------------------------------------------
-void app::tickNtpUpdate(void) {
-    uint32_t nxtTrig = 5;  // default: check again in 5 sec
-
-    if (!mNtpReceived)
-        mNetwork->updateNtpTime();
-    else {
-        nxtTrig = mConfig->ntp.interval * 60;  // check again in configured interval
-        mNtpReceived = false;
-    }
-
-    updateNtp();
-
-    once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
 }
 
 //-----------------------------------------------------------------------------
@@ -254,11 +247,11 @@ void app::tickCalcSunrise(void) {
     tickIVCommunication();
 
     uint32_t nxtTrig = mSunset + mConfig->sun.offsetSecEvening + 60;    // set next trigger to communication stop, +60 for safety that it is certain past communication stop
-    onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig, "Sunri");
+    onceAt([this]() { tickCalcSunrise(); }, nxtTrig, "Sunri");
     if (mMqttEnabled) {
         tickSun();
         nxtTrig = mSunrise + mConfig->sun.offsetSecMorning + 1;         // one second safety to trigger correctly
-        onceAt(std::bind(&app::tickSunrise, this), nxtTrig, "mqSr");    // trigger on sunrise to update 'dis_night_comm'
+        onceAt([this]() { tickSunrise(); }, nxtTrig, "mqSr");    // trigger on sunrise to update 'dis_night_comm'
     }
 }
 
@@ -296,10 +289,10 @@ void app::tickIVCommunication(void) {
     }
 
     if(restartTick) // at least one inverter
-        onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig, "ivCom");
+        onceAt([this]() { tickIVCommunication(); }, nxtTrig, "ivCom");
 
     if (zeroValues) // at least one inverter
-        once(std::bind(&app::tickZeroValues, this), mConfig->inst.sendInterval, "tZero");
+        once([this]() { tickZeroValues(); }, mConfig->inst.sendInterval, "tZero");
 }
 
 //-----------------------------------------------------------------------------
@@ -307,7 +300,7 @@ void app::tickSun(void) {
     // only used and enabled by MQTT (see setup())
     #if defined(ENABLE_MQTT)
     if (!mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSecMorning, mConfig->sun.offsetSecEvening))
-        once(std::bind(&app::tickSun, this), 1, "mqSun");  // MQTT not connected, retry
+        once([this]() { tickSun(); }, 1, "mqSun");  // MQTT not connected, retry
     #endif
 }
 
@@ -316,7 +309,7 @@ void app::tickSunrise(void) {
     // only used and enabled by MQTT (see setup())
     #if defined(ENABLE_MQTT)
     if (!mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSecMorning, mConfig->sun.offsetSecEvening, true))
-        once(std::bind(&app::tickSun, this), 1, "mqSun");  // MQTT not connected, retry
+        once([this]() { tickSun(); }, 1, "mqSun");  // MQTT not connected, retry
     #endif
 }
 
@@ -344,7 +337,8 @@ void app::tickMinute(void) {
 void app::tickMidnight(void) {
     uint32_t localTime = gTimezone.toLocal(mTimestamp);
     uint32_t nxtTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
-    onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
+    resetTickerByName("midNi");
+    onceAt([this]() { tickMidnight(); }, nxtTrig, "midNi");
 
     Inverter<> *iv;
     for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
@@ -387,7 +381,7 @@ void app::tickSend(void) {
     }
 
     if(mAllIvNotAvail != notAvail)
-        once(std::bind(&app::notAvailChanged, this), 1, "avail");
+        once([this]() { notAvailChanged(); }, 1, "avail");
     mAllIvNotAvail = notAvail;
 
     updateLed();
@@ -524,9 +518,6 @@ void app::resetSystem(void) {
 
     mAllIvNotAvail = true;
 
-    mSunrise = 0;
-    mSunset  = 0;
-
     mMqttEnabled = false;
 
     mSendLastIvId = 0;
@@ -535,8 +526,6 @@ void app::resetSystem(void) {
     mSaveReboot = false;
 
     mNetworkConnected = false;
-    mNtpReceived = false;
-    mTickerInstallOnce = false;
 }
 
 //-----------------------------------------------------------------------------

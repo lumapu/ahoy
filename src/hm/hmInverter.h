@@ -116,6 +116,13 @@ const calcFunc_t<T> calcFunctions[] = {
 
 template <class REC_TYP>
 class Inverter {
+    public: /*types*/
+        #if defined(ESP32)
+            constexpr static uint8_t MaxAlarmNum = 50;
+        #else
+            constexpr static uint8_t MaxAlarmNum = 10;
+        #endif
+
     public:
         uint8_t       ivGen = IV_UNKNOWN;                   // generation of inverter (HM / MI)
         uint8_t       ivRadioType = INV_RADIO_TYPE_UNKNOWN; // refers to used radio (nRF24 / CMT)
@@ -135,7 +142,7 @@ class Inverter {
         record_t<REC_TYP> recordConfig;                     // structure for system config values
         record_t<REC_TYP> recordAlarm;                      // structure for alarm values
         InverterStatus status = InverterStatus::OFF;        // indicates the current inverter status
-        std::array<alarm_t, 10> lastAlarm;                  // holds last 10 alarms
+        std::array<alarm_t, MaxAlarmNum> lastAlarm;         // holds last x alarms
         int8_t        rssi = 0;                             // RSSI
         uint16_t      alarmCnt = 0;                         // counts the total number of occurred alarms
         uint16_t      alarmLastId = 0;                      // lastId which was received
@@ -822,9 +829,9 @@ class Inverter {
             if(start > end)
                 end = 0;
 
-            for(; i < 10; i++) {
+            for(; i < MaxAlarmNum; i++) {
                 ++mAlarmNxtWrPos;
-                mAlarmNxtWrPos = mAlarmNxtWrPos % 10;
+                mAlarmNxtWrPos = mAlarmNxtWrPos % MaxAlarmNum;
 
                 if(lastAlarm[mAlarmNxtWrPos].code == code && lastAlarm[mAlarmNxtWrPos].start == start) {
                     // replace with same or update end time
@@ -834,11 +841,11 @@ class Inverter {
                 }
             }
 
-            if(alarmCnt < 10 && alarmCnt <= mAlarmNxtWrPos)
+            if(alarmCnt < MaxAlarmNum && alarmCnt <= mAlarmNxtWrPos)
                 alarmCnt = mAlarmNxtWrPos + 1;
 
             lastAlarm[mAlarmNxtWrPos] = alarm_t(code, start, end);
-            if(++mAlarmNxtWrPos >= 10) // rolling buffer
+            if(++mAlarmNxtWrPos >= MaxAlarmNum) // rolling buffer
                 mAlarmNxtWrPos = 0;
         }
 

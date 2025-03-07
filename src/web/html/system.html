@@ -45,6 +45,9 @@
                     tr("Version", obj.generic.version + " - " + obj.generic.build),
                     tr("Chip", "CPU: " + obj.chip.cpu_freq + "MHz, " + obj.chip.cores + " Core(s)"),
                     tr("Chip Model", obj.chip.model)
+                    /*IF_ESP32*/
+                    ,tr("Chip temp.", Math.round(obj.chip.temp_sensor_c * 10) / 10 + "&deg;C")
+                    /*ENDIF_ESP32*/
                 ]
 
                 document.getElementById("info").append(
@@ -62,8 +65,8 @@
             function irqBadge(state) {
                 switch(state) {
                     case 0: return badge(false, "unknown", "warning"); break;
-                    case 1: return badge(true, "true"); break;
-                    default: return badge(false, "false"); break;
+                    case 1: return badge(true, "{#TRUE}"); break;
+                    default: return badge(false, "{#FALSE}"); break;
                 }
             }
 
@@ -125,13 +128,13 @@
             function parseMqtt(obj) {
                 if(obj.enabled) {
                     lines = [
-                        tr("{#CONNECTED}", badge(obj.connected, ((obj.connected) ? "true" : "false"))),
+                        tr("{#CONNECTED}", badge(obj.connected, ((obj.connected) ? "{#TRUE}" : "{#FALSE}"))),
                         tr("#TX", obj.tx_cnt),
                         tr("#RX", obj.rx_cnt)
                     ]
 
                 } else
-                    lines = tr("enabled", badge(false, "false"));
+                    lines = tr("{#ENABLED}", badge(false, "{#FALSE}"));
 
                 document.getElementById("info").append(
                     headline("MqTT"),
@@ -161,7 +164,7 @@
             function parseIndex(obj) {
                 if(obj.ts_sunrise > 0) {
                     document.getElementById("info").append(
-                        headline("Sun"),
+                        headline("{#SUN}"),
                         ml("table", {class: "table"},
                             ml("tbody", {}, [
                                 tr("{#SUNRISE}", new Date(obj.ts_sunrise * 1000).toLocaleString('de-DE')),

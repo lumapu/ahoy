@@ -37,6 +37,7 @@ class AhoyWifi : public AhoyNetwork {
         }
 
         void tickNetworkLoop() override {
+            AhoyNetwork::tickNetworkLoop();
             if(mAp.isEnabled())
                 mAp.tickLoop();
         }

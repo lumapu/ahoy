@@ -11,8 +11,11 @@
 #if defined(ENABLE_MQTT)
 #ifdef ESP8266
     #include <ESP8266WiFi.h>
-    #define xSemaphoreTake(a, b) { while(a) { yield(); } a = true; }
-    #define xSemaphoreGive(a) { a = false; }
+    #if !defined(vSemaphoreDelete)
+        #define vSemaphoreDelete(a)
+        #define xSemaphoreTake(a, b) { while(a) { yield(); } a = true; }
+        #define xSemaphoreGive(a) { a = false; }
+    #endif
 #elif defined(ESP32)
     #include <WiFi.h>
 #endif
@@ -158,7 +161,10 @@ class PubMqtt {
             publish(subtopics[MQTT_UPTIME], mVal.data());
             publish(subtopics[MQTT_RSSI], String(WiFi.RSSI()).c_str());
             publish(subtopics[MQTT_FREE_HEAP], String(ESP.getFreeHeap()).c_str());
-            #ifndef ESP32
+            #if defined(ESP32)
+            snprintf(mVal.data(), mVal.size(), "%.2f", ah::readTemperature());
+            publish(subtopics[MQTT_TEMP_SENS_C], mVal.data());
+            #else
             publish(subtopics[MQTT_HEAP_FRAG], String(ESP.getHeapFragmentation()).c_str());
             #endif
         }
@@ -406,26 +412,25 @@ class PubMqtt {
             bool total = (mDiscovery.lastIvId == MAX_NUM_INVERTERS);
 
             Inverter<> *iv = mSys->getInverterByPos(mDiscovery.lastIvId);
-            record_t<> *rec = NULL;
-            if (NULL != iv) {
+            record_t<> *rec = nullptr;
+            if (nullptr != iv) {
                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
                 if(0 == mDiscovery.sub)
-                mDiscovery.foundIvCnt++;
+                    mDiscovery.foundIvCnt++;
             }
 
-            if ((NULL != iv) || total) {
+            if ((nullptr != iv) || total) {
                 if (!total) {
                     doc[F("name")] = iv->config->name;
                     doc[F("ids")] = String(iv->config->serial.u64, HEX);
                     doc[F("mdl")] = iv->config->name;
-                }
-                else {
+                } else {
                     doc[F("name")] = node_id;
                     doc[F("ids")] = node_id;
                     doc[F("mdl")] = node_id;
                 }
 
-                doc[F("cu")] = F("http://") + String(WiFi.localIP().toString());
+                doc[F("cu")] = F("http://") +  mApp->getIp();
                 doc[F("mf")] = F("Hoymiles");
                 JsonObject deviceObj = doc.as<JsonObject>(); // deviceObj is only pointer!?
 
@@ -438,18 +443,21 @@ class PubMqtt {
                 uniq_id.fill(0);
                 buf.fill(0);
                 const char *devCls, *stateCls;
+
                 if (!total) {
                     if (rec->assign[mDiscovery.sub].ch == CH0)
                         snprintf(name.data(), name.size(), "%s", iv->getFieldName(mDiscovery.sub, rec));
                     else
                         snprintf(name.data(), name.size(), "CH%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
-                    snprintf(topic.data(), name.size(), "/ch%d/%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                    if (!mCfgMqtt->json)
+                        snprintf(topic.data(), name.size(), "/ch%d/%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                    else
+                        snprintf(topic.data(), name.size(), "/ch%d", rec->assign[mDiscovery.sub].ch);
                     snprintf(uniq_id.data(), uniq_id.size(), "ch%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
 
                     devCls = getFieldDeviceClass(rec->assign[mDiscovery.sub].fieldId);
                     stateCls = getFieldStateClass(rec->assign[mDiscovery.sub].fieldId);
                 }
-
                 else { // total values
                     snprintf(name.data(), name.size(), "Total %s", fields[fldTotal[mDiscovery.sub]]);
                     snprintf(topic.data(), topic.size(), "/%s", fields[fldTotal[mDiscovery.sub]]);
@@ -461,24 +469,43 @@ class PubMqtt {
                 DynamicJsonDocument doc2(512);
                 constexpr static const char* unitTotal[] = {"W", "kWh", "Wh", "W"};
                 doc2[F("name")] = String(name.data());
-                doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + ((!total) ? String(iv->config->name) : "total" ) + String(topic.data());
+
+                if (mCfgMqtt->json) {
+                    if (total) {
+                        doc2[F("val_tpl")] = String("{{ value_json.") + fields[fldTotal[mDiscovery.sub]] + String(" }}");
+                        doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + "total";
+                    }
+                    else {
+                        doc2[F("val_tpl")] = String("{{ value_json.") + iv->getFieldName(mDiscovery.sub, rec) + String(" }}");
+                        doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + String(iv->config->name) + String(topic.data());
+                    }
+                }
+                else {
+                    doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + ((!total) ? String(iv->config->name) : "total" ) + String(topic.data());
+                }
                 doc2[F("unit_of_meas")] = ((!total) ? (iv->getUnit(mDiscovery.sub, rec)) : (unitTotal[mDiscovery.sub]));
                 doc2[F("uniq_id")] = ((!total) ? (String(iv->config->serial.u64, HEX)) : (node_id)) + "_" + uniq_id.data();
                 doc2[F("dev")] = deviceObj;
+
                 if (!(String(stateCls) == String("total_increasing")))
                     doc2[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
-                if (devCls != NULL)
+                if (devCls != nullptr)
                     doc2[F("dev_cla")] = String(devCls);
-                if (stateCls != NULL)
+                if (stateCls != nullptr)
                     doc2[F("stat_cla")] = String(stateCls);
 
                 if (!total)
                     snprintf(topic.data(), topic.size(), "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
                 else // total values
                     snprintf(topic.data(), topic.size(), "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(), fields[fldTotal[mDiscovery.sub]]);
+
                 size_t size = measureJson(doc2) + 1;
                 serializeJson(doc2, buf.data(), size);
-                if(FLD_EVT != rec->assign[mDiscovery.sub].fieldId)
+
+                if(nullptr != rec) {
+                    if(FLD_EVT != rec->assign[mDiscovery.sub].fieldId)
+                        publish(topic.data(), buf.data(), true, false);
+                } else if(total)
                     publish(topic.data(), buf.data(), true, false);
 
                 if(++mDiscovery.sub == ((!total) ? (rec->length) : 4)) {
@@ -656,7 +683,7 @@ class PubMqtt {
             size_t index;
             size_t total;
 
-            message_s() 
+            message_s()
             : topic { nullptr }
             , payload { nullptr }
             , len { 0 }

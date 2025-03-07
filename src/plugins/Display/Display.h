@@ -195,7 +195,7 @@ class Display {
             }
     #if defined(ESP32)
             else if (DISP_TYPE_T10_EPAPER == mCfg->type) {
-                mEpaper.loop((totalPower), totalYieldDay, totalYieldTotal, nrprod);
+                mEpaper.loop((totalPower), totalYieldDay, totalYieldTotal, nrprod, mApp->getIp(), mApp->isNetworkConnected());
                 mRefreshCycle++;
 
                 if (mRefreshCycle > 2880) { // 15 * 2280 = 44300s = 12h

@@ -6,7 +6,7 @@
                 {
                     "token": "NAV_WIZARD",
                     "en": "Setup Wizard",
-                    "de": "Einrichtungsassitent"
+                    "de": "Einrichtungsassistent"
                 },
                 {
                     "token": "NAV_LIVE",
@@ -236,7 +236,7 @@
                 {
                     "token": "LOG_PRINT_TRACES",
                     "en": "Print whole traces in Log",
-                    "de": "alle Informationen in Log schreiben"
+                    "de": "alle Informationen ins Log schreiben"
                 },
                 {
                     "token": "LOG_TO_MQTT",
@@ -699,6 +699,16 @@
                     "de": "Kommunikation w&auml;hrend der Nacht pausieren (Breiten- und L&auml;ngengrad m&uuml;ssen gesetzt sein"
                 },
                 {
+                    "token": "INV_SEARCH",
+                    "en": "Catch Inverter",
+                    "de": "Wechselrichter suchen"
+                },
+                {
+                    "token": "BTN_SEARCH",
+                    "en": "start",
+                    "de": "starten"
+                },
+                {
                     "token": "BTN_SAVE",
                     "en": "save",
                     "de": "speichern"
@@ -1052,6 +1062,11 @@
                     "token": "COMMUNICATING",
                     "en": "communicating",
                     "de": "kommunizierend"
+                },
+                {
+                    "token": "SUN",
+                    "en": "Sun",
+                    "de": "Sonne"
                 }
             ]
         },
@@ -1240,18 +1255,13 @@
                 },
                 {
                     "token": "PRODUCING",
-                    "en": "producing",
+                    "en": "is producing",
                     "de": "produziert"
                 },
                 {
                     "token": "INVERTER",
                     "en": "Inverter",
                     "de": "Wechselrichter"
-                },
-                {
-                    "token": "IS",
-                    "en": "is",
-                    "de": "ist"
                 },
                 {
                     "token": "LAST_SUCCESS",
@@ -1322,6 +1332,11 @@
                     "token": "WARN_DIFF_ENV",
                     "en": "your environment may not match the update file!",
                     "de": "Die ausgew&auml;hlte Firmware passt u.U. nicht zum Chipsatz!"
+                },
+                {
+                    "token": "ERROR_UPGRADE_NOT_POSSIBLE",
+                    "en": "OTA updade to version 0.9.x not possible, partition layout changed",
+                    "de": "Aktualisierung auf Version 0.9.x nicht per Update m&ouml;glich (Partition Layout ge&auml;ndert), bitte per Websinstaller neu installieren"
                 },
                 {
                     "token": "CONTIUE",

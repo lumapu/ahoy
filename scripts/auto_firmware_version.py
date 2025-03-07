@@ -2,16 +2,14 @@
 #
 # Copyright (C) 2022 Thomas Basler and others
 #
-import pkg_resources
 
 Import("env")
 
-required_pkgs = {'dulwich'}
-installed_pkgs = {pkg.key for pkg in pkg_resources.working_set}
-missing_pkgs = required_pkgs - installed_pkgs
-
-if missing_pkgs:
+try:
+    from dulwich import porcelain
+except ModuleNotFoundError:
     env.Execute('"$PYTHONEXE" -m pip install dulwich')
+    from dulwich import porcelain
 
 from dulwich import porcelain
 

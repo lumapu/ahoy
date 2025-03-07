@@ -34,6 +34,7 @@ class IApp {
         virtual String getIp(void) = 0;
         virtual String getMac(void) = 0;
         virtual bool isApActive(void) = 0;
+        virtual bool isNetworkConnected() = 0;
 
         virtual uint32_t getUptime() = 0;
         virtual uint32_t getTimestamp() = 0;
@@ -54,6 +55,8 @@ class IApp {
 
         virtual bool getNrfEnabled() = 0;
         virtual bool getCmtEnabled() = 0;
+
+        virtual bool cmtSearch(uint8_t id, uint8_t toCh) = 0;
 
         virtual uint32_t getMqttRxCnt() = 0;
         virtual uint32_t getMqttTxCnt() = 0;

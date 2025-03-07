@@ -35,6 +35,11 @@ class CmtRadio : public Radio {
                 return;
 
             mCmt.loop();
+            if(nullptr != mCatchIv) {
+                if(mCmt.isTxReady())
+                    catchInverterLoop();
+            }
+
             if((!mIrqRcvd) && (!mRqstGetRx))
                 return;
             getRx();
@@ -53,7 +58,8 @@ class CmtRadio : public Radio {
             if(!mCfg->enabled)
                 return;
 
-            DPRINT(DBG_INFO, F("sendControlPacket cmd: "));
+            DPRINT_IVID(DBG_INFO, iv->id);
+            DBGPRINT(F("sendControlPacket cmd: "));
             DBGHEXLN(cmd);
             initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;
@@ -90,6 +96,28 @@ class CmtRadio : public Radio {
             sendSwitchChCmd(iv, toCh);
             mCmt.switchChannel(toCh);
             return true;
+        }
+
+        void catchInverter(Inverter<> *iv, uint8_t toCh) override {
+            if(!isChipConnected())
+                return;
+
+            mCatchIv = iv;
+            mCatchIvCh = 1;
+            mCatchIvToCh = toCh;
+
+            mCmt.switchChannel(0);
+            sendSwitchChCmd(iv, toCh);
+        }
+
+        void catchInverterLoop() {
+            mCmt.switchChannel(mCatchIvCh);
+            sendSwitchChCmd(mCatchIv, mCatchIvToCh);
+
+            if(++mCatchIvCh == 0x29) {
+                mCmt.switchChannel(mCatchIvToCh);
+                mCatchIv = nullptr;
+            }
         }
 
         uint16_t getBaseFreqMhz(void) override {
@@ -167,10 +195,6 @@ class CmtRadio : public Radio {
         }
 
         inline void sendSwitchChCmd(Inverter<> *iv, uint8_t ch) {
-            //if(CMT_SWITCH_CHANNEL_CYCLE > ++mSwitchCycle)
-            //    return;
-            //mSwitchCycle = 0;
-
             /** ch:
              * 0x00: 860.00 MHz
              * 0x01: 860.25 MHz
@@ -193,7 +217,6 @@ class CmtRadio : public Radio {
             packet_t p;
             p.millis = millis() - mMillis;
             if(CmtStatus::SUCCESS == mCmt.getRx(p.packet, &p.len, 28, &p.rssi)) {
-                //mSwitchCycle = 0;
                 p.ch = 0; // not used for CMT inverters
                 mBufCtrl.push(p);
             }
@@ -209,7 +232,10 @@ class CmtRadio : public Radio {
         bool mCmtAvail = false;
         bool mRqstGetRx = false;
         uint32_t mMillis = 0;
-        //uint8_t mSwitchCycle = 0;
+
+        Inverter<> *mCatchIv = nullptr;
+        uint8_t mCatchIvCh = 0;
+        uint8_t mCatchIvToCh = 0;
 };
 
 #endif /*__HMS_RADIO_H__*/
