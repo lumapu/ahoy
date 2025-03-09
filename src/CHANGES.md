@@ -7,7 +7,7 @@ Changelog v0.8.155
 * fix redirect after login
 * added fallback for NTP to gateway IP
 * added button for CMT inverters to catch them independend on which frequency they were before
-*  added update warning once 0.9.x should be installed -> not possible using OTA because of changed partition layout
+* added update warning once 0.9.x should be installed -> not possible using OTA because of changed partition layout
 * improved CMT communication
 * improved rssi display, if inverter isn't available, display '-- dBm'
 * improved sending limits of multiple inverters in very short timeframe
