@@ -13,32 +13,35 @@ import logging
 import crcmod
 from .decoders import *
 from os import environ
+from enum import IntEnum
 
 try:
   # OSI Layer 2 driver for nRF24L01 on Arduino & Raspberry Pi/Linux Devices
   # https://github.com/nRF24/RF24.git
   from RF24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
   if environ.get('TERM') is not None:
-    print('Using python Module: RF24')
+    print('Using python Module: "RF24"')
 except ModuleNotFoundError as e:
   if environ.get('TERM') is not None:
-    print(f'{e} - try to use module: RF24')
+    print(f"{e} - module not found, try to use 'pyRF24'")
   try:
     # Repo for pyRF24 package
     # https://github.com/nRF24/pyRF24.git
     from pyrf24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
     if environ.get('TERM') is not None:
-      print(f'{e} - Using python Module: pyrf24')
+      print(f"'pyrf24' found and used")
   except ModuleNotFoundError as e:
     if environ.get('TERM') is not None:
       print(f'{e} - exit')
     exit()
+if environ.get('TERM') is not None:
+   print("run before starting AHOY: tail -f RPI-AHOY-DTU.log &")
+
+HOYMILES_TRANSACTION_LOGGING = False
+HOYMILES_VERBOSE_LOGGING     = False
 
 f_crc_m = crcmod.predefined.mkPredefinedCrcFun('modbus')
 f_crc8 = crcmod.mkCrcFun(0x101, initCrc=0, xorOut=0)
-
-HOYMILES_TRANSACTION_LOGGING=False
-HOYMILES_DEBUG_LOGGING=False
 
 def ser_to_hm_addr(inverter_ser):
     """
@@ -70,6 +73,27 @@ def ser_to_esb_addr(inverter_ser):
     """
     air_order = ser_to_hm_addr(inverter_ser)[::-1] + b'\x01'
     return air_order[::-1]
+
+class InfoCommands(IntEnum):
+    ''' compare to .../ahoy/src/hm/hmDefines.h '''
+    InverterDevInform_Simple = 0  # 0x00
+    InverterDevInform_All = 1     # 0x01
+    GridOnProFilePara = 2         # 0x02
+    HardWareConfig = 3            # 0x03
+    SimpleCalibrationPara = 4     # 0x04
+    SystemConfigPara = 5          # 0x05
+    RealTimeRunData_Debug = 11    # 0x0b
+    RealTimeRunData_Reality = 12  # 0x0c
+    RealTimeRunData_A_Phase = 13  # 0x0d
+    RealTimeRunData_B_Phase = 14  # 0x0e
+    RealTimeRunData_C_Phase = 15  # 0x0f
+    AlarmData = 17                # 0x11, Alarm data - all unsent alarms
+    AlarmUpdate = 18              # 0x12, Alarm data - all pending alarms
+    RecordData = 19               # 0x13
+    InternalData = 20             # 0x14
+    GetLossRate = 21              # 0x15
+    GetSelfCheckState = 30        # 0x1e
+    InitDataState = 0xff
 
 class ResponseDecoderFactory:
     """
@@ -175,50 +199,54 @@ class ResponseDecoder(ResponseDecoderFactory):
         :return: payload decoder instance
         :rtype: object
         """
-        model = self.inverter_model
-        command = self.request_command
+        model      = self.inverter_model
+        command    = self.request_command
+        model_desc = str(InfoCommands(int(command, 16)).name)
 
-        if HOYMILES_DEBUG_LOGGING:
-            if   command.upper() == '00':
+        if HOYMILES_VERBOSE_LOGGING:
+            if   command.upper() == "00":                             ## 00 - 0x00
                 model_desc = "Inverter Dev Inform Simple"
-            elif command.upper() == '01':
+            elif command.upper() == "01":                             ## 01 - 0x01
                 model_desc = "Firmware version / date"
-            elif command.upper() == '02':
+            elif command.upper() == "02":                             ## 02 - 0x02
                 model_desc = "Inverter generic events log"
-            elif command.upper() == '03':                         ## HardWareConfig
+            elif command.upper() == "03":                             ## 03 - 0x03
                 model_desc = "Hardware configuration"
-            elif command.upper() == '04':                         ## SimpleCalibrationPara
+            elif command.upper() == "04":                             ## 04 - 0x04
                 model_desc = "Simple Calibration Parameter"
-            elif command.upper() == '05':                         ## SystemConfigPara
-                model_desc = "Inverter generic SystemConfigPara"
-            elif command.upper() == '0B':                         ## 11 - RealTimeRunData_Debug
+            elif command.upper() == "05":                             ## 05 - 0x05
+                # model_desc = "Inverter generic SystemConfigPara"
+                model_desc = "SystemConfigPara create DebugDecodeAny"
+            elif command.upper() == "0B":                             ## 11 - 0x0b
                 model_desc = "mirco-inverters status data"
-            elif command.upper() == '0C':                         ## 12 - RealTimeRunData_Reality
+            elif command.upper() == "0C":                             ## 12 - 0x0c
                 model_desc = "mirco-inverters status data"
-            elif command.upper() == '0D':                         ## 13 - RealTimeRunData_A_Phase
+            elif command.upper() == "0D":                             ## 13 - 0x0d
                 model_desc = "Real-Time Run Data A Phase "
-            elif command.upper() == '0E':                         ## 14 - RealTimeRunData_B_Phase
+            elif command.upper() == "0E":                             ## 14 - 0x0e
                 model_desc = "Real-Time Run Data B Phase "
-            elif command.upper() == '0F':                         ## 15 - RealTimeRunData_C_Phase
+            elif command.upper() == "0F":                             ## 15 - 0x0f
                 model_desc = "Real-Time Run Data C Phase "
-            elif command.upper() == '11':                         ## 17 - AlarmData
-                model_desc = "Inverter generic events log"
-            elif command.upper() == '12':                         ## 18 - AlarmUpdate
+            elif command.upper() == "11":                             ## 17 - 0x11
+                # model_desc = "Inverter generic events log"
+                model_desc = "AlarmData create EventsResponse"
+            elif command.upper() == "12":                             ## 18 - 0x12
                 model_desc = "Inverter major events log"
-            elif command.upper() == '13':                         ## 19 - RecordData
+            elif command.upper() == "13":                             ## 19 - 0x13
                 model_desc = "Record Data"
-            elif command.upper() == '14':                         ## 20 - InternalData
+            elif command.upper() == "14":                             ## 20 - 0x14
                 model_desc = "Internal Data"
-            elif command.upper() == '15':                         ## 21 - GetLossRate
+            elif command.upper() == "15":                             ## 21 - 0x15
                 model_desc = "Get Loss Rate"
-            elif command.upper() == '1E':                         ## 30 - GetSelfCheckState
+            elif command.upper() == "1E":                             ## 30
                 model_desc = "Get Self Check State"
-            elif command.upper() == 'FF':                         ## 255 - InitDataState
+            elif command.upper() == "FF":                             ##255 - 0xff
                 model_desc = "Initi Data State"
-
             else:
                 model_desc = "event not configured - check ahoy script"
-            logging.info(f'model_decoder: {model}Decode{command.upper()} - {model_desc}')
+
+            logging.info(f'--> using model_decoder: {model}Decode{command.upper()}'
+                         f' - {InfoCommands(int(command, 16)).name} [{command}] ({model_desc})')
 
         model_decoders = __import__('hoymiles.decoders')
         if hasattr(model_decoders, f'{model}Decode{command.upper()}'):
@@ -318,8 +346,8 @@ class InverterPacketFragment:
         :rtype: str
         """
         size = len(self.frame)
-        channel = f' channel {self.ch_rx}' if self.ch_rx else ''
-        return f"Received {size} bytes{channel}: {hexify_payload(self.frame)}"
+        channel = f' channel {self.ch_rx:>02}' if self.ch_rx else ''
+        return f"Received {size:>02} bytes{channel}: {hexify_payload(self.frame)}"
 
 class HoymilesNRF:
     """Hoymiles NRF24 Interface"""
@@ -364,8 +392,7 @@ class HoymilesNRF:
         self.next_tx_channel()
 
         if HOYMILES_TRANSACTION_LOGGING:
-            c_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-            logging.debug(f'{c_datetime} Transmit {len(packet)} bytes channel {self.tx_channel}: {hexify_payload(packet)}')
+            logging.debug(f'Transmit {len(packet):>02} bytes channel {self.tx_channel:>02}: {hexify_payload(packet)}')
 
         if not txpower:
             txpower = self.txpower
