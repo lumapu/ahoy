@@ -910,7 +910,14 @@ class Communication : public CommQueue<> {
                 stsok = false;
                 if( (!oldState) || (!q->iv->alarmCnt) ) {          // initial zero value? => just write this channel to main state and raise changed flags
                     changedStatus = true;
-                    q->iv->alarmCnt = 1; // minimum...
+                    if( !q->iv->alarmCnt ) {
+                        q->iv->alarmCnt = 1; // minimum...
+                        for (uint8_t i = 1; i <= 9; i++) { //start with 1
+                            if (i != stschan && q->iv->lastAlarm[i].code) {
+                                q->iv->lastAlarm[i].code = 0;      // zero outdated values
+                            }
+                        }
+                    }
                 } else {
                     //sth is or was wrong?
                     if (q->iv->type == INV_TYPE_1CH) {
@@ -1009,7 +1016,7 @@ class Communication : public CommQueue<> {
                     ac_pow += iv->getValue(iv->getPosByChFld(1, FLD_PDC, rec), rec);
             } else {
                 for(uint8_t i = 1; i <= iv->channels; i++) {
-                    if ((!iv->lastAlarm[i].code) || (iv->lastAlarm[i].code == 1))
+                    if ((!iv->lastAlarm[i].code) || (iv->lastAlarm[i].code == 1) || ( (iv->alarmCnt == 1) && (iv->lastAlarm[0].code == 1) ) )
                         ac_pow += iv->getValue(iv->getPosByChFld(i, FLD_PDC, rec), rec);
                 }
             }
