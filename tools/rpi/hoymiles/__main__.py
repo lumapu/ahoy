@@ -250,11 +250,13 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
                 if volkszaehler_client:
                    volkszaehler_client.store_status(result)
 
+                if prometheus_client:
+                    prometheus_client.store_status(result)
+
             # check decoder object for output
             if isinstance(result, hoymiles.decoders.HardwareInfoResponse):
                 if mqtt_client:
                    mqtt_client.store_status(result, topic=inverter.get('mqtt', {}).get('topic', None))
-
 
 def mqtt_on_command(client, userdata, message):
     """
@@ -387,6 +389,14 @@ if __name__ == '__main__':
                 bucket=influx_config.get('bucket', None),
                 measurement=influx_config.get('measurement', 'hoymiles'))
 
+    # create prometheus - client object 
+    prometheus_client = None
+    prometheus_config = ahoy_config.get('prometheus', {})
+    if prometheus_config and not prometheus_config.get('disabled', False):
+        from .outputs import PrometheusOutputPlugin
+        prometheus_client = PrometheusOutputPlugin(
+                prometheus_config)
+
     # create VOLKSZAEHLER - client object
     volkszaehler_client = None
     volkszaehler_config = ahoy_config.get('volkszaehler', {})
@@ -415,4 +425,3 @@ if __name__ == '__main__':
 
     # start main-loop
     main_loop(ahoy_config)
-
