@@ -138,7 +138,7 @@ class app : public IApp, public ah::Scheduler {
 
         void initInverter(uint8_t id) override {
             mSys.addInverter(id, [this](Inverter<> *iv) {
-                if((IV_MI == iv->ivGen) || (IV_HM == iv->ivGen))
+                if((IV_MI == iv->ivGen) || (IV_HM == iv->ivGen) || (IV_HERF == iv->ivGen))
                     iv->radio = &mNrfRadio;
                 #if defined(ESP32)
                 else if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen))

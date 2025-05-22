@@ -45,8 +45,8 @@ typedef enum {
 } DevControlCmdType;
 
 // inverter generations
-enum {IV_MI = 0, IV_HM, IV_HMS, IV_HMT, IV_UNKNOWN};
-const char* const generationNames[] = {"MI", "HM", "HMS", "HMT", "UNKNOWN"};
+enum {IV_MI = 0, IV_HM, IV_HMS, IV_HMT, IV_HERF, IV_UNKNOWN};
+const char* const generationNames[] = {"MI", "HM", "HMS", "HMT", "HERF", "UNKNOWN"};
 
 // units
 enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_PCT, UNIT_VAR, UNIT_NONE};
@@ -309,6 +309,74 @@ const byteAssign_t hm4chAssignment[] = {
 #define HM4CH_LIST_LEN      (sizeof(hm4chAssignment) / sizeof(byteAssign_t))
 #define HM4CH_PAYLOAD_LEN   62
 
+//-------------------------------------
+// HERF300, HERF400, HERF500
+//-------------------------------------
+const byteAssign_t herf1chAssignment[] = {
+    { FLD_UDC, UNIT_V,    CH1,  2, 2, 10   },
+    { FLD_IDC, UNIT_A,    CH1,  6, 2, 100  },
+    { FLD_PDC, UNIT_W,    CH1, 10, 2, 10   },
+    { FLD_YD,  UNIT_WH,   CH1, 22, 2, 1    },
+    { FLD_YT,  UNIT_KWH,  CH1, 14, 4, 1000 },
+    { FLD_IRR, UNIT_PCT,  CH1, CALC_IRR_CH, CH1, CMD_CALC },
+    { FLD_MP,  UNIT_W,    CH1, CALC_MPDC_CH, CH1, CMD_CALC },
+
+    { FLD_UAC, UNIT_V,    CH0, 26, 2, 10   },
+    { FLD_IAC, UNIT_A,    CH0, 34, 2, 100  },
+    { FLD_PAC, UNIT_W,    CH0, 30, 2, 10   },
+    { FLD_Q,   UNIT_VAR,  CH0, 40, 2, 10   },
+    { FLD_F,   UNIT_HZ,   CH0, 28, 2, 100  },
+    { FLD_PF,  UNIT_NONE, CH0, 36, 2, 1000 },
+    { FLD_T,   UNIT_C,    CH0, 38, 2, 10   },
+    { FLD_EVT, UNIT_NONE, CH0, 40, 2, 1    },
+    { FLD_YD,  UNIT_WH,   CH0, CALC_YD_CH0,   0, CMD_CALC },
+    { FLD_YT,  UNIT_KWH,  CH0, CALC_YT_CH0,   0, CMD_CALC },
+    { FLD_PDC, UNIT_W,    CH0, CALC_PDC_CH0,  0, CMD_CALC },
+    { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0,  0, CMD_CALC },
+    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,  UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
+};
+#define HERF1CH_LIST_LEN      (sizeof(herf1chAssignment) / sizeof(byteAssign_t))
+#define HERF1CH_PAYLOAD_LEN   30
+
+//-------------------------------------
+// HERF600, HERF800
+//-------------------------------------
+const byteAssign_t herf2chAssignment[] = {
+    { FLD_UDC, UNIT_V,    CH1,  2, 2, 10   },
+    { FLD_IDC, UNIT_A,    CH1,  6, 2, 100  },
+    { FLD_PDC, UNIT_W,    CH1, 10, 2, 10   },
+    { FLD_YD,  UNIT_WH,   CH1, 22, 2, 1    },
+    { FLD_YT,  UNIT_KWH,  CH1, 14, 4, 1000 },
+    { FLD_IRR, UNIT_PCT,  CH1, CALC_IRR_CH, CH1, CMD_CALC },
+    { FLD_MP,  UNIT_W,    CH1, CALC_MPDC_CH, CH1, CMD_CALC },
+
+    { FLD_UDC, UNIT_V,    CH2,  4, 2, 10   },
+    { FLD_IDC, UNIT_A,    CH2,  8, 2, 100  },
+    { FLD_PDC, UNIT_W,    CH2, 12, 2, 10   },
+    { FLD_YD,  UNIT_WH,   CH2, 24, 2, 1    },
+    { FLD_YT,  UNIT_KWH,  CH2, 18, 4, 1000 },
+    { FLD_IRR, UNIT_PCT,  CH2, CALC_IRR_CH, CH2, CMD_CALC },
+    { FLD_MP,  UNIT_W,    CH2, CALC_MPDC_CH, CH2, CMD_CALC },
+
+    { FLD_UAC, UNIT_V,    CH0, 26, 2, 10   },
+    { FLD_IAC, UNIT_A,    CH0, 34, 2, 100  },
+    { FLD_PAC, UNIT_W,    CH0, 30, 2, 10   },
+    { FLD_Q,   UNIT_VAR,  CH0, 32, 2, 10   },
+    { FLD_F,   UNIT_HZ,   CH0, 28, 2, 100  },
+    { FLD_PF,  UNIT_NONE, CH0, 36, 2, 1000 },
+    { FLD_T,   UNIT_C,    CH0, 38, 2, 10   },
+    { FLD_EVT, UNIT_NONE, CH0, 40, 2, 1    },
+    { FLD_YD,  UNIT_WH,   CH0, CALC_YD_CH0,   0, CMD_CALC },
+    { FLD_YT,  UNIT_KWH,  CH0, CALC_YT_CH0,   0, CMD_CALC },
+    { FLD_PDC, UNIT_W,    CH0, CALC_PDC_CH0,  0, CMD_CALC },
+    { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0,  0, CMD_CALC },
+    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,  UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
+
+};
+#define HERF2CH_LIST_LEN      (sizeof(herf2chAssignment) / sizeof(byteAssign_t))
+#define HERF2CH_PAYLOAD_LEN   42
 
 typedef struct {
     uint32_t hwPart;
