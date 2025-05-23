@@ -923,17 +923,6 @@
                         sn_int |= BigInt(pos) << BigInt(shift)
                     }
 
-                    let first4Hex = (sn_int >> 32n) & 0xFFFFn
-
-                    if (first4Hex === 0x2841n)
-                        first4Hex = 0x1121n
-                    else if (first4Hex === 0x2821n)
-                        first4Hex = 0x1141n
-                    else if (first4Hex === 0x2801n)
-                        first4Hex = 0x1161n
-
-                    sn_int = (sn_int & ~(0xFFFFn << 32n)) | (first4Hex << 32n);
-
                     return sn_int.toString(16)
                 }
 

@@ -76,6 +76,20 @@ class HmSystem {
                     iv->type = INV_TYPE_6CH;
 
                 iv->ivRadioType = INV_RADIO_TYPE_CMT;
+            } else if(iv->config->serial.b[5] == 0x28) {
+                iv->ivGen = IV_HERF;
+                switch(iv->config->serial.b[4]) {
+                    case 0x41: iv->type = INV_TYPE_1CH;
+                        break;
+                    case 0x21: iv->type = INV_TYPE_2CH;
+                        break;
+                    case 0x01: iv->type = INV_TYPE_4CH;
+                        break;
+                    default:
+                        DPRINTLN(DBG_ERROR, F("unknown inverter type"));
+                        break;
+                }
+                iv->ivRadioType = INV_RADIO_TYPE_NRF;
             } else if(iv->config->serial.u64 != 0ULL) {
                 DPRINTLN(DBG_ERROR, F("inverter type can't be detected!"));
                 iv->config->enabled = false;
