@@ -546,7 +546,7 @@ class Inverter {
                         channels = 2;
                     }
                     else if (INV_TYPE_4CH == type) {
-                        if((IV_HM == ivGen) || (IV_MI == ivGen)) {
+                        if((IV_HM == ivGen) || (IV_MI == ivGen) || (IV_HERF == ivGen)) {
                             rec->length  = (uint8_t)(HM4CH_LIST_LEN);
                             rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(hm4chAssignment));
                             rec->pyldLen = HM4CH_PAYLOAD_LEN;
