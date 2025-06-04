@@ -45,6 +45,10 @@ Table of approaches:
 
 3. [Ahoy Configuration ](manual/ahoy_config.md)
 
+## Your User Manual
+
+* [Ahoy User_Manual](manual/User_Manual.md)
+
 ## Our Website
 [https://ahoydtu.de](https://ahoydtu.de)
 
