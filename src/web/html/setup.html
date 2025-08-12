@@ -848,6 +848,8 @@
                             case 0x0060: max = 4; break;
                             case 0x0080: max = 6; break;
                         }
+                        if(sn == 0x1410)
+                            max = 2;
                         for(var i = 0; i < 6; i++) {
                             setHide("ch"+i, (i >= max));
                         }
@@ -863,6 +865,7 @@
                                 }
                                 break;
                             case 0x1300: nrf = false; break;
+                            case 0x1400: nrf = false; break;
                         }
                         setHide("setcmt", nrf);
                         setHide("setnrf", !nrf);

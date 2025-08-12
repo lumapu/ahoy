@@ -76,6 +76,10 @@ class HmSystem {
                     iv->type = INV_TYPE_6CH;
 
                 iv->ivRadioType = INV_RADIO_TYPE_CMT;
+            } else if(iv->config->serial.b[5] == 0x14) {
+                iv->ivGen = IV_HMS;
+                if(iv->config->serial.b[4] == 0x10)
+                    iv->type = INV_TYPE_2CH;
             } else if(iv->config->serial.u64 != 0ULL) {
                 DPRINTLN(DBG_ERROR, F("inverter type can't be detected!"));
                 iv->config->enabled = false;
