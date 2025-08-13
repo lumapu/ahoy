@@ -235,7 +235,7 @@ class PubMqtt {
             else
                 snprintf(mTopic.data(), mTopic.size(), "%s", subTopic);
 
-            if(!mCfgMqtt->enableRetain)
+            if(!mCfgMqtt->enableRetain && String(mTopic.data()) != String(mLwtTopic.data()))
                 retained = false;
 
             mClient.publish(mTopic.data(), qos, retained, payload);
