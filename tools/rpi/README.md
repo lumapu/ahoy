@@ -89,17 +89,16 @@ python3 getting_started.py # to test and see whether RF24 class can be loaded as
 If there are no error messages on the last step, then the NRF24 Wrapper has been installed successfully.
 
 
-Building RF24 Wrapper for Debian 11 (bullseye) 64 bit operating system
+Building RF24 Wrapper on Debian 11 (bullseye) 64 bit operating system
 ----------------------------------------------------------------------
-The description above does not work on Debian 11 (bullseye) 64 bit operating system.
+The description above does not work on Debian 11 (bullseye) 32 bit operating system.
 Please check first, if you have Debian 11 (bullseye) 64 bit operating system installed:
  - `uname -a` search for aarch64
  - `lsb_release -d`
  - `cat /etc/debian_version`
 
-There are 2 possible solutions to install the RF24 wrapper:
+To install RF24 wrapper follow the instrauction:
 
-**__1. Solution:__**
 ```code
 sudo apt install cmake git python3-dev libboost-python-dev python3-pip python3-rpi.gpio
 
@@ -139,21 +138,52 @@ python3 -m pip list #watch for RF24 module - if its there its installed
 ```
 
 
-**__2. Solution:__**
+Alternative: Install pyRF24 library on Debian 11 (bullseye) 64 bit operating system
+-----------------------------------------------------------------------------------
+The description above does not work on Debian 11 (bullseye) 32 bit operating system.
+Please check first, if you have Debian 11 (bullseye) 64 bit operating system installed:
+ - `uname -a` search for aarch64
+ - `lsb_release -d`
+ - `cat /etc/debian_version`
+
 ```code
-sudo apt install git python3-dev libboost-python-dev python3-pip python3-rpi.gpio
+sudo apt install cmake git python3-dev libboost-python-dev python3-pip python3-rpi.gpio
 
 git clone --recurse-submodules https://github.com/nRF24/pyRF24.git
 cd pyRF24
 python3 -m pip install . -v     # this step takes about 5 minutes on my RPI-4 !
+cd
 ```
 
-If you have problems with your radio module from ahoi, e.g.: cannot interpret received data, 
-please try to reduce the speed of your radio module!
-Add the following parameter to your ahoy.yml configuration file in "nrf" section:
-`spispeed: 600000` (0.6 MHz)
+Install pyRF24 library on Debian 12 (bookworm) 64 bit operating system
+-----------------------------------------------------------------------------------
+The description above does not work on Debian 11 (bullseye) 32 bit operating system.
+Please check first, if you have Debian 11 (bullseye) 64 bit operating system installed:
+ - `uname -a` search for aarch64
+ - `lsb_release -d`
+ - `cat /etc/debian_version`
+
+Important: Debian 12 follows the recommendation of [`PEP 668`]
+(https://peps.python.org/pep-0668/) - now, PYTHON is configured as 
+"externally-managed-environment" ! 
+- You cann't install python libs via `pip`!
+- You have to use a python virtual environment `https://docs.python.org/3/library/venv.html`
 
 
+
+```code
+sudo apt install cmake git python3-dev libboost-python-dev python3-pip python3-rpi.gpio
+
+cd ~
+python3 -m venv ahoyenv       ## create python virtual environment
+source ahoyenv/bin/activate   ## activate the virtual environment
+
+git clone --recurse-submodules https://github.com/nRF24/pyRF24.git
+cd pyRF24
+  python3 -m pip install . -v
+  python3 -m pip list          ## check: search for pyRF24
+cd ~
+```
 
 Required python modules
 -----------------------
@@ -161,7 +191,7 @@ Required python modules
 Some modules are not installed by default on a RaspberryPi, therefore add them manually:
 
 ```code
-pip install crcmod pyyaml paho-mqtt SunTimes
+python3 -m pip install crcmod pyyaml paho-mqtt SunTimes
 ```
 
 Configuration
@@ -169,6 +199,12 @@ Configuration
 
 Local settings are read from ahoy.yml  
 An example is provided as ahoy.yml.example
+
+If you have any problems with your radio module,
+e.g.: cannot interpret received data,
+please try to reduce the speed of your radio module!  
+Add the following parameter to your `ahoy.yml` configuration file in section `nrf`:
+`spispeed: 600000` (0.6 MHz)
 
 
 Example Run
@@ -178,13 +214,19 @@ The following command will run the communication tool, which will try to
 contact the inverter every second on channel 40, and listen for replies.
 
 Whenever it sees a reply, it will decoded and logged to the given log file.
+```code
+  ~~$ sudo python3 -um hoymiles --log-transactions --verbose --config /home/dtu/ahoy.yml | tee -a log2.log~~
+    ## when using PYTHON virtual environment only - see hint `PEP 668`
+    $ source /home/pi/ahoyenv/bin/activate
 
-    $ sudo python3 -um hoymiles --log-transactions --verbose --config /home/dtu/ahoy.yml | tee -a log2.log
+    $ tail -f RPI-AHOY-DTU.log &
+    $ python3 -um hoymiles --log-transactions --verbose --config /home/dtu/ahoy.yml
+```
 
 Python parameters
 - `-u` enables python's unbuffered mode
 - `-m hoymiles` tells python to load module 'hoymiles' as main app
-
+Do not forget to stop `tail -f ...` with `fg`(forground) and than `ctrl-c`
 
 The application describes itself
 ```code
@@ -228,12 +270,20 @@ Example injects exactly the same as we normally use to poll data
 
 This allows for even faster hacking during runtime
 
-Running it as a service
+
+Run as a service
 -----------------------
-If you want to run directly from the start, you might want to install it as a service.
-Depending on if you want to run it once a user is logged in or as soon as the system is booted, two service examples are included.
-ahoy.service allows you to start it as a user service upon login.
-ahoy_system.service allows you to start it as a system service already before login without user interaction.
+If you want to run directly at start, you have to install ahoy as a service.
+Depending oni, if you want to run it once a user is logged in or as soon as the system is booted, 
+two service examples are included.
+- `ahoy.service` allows you to start it as a user service upon login.
+- `ahoy_system.service` allows you to start it as a system service already before login without user interaction.
+
+Run as a service on Debian 12 (bookworm)
+----------------------------------------
+- `ahoy@bookworm.service` allows you to start it as a user service upon login.
+- `ahoy@bookworm_system.service` allows you to start it as a system service already before login without user interaction.
+
 
 Analysing the Logs
 ------------------
@@ -252,12 +302,10 @@ Use basic command line tools to get an idea what you recorded. For example:
 A brief example log is supplied in the `example-logs` folder.
 
 
-
-
 Todo
 ----
 
-- Ability to talk to multiple inverters
+- Ability to talk to multiple inverters - implemented - please test
 - MQTT gateway
 - understand channel hopping
 - ~~configurable polling interval~~ done: interval ist configurable in ahoy.yml
@@ -265,7 +313,6 @@ Todo
 - picture of setup!
 - python module
 - ...
-
 
 
 References
