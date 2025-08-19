@@ -251,6 +251,65 @@ Use basic command line tools to get an idea what you recorded. For example:
 
 A brief example log is supplied in the `example-logs` folder.
 
+Prometheus Exporter
+-------------------
+Python exporter for https://prometheus.io/
+
+install requirements:
+
+```
+pip install -r optional-requirements.txt
+```
+
+Systemd service:
+----------------
+
+in systemd you find a service file to (fe) run the exporter as a systemd service at boot time.
+
+Adjust the user in it and copy it to /lib/systemd/system
+
+Activate it:
+
+```
+  sudo systemctl enable hoymiles.service
+```
+
+Start it 
+
+```
+  sudo service hoymiles start 
+```
+
+After that, you should be able to open a website to http://ip-of-your-rpi:9233/ and see some stats
+
+```
+# HELP python_gc_objects_collected_total Objects collected during gc
+# TYPE python_gc_objects_collected_total counter
+python_gc_objects_collected_total{generation="0"} 304.0
+python_gc_objects_collected_total{generation="1"} 124.0
+python_gc_objects_collected_total{generation="2"} 0.0
+```
+and on the bottom :
+
+```
+string_voltage{panel="panel_3"} 39.4
+# HELP string_current DC/Panel current
+# TYPE string_current gauge
+string_current{panel="panel_3"} 5.73
+# HELP string_power DC/Panel power
+# TYPE string_power gauge
+string_power{panel="panel_3"} 225.4
+# HELP string_energy_daily DC/Panel energy_daily
+# TYPE string_energy_daily gauge
+string_energy_daily{panel="panel_3"} 487.0
+```
+ + more stats 
+
+I added my dashboard to docker-sup../dashboard folder if you are interested
+
+![dashboard_example1](docker-supplementals/dashboard/Selection_025.jpg)
+![dashboard_example2](docker-supplementals/dashboard/Selection_027.jpg)
+
 
 
 

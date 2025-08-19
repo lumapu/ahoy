@@ -37,6 +37,11 @@ ahoy:
         topic: my_DTU_name     # Name of DTU - default: hoymiles/{DTU-serial}
         payload: "LAST-WILL-MESSAGE: Please check my HOST and Process!"
 
+  # adding prometheus exporter
+  prometheus:
+    disabled: false
+    port: 9233
+
   # Influx2 output
   influxdb:
     disabled: true

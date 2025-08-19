@@ -33,6 +33,78 @@ class OutputPluginFactory:
         """
         raise NotImplementedError('The current output plugin does not implement store_status')
 
+try:
+  from os import path
+  import yaml
+  from prometheus_client.core import GaugeMetricFamily, REGISTRY, CounterMetricFamily
+  from prometheus_client import CollectorRegistry, Gauge
+  from prometheus_client import Info
+  from prometheus_client import start_http_server
+except ModuleNotFoundError:
+  pass
+
+class PrometheusOutputPlugin(OutputPluginFactory):
+  current_data = None
+
+  def __init__(self, config, **params):
+    super().__init__(**params)
+
+    start_http_server(config.get('port'))
+    REGISTRY.register(self)
+
+  def collect(self):
+    if self.current_data:
+      yield CounterMetricFamily('energy_total', 'Energy Total', value=self.current_data['energy_total'])
+      yield GaugeMetricFamily('temperature', 'Device Temperature', value=self.current_data['temperature'])
+      yield GaugeMetricFamily('pf', 'Power Factor', value=self.current_data['powerfactor'])
+      yield GaugeMetricFamily('frequency', 'Frequency', value=self.current_data['frequency'])
+
+      # AC Data
+      phase_id = 0
+      phase_gauge = {}
+      phase_types = [ 'power', 'voltage', 'current' ]
+      for phase_type in phase_types:
+        for phase in self.current_data['phases']:
+          phase_gauge[phase_type] = GaugeMetricFamily(f'phase_{phase_type}', f'AC/Phase {phase_id} Power', labels=['phase'])
+          phase_gauge[phase_type].add_metric(f'phase_{phase_id}', phase[phase_type])
+          yield phase_gauge[phase_type]
+          phase_id = phase_id + 1
+
+      # DC Data
+      string_id = 0
+      types = [ "voltage", "current", "power", "energy_daily" ]
+     
+      gauge={}
+      for string in self.current_data['strings']:
+        gauge['energy_total'] = CounterMetricFamily(f'string_energy_total', f'DC/Panel energy_total', labels=['panel'])
+        gauge['energy_total'].add_metric([f'panel_{string_id}'], string['energy_total'])
+        yield gauge['energy_total']
+        for type in types:
+          gauge[type] = GaugeMetricFamily(f'string_{type}', f'DC/Panel {type}', labels=['panel'])
+          gauge[type].add_metric([f'panel_{string_id}'], string[type])
+          yield gauge[type]
+        string_id = string_id + 1
+
+  def store_status(self, response, **params):
+    """
+    Publish StatusResponse object
+
+    :param hoymiles.decoders.StatusResponse response: StatusResponse object
+    :param topic: custom mqtt topic prefix (default: hoymiles/{inverter_ser})
+    :type topic: str
+
+    :raises ValueError: when response is not instance of StatusResponse
+    """
+
+    if not isinstance(response, StatusResponse):
+      raise ValueError('Data needs to be instance of StatusResponse')
+
+    data = response.__dict__()
+
+    self.current_data = response.__dict__()
+    serial = data["inverter_ser"]
+    self.collect()
+
 class InfluxOutputPlugin(OutputPluginFactory):
     """ Influx2 output plugin """
     api = None
