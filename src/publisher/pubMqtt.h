@@ -238,6 +238,10 @@ class PubMqtt {
             if(!mCfgMqtt->enableRetain)
                 retained = false;
 
+            // Home Assistant requires retained discovery messages
+            if(strncmp(subTopic, MQTT_DISCOVERY_PREFIX, strlen(MQTT_DISCOVERY_PREFIX)) == 0)
+                retained = true;
+
             mClient.publish(mTopic.data(), qos, retained, payload);
             yield();
             mTxCnt++;
