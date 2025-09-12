@@ -238,6 +238,10 @@ class PubMqtt {
             if(!mCfgMqtt->enableRetain)
                 retained = false;
 
+            // LWT messages should always be retained
+            if(strcmp(mTopic.data(), mLwtTopic.data()) == 0)
+                retained = true;
+
             mClient.publish(mTopic.data(), qos, retained, payload);
             yield();
             mTxCnt++;
