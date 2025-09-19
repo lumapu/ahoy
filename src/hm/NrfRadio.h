@@ -86,7 +86,7 @@ class NrfRadio : public Radio {
             #endif
             mNrf24->setRetries(3, 15); // wait 3*250 = 750us, 16 * 250us -> 4000us = 4ms
 
-            mNrf24->setDataRate(RF24_250KBPS);
+            mNrf24->setDataRate(RF24_250KBPS); // Start at 250KBPS by default, only MI Gen1 uses 2MBPS
             //mNrf24->setAutoAck(true); // enabled by default
             //mNrf24->enableDynamicAck();
             mNrf24->enableDynamicPayloads();
@@ -360,6 +360,7 @@ class NrfRadio : public Radio {
 
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
             mNrf24->setPALevel(iv->config->powerLevel & 0x03);
+            mNrf24->setDataRate(iv->radioDataRate);	// Change datarate for MI Gen1: uses 2MBPS
             updateCrcs(&len, appendCrc16);
 
             // set TX and RX channels

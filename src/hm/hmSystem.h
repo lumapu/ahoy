@@ -33,19 +33,22 @@ class HmSystem {
                 switch(iv->config->serial.b[4]) {
                     case 0x24: // HMS-500
                     case 0x22:
-                    case 0x21: iv->type = INV_TYPE_1CH;
+                    case 0x21:
+                    case 0x20: iv->type = INV_TYPE_1CH;
                         break;
 
                     case 0x25: // HMS-400 - 1 channel but payload like 2ch
 
                     case 0x44: // HMS-1000
                     case 0x42:
-                    case 0x41: iv->type = INV_TYPE_2CH;
+                    case 0x41:
+                    case 0x40: iv->type = INV_TYPE_2CH;
                         break;
 
                     case 0x64: // HMS-2000
                     case 0x62:
-                    case 0x61: iv->type = INV_TYPE_4CH;
+                    case 0x61:
+                    case 0x60: iv->type = INV_TYPE_4CH;
                         break;
 
                     default:
@@ -67,6 +70,9 @@ class HmSystem {
                 } else {  // MI 2nd Gen
                     iv->ivGen = IV_MI;
                     iv->ivRadioType = INV_RADIO_TYPE_NRF;
+                    if((iv->config->serial.b[4] & 0x01) == 0x00) { // MI 1st Gen -> uses 2MBPS data rate
+                        iv->radioDataRate = RF24_2MBPS;
+                    }
                 }
             } else if(iv->config->serial.b[5] == 0x13) {
                 iv->ivGen = IV_HMT;
@@ -100,7 +106,7 @@ class HmSystem {
             } else if(iv->config->serial.b[5] == 0x13)
                 DBGPRINT("HMT");
             else
-                DBGPRINT(((iv->config->serial.b[4] & 0x03) == 0x01) ? " (2nd Gen) " : " (3rd Gen) ");
+                DBGPRINT(((iv->config->serial.b[4] & 0x03) == 0x00) ? " (1st Gen) " : (((iv->config->serial.b[4] & 0x03) == 0x01) ? " (2nd Gen) " : " (3rd Gen) "));
 
             DBGPRINTLN(String(iv->config->serial.u64, HEX));
 

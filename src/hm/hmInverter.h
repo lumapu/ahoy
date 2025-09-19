@@ -23,6 +23,7 @@
 #include "../config/settings.h"
 
 #include "Radio.h"
+#include <RF24.h>
 /**
  * For values which are of interest and not transmitted by the inverter can be
  * calculated automatically.
@@ -126,6 +127,7 @@ class Inverter {
     public:
         uint8_t       ivGen = IV_UNKNOWN;                   // generation of inverter (HM / MI)
         uint8_t       ivRadioType = INV_RADIO_TYPE_UNKNOWN; // refers to used radio (nRF24 / CMT)
+        rf24_datarate_e radioDataRate = RF24_250KBPS;       // refers to datarate, only 1Gen MI uses 2MBPS
         cfgIv_t       *config = nullptr;                    // stored settings
         uint8_t       id = 0;                               // unique id
         uint8_t       type = INV_TYPE_1CH;                  // integer which refers to inverter type
