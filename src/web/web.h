@@ -598,6 +598,7 @@ class Web {
             mConfig->mqtt.json = (request->arg("mqttJson") == "on");
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
+            mConfig->mqtt.sendConfigOnConnect = (request->arg("sendConfigOnConnect") == "on");
             mConfig->mqtt.enableRetain = (request->arg("retain") == "on");
 
             // serial console

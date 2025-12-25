@@ -166,6 +166,7 @@ typedef struct {
     bool json;
     uint16_t interval;
     bool enableRetain;
+    bool sendConfigOnConnect;
 } cfgMqtt_t;
 
 typedef struct {
@@ -473,6 +474,7 @@ class settings {
             mCfg.mqtt.interval = 0; // off
             mCfg.mqtt.json = false; // off
             mCfg.mqtt.enableRetain = true;
+            mCfg.mqtt.sendConfigOnConnect = false;
 
             mCfg.inst.sendInterval       = SEND_INTERVAL;
             mCfg.inst.rstValsAtMidNight   = false;
@@ -728,6 +730,7 @@ class settings {
                 obj[F("json")]     = mCfg.mqtt.json;
                 obj[F("intvl")]    = mCfg.mqtt.interval;
                 obj[F("retain")]   = mCfg.mqtt.enableRetain;
+                obj[F("sendConfigOnConnect")] = mCfg.mqtt.sendConfigOnConnect;
 
             } else {
                 getVal<uint16_t>(obj, F("port"), &mCfg.mqtt.port);
@@ -739,6 +742,7 @@ class settings {
                 getChar(obj, F("pwd"), mCfg.mqtt.pwd, MQTT_PWD_LEN);
                 getChar(obj, F("topic"), mCfg.mqtt.topic, MQTT_TOPIC_LEN);
                 getVal<bool>(obj, F("retain"), &mCfg.mqtt.enableRetain);
+                getVal<bool>(obj, F("sendConfigOnConnect"), &mCfg.mqtt.sendConfigOnConnect);
             }
         }
 

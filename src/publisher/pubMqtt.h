@@ -303,6 +303,8 @@ class PubMqtt {
                 subscribe(mVal.data());
             }
             subscribe(subscr[MQTT_SUBS_SET_TIME]);
+            if(mCfgMqtt->sendConfigOnConnect)
+                sendDiscoveryConfig();
         }
 
         void onDisconnect(espMqttClientTypes::DisconnectReason reason) {

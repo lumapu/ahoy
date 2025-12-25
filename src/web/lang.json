@@ -495,8 +495,8 @@
                 },
                 {
                     "token": "BTN_SEND",
-                    "en": "send",
-                    "de": "senden"
+                    "en": "Force send",
+                    "de": "Senden erzwingen"
                 },
                 {
                     "token": "BTN_REBOOT_SUCCESSFUL_SAVE",
@@ -822,6 +822,11 @@
                     "token": "NO_NETWORK_FOUND",
                     "en": "no network found",
                     "de": "kein Netzwerk gefunden"
+                },
+                {
+                    "token": "SEND_CONFIG_ON_CONNECT",
+                    "en": "Send discovery config on MQTT connect",
+                    "de": "Discovery-Konfiguration beim MQTT-Verbindungsaufbau senden"
                 }
             ]
         },

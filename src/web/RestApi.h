@@ -731,6 +731,7 @@ class RestApi {
             obj[F("json")]       = (bool) mConfig->mqtt.json;
             obj[F("interval")]   = String(mConfig->mqtt.interval);
             obj[F("retain")]     = (bool)mConfig->mqtt.enableRetain;
+            obj[F("sendConfigOnConnect")] = (bool)mConfig->mqtt.sendConfigOnConnect;
         }
 
         void getNtp(JsonObject obj) {
