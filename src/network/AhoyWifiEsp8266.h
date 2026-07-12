@@ -37,13 +37,24 @@ class AhoyWifi : public AhoyNetwork {
                         mOnNetworkCB(false);
                         mAp.enable();
                         MDNS.end();
+                        mDirectAttempts = 0;
                     }
 
                     if (WiFi.softAPgetStationNum() > 0) {
                         DBGPRINTLN(F("AP client connected"));
                     }
                     #if !defined(AP_ONLY)
-                    else if (!mScanActive) {
+                    else if (mConfig->sys.isHidden && (mDirectAttempts < MAX_DIRECT_ATTEMPTS) && !mScanActive) {
+                        DBGPRINT(F("hidden SSID direct connect attempt "));
+                        DBGPRINTLN(String(mDirectAttempts + 1));
+                        mBSSIDList.clear();
+                        setStaticIp();
+                        WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd);
+                        mDirectAttempts++;
+                        mWifiConnecting = true;
+                        mCnt = 0;
+                        mStatus = NetworkState::CONNECTING;
+                    } else if (!mScanActive) {
                         DBGPRINT(F("scanning APs with SSID "));
                         DBGPRINTLN(String(mConfig->sys.stationSsid));
                         mScanCnt = 0;
@@ -92,6 +103,7 @@ class AhoyWifi : public AhoyNetwork {
                     if(!mConnected) {
                         mAp.disable();
                         mConnected = true;
+                        mDirectAttempts = 0;
                         ah::welcome(WiFi.localIP().toString(), F("Station"));
                         MDNS.begin(mConfig->sys.deviceName);
                         MDNSResponder::hMDNSService hRes = MDNS.addService(NULL, "http", "tcp", 80);
@@ -161,10 +173,12 @@ class AhoyWifi : public AhoyNetwork {
     private:
         uint8_t mCnt = 0;
         uint8_t mScanCnt = 0;
+        uint8_t mDirectAttempts = 0;
         std::list<uint8_t> mBSSIDList;
         bool mWasInCh12to14 = false;
         static constexpr uint8_t TIMEOUT = 20;
         static constexpr uint8_t SCAN_TIMEOUT = 10;
+        static constexpr uint8_t MAX_DIRECT_ATTEMPTS = 3;
 };
 
 #endif /*ESP8266*/
