@@ -247,9 +247,13 @@ class AhoyNetwork {
         }
 
         void handleNTPPacket(AsyncUDPPacket packet) {
-            char buf[80];
+            if(packet.length() < NTP_PACKET_SIZE) {
+                DPRINTLN(DBG_WARN, F("NTP packet too short"));
+                return;
+            }
 
-            memcpy(buf, packet.data(), sizeof(buf));
+            uint8_t buf[NTP_PACKET_SIZE];
+            memcpy(buf, packet.data(), NTP_PACKET_SIZE);
 
             unsigned long highWord = word(buf[40], buf[41]);
             unsigned long lowWord = word(buf[42], buf[43]);
@@ -258,9 +262,19 @@ class AhoyNetwork {
             // this is NTP time (seconds since Jan 1 1900):
             unsigned long secsSince1900 = highWord << 16 | lowWord;
 
+            // 3786825600 = 2020-01-01 in NTP era (2208988800 + 1577836800);
+            // reject anything before that to guard against corrupt packets
+            // and prevent unsigned underflow in the epoch subtraction
+            if(secsSince1900 < 3786825600UL) {
+                DPRINTLN(DBG_WARN, F("NTP epoch out of range"));
+                return;
+            }
+
+            uint32_t epoch = secsSince1900 - 2208988800UL;
+
             mUdp.close();
-            mNtpTimeoutSec = 0; // clear timeout
-            mOnTimeCB(secsSince1900 - 2208988800UL);
+            mNtpTimeoutSec = 0;
+            mOnTimeCB(epoch);
         }
 
     protected:
