@@ -91,6 +91,7 @@ class AhoyWifi : public AhoyNetwork {
                 case NetworkState::GOT_IP:
                     if(!mConnected) {
                         mAp.disable();
+                        WiFi.setSleepMode(WIFI_NONE_SLEEP);
                         mConnected = true;
                         ah::welcome(WiFi.localIP().toString(), F("Station"));
                         MDNS.begin(mConfig->sys.deviceName);
