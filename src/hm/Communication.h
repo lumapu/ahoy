@@ -242,6 +242,9 @@ class Communication : public CommQueue<> {
                     break;
 
                 case States::CHECK_PACKAGE:
+#if AHOY_HMS_DIAGNOSTICS
+                    printFrameMap(q, F("check"));
+#endif
                     uint8_t framnr = 0;
                     if(0 == mMaxFrameId) {
                         uint8_t i = 0;
@@ -296,6 +299,9 @@ class Communication : public CommQueue<> {
                         q->setAttempt();
 
                         if(*mSerialDebug) {
+#if AHOY_HMS_DIAGNOSTICS
+                            printFrameMap(q, F("before retransmit"));
+#endif
                             DPRINT_IVID(DBG_WARN, q->iv->id);
                             DBGPRINT(F("frame "));
                             DBGPRINT(String(framnr));
@@ -420,6 +426,44 @@ class Communication : public CommQueue<> {
             return (ah::crc8(buf, len - 1) == buf[len-1]);
         }
 
+#if AHOY_HMS_DIAGNOSTICS
+        inline void printFrameMap(QueueElement *q, const char *stage) {
+            if(!*mSerialDebug)
+                return;
+
+            DPRINT_IVID(DBG_INFO, q->iv->id);
+            DBGPRINT(stage);
+            DBGPRINT(F(" frames: max="));
+            DBGPRINT(String(mMaxFrameId));
+            DBGPRINT(F(" received=["));
+            bool first = true;
+            uint8_t limit = (mMaxFrameId > 0) ? mMaxFrameId : MAX_PAYLOAD_ENTRIES;
+            for(uint8_t i = 0; i < limit; i++) {
+                if(mLocalBuf[i].len > 0) {
+                    if(!first) DBGPRINT(F(","));
+                    DBGPRINT(String(i + 1));
+                    DBGPRINT(F("("));
+                    DBGPRINT(String(mLocalBuf[i].len));
+                    DBGPRINT(F("B)"));
+                    first = false;
+                }
+            }
+            DBGPRINT(F("] missing=["));
+            first = true;
+            for(uint8_t i = 0; i < limit; i++) {
+                if(mLocalBuf[i].len == 0) {
+                    if(!first) DBGPRINT(F(","));
+                    DBGPRINT(String(i + 1));
+                    first = false;
+                }
+            }
+            DBGPRINT(F("] attempts="));
+            DBGPRINT(String(q->attempts));
+            DBGPRINT(F(" retransmit="));
+            DBGPRINTLN(mIsRetransmit ? F("yes") : F("no"));
+        }
+#endif
+
         inline bool parseFrame(QueueElement *q, packet_t *p) {
             uint8_t *frameId = &p->packet[9];
             if(0x00 == *frameId) {
@@ -446,6 +490,21 @@ class Communication : public CommQueue<> {
             memcpy(f->buf, &p->packet[10], p->len-11);
             f->len  = p->len - 11;
             f->rssi = p->rssi;
+
+#if AHOY_HMS_DIAGNOSTICS
+            if(*mSerialDebug) {
+                DPRINT_IVID(DBG_INFO, q->iv->id);
+                DBGPRINT(F("stored frame "));
+                DBGPRINT(String(*frameId & 0x7f));
+                DBGPRINT(F(" last="));
+                DBGPRINT((*frameId & ALL_FRAMES) ? F("yes") : F("no"));
+                DBGPRINT(F(" bytes="));
+                DBGPRINT(String(f->len));
+                DBGPRINT(F(" max="));
+                DBGPRINTLN(String(mMaxFrameId));
+                printFrameMap(q, F("after RX"));
+            }
+#endif
 
             return true;
         }
@@ -613,6 +672,15 @@ class Communication : public CommQueue<> {
         }
 
         void sendRetransmit(QueueElement *q, uint8_t i) {
+#if AHOY_HMS_DIAGNOSTICS
+            if(*mSerialDebug) {
+                DPRINT_IVID(DBG_INFO, q->iv->id);
+                DBGPRINT(F("send retransmit request: frame="));
+                DBGPRINT(String(i + 1));
+                DBGPRINT(F(" cmd=0x"));
+                DBGHEXLN(SINGLE_FRAME + i);
+            }
+#endif
             mFramesExpected = 1;
             q->iv->radio->setExpectedFrames(mFramesExpected);
             q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
