@@ -26,7 +26,7 @@ template <uint8_t N=100>
 #endif
 class CommQueue {
     protected: /* types */
-        static constexpr uint8_t DefaultAttempts = 5;
+        static constexpr uint8_t DefaultAttempts = 13;
         static constexpr uint8_t MoreAttemptsAlarmData = 3;
         static constexpr uint8_t MoreAttemptsGridProfile = 0;
 
