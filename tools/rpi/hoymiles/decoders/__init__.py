@@ -268,6 +268,7 @@ class EventsResponse(UnknownResponse):
             147: 'Power grid outage', # 0x93
             148: 'Grid disconnection', # 0x94
             149: 'Island detected', # 0x95
+            151: 'Severe grid wave distortion', # 0x97
             205: 'Input port 1 & 2 overvoltage', # 0xCD
             206: 'Input port 3 & 4 overvoltage', # 0xCE
             207: 'Input port 1 & 2 undervoltage', # 0xCF
