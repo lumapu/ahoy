@@ -268,6 +268,7 @@ class EventsResponse(UnknownResponse):
             147: 'Power grid outage', # 0x93
             148: 'Grid disconnection', # 0x94
             149: 'Island detected', # 0x95
+            151: 'Severe grid wave distortion', # 0x97
             205: 'Input port 1 & 2 overvoltage', # 0xCD
             206: 'Input port 3 & 4 overvoltage', # 0xCE
             207: 'Input port 1 & 2 undervoltage', # 0xCF
@@ -286,6 +287,7 @@ class EventsResponse(UnknownResponse):
             220: 'PV-3 Input undervoltage', # 0xDC
             221: 'PV-4 Input overvoltage', # 0xDD
             222: 'PV-4 Input undervoltage', # 0xDE
+            223: 'Grid connection attempt failed', #0xDF
             301: 'Hardware error code 301', # 0x012D
             302: 'Hardware error code 302', # 0x012E
             303: 'Hardware error code 303', # 0x012F

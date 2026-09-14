@@ -732,7 +732,8 @@ class Inverter {
                 case 149:  return String(F("Grid: Island detected"));
 
                 case 150:  return String(F("DCI exceeded"));
-
+                case 151:  return String(F("Grid: Severe grid wave distortion"));
+                
                 case 171:  return String(F("Grid: Abnormal phase difference between phase to phase"));
                 case 181:  return String(F("Abnormal insulation impedance"));
                 case 182:  return String(F("Abnormal grounding"));
@@ -754,6 +755,8 @@ class Inverter {
                 case 220:  return String(F("PV-3: Input undervoltage"));
                 case 221:  return String(F("PV-4: Input overvoltage"));
                 case 222:  return String(F("PV-4: Input undervoltage"));
+
+                case 223:  return String(F("Grid: Connection attempt failed"));
 
                 case 301:  return String(F("FB short circuit failure"));
                 case 302:  return String(F("FB short circuit failure"));
