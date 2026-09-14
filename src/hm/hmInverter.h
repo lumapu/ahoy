@@ -732,7 +732,8 @@ class Inverter {
                 case 149:  return String(F("Grid: Island detected"));
 
                 case 150:  return String(F("DCI exceeded"));
-
+                case 151:  return String(F("Grid: Severe grid wave distortion"));
+                
                 case 171:  return String(F("Grid: Abnormal phase difference between phase to phase"));
                 case 181:  return String(F("Abnormal insulation impedance"));
                 case 182:  return String(F("Abnormal grounding"));
