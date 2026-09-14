@@ -674,12 +674,14 @@ class Inverter {
             start     = (((uint16_t)pyld[startOff + 4] << 8) | ((uint16_t)pyld[startOff + 5])) + startTimeOffset;
             endTime   = (((uint16_t)pyld[startOff + 6] << 8) | ((uint16_t)pyld[startOff + 7])) + endTimeOffset;
 
-            DPRINTLN(DBG_DEBUG, "Alarm #" + String(pyld[startOff+1]) + " '" + String(getAlarmStr(pyld[startOff+1])) + "' start: " + ah::getTimeStr(start) + ", end: " + ah::getTimeStr(endTime));
-            addAlarm(pyld[startOff+1], start, endTime);
+            uint16_t code = wCode & 0x0FFF;
+
+            DPRINTLN(DBG_DEBUG, "Alarm #" + String(code) + " '" + String(getAlarmStr(code)) + "' start: " + ah::getTimeStr(start) + ", end: " + ah::getTimeStr(endTime));
+            addAlarm(code, start, endTime);
 
             alarmLastId = alarmMesIndex;
 
-            return pyld[startOff+1];
+            return code;
         }
 
         static String getAlarmStr(uint16_t alarmCode) {
