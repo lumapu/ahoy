@@ -756,6 +756,8 @@ class Inverter {
                 case 221:  return String(F("PV-4: Input overvoltage"));
                 case 222:  return String(F("PV-4: Input undervoltage"));
 
+                case 223:  return String(F("Grid: Connection attempt failed"));
+
                 case 301:  return String(F("FB short circuit failure"));
                 case 302:  return String(F("FB short circuit failure"));
                 case 303:  return String(F("FB overcurrent protection failure"));
